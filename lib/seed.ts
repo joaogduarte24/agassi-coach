@@ -8,9 +8,9 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 83, dtl_in: 79, spd_cc: 67, spd_dtl: 70, depth_cc: 50, depth_dtl: 43 },
     backhand: { cc_in: 87, dtl_in: 58, spd_cc: 65, spd_dtl: 62, depth_cc: 25, depth_dtl: 23 },
     shot_stats: { winners: 9, ue: 23, df: 3, bp_saved_pct: 67, bp_won_pct: 43 },
-    what_worked: ["23 UEs — record low. Outclassed opponent on errors (35 vs 23).", "BH CC 87% — best single shot in tracked history.", "Serve speed highest recorded — 91/92 km/h."],
-    what_didnt: ["BH depth critical — CC 25%, DTL 23%. Parking balls mid-court.", "Return depth weak (33-41%).", "BH DTL 58% — missing 1 in 2 going DTL."],
-    key_number: "BH depth 25% CC deep. At 3.5+ those short backhands become the point every rally."
+    what_worked: ["23 UEs — record low. Outclassed opponent on errors (35 vs 23). This error margin is the template.", "BH CC at 87% — best single shot in tracked history. The backhand is capable when not under pressure.", "Serve speed highest recorded — 91/92 km/h."],
+    what_didnt: ["BH depth critical — CC deep 25%, DTL deep 23%. Parking balls mid-court gifts attacking shots.", "Return depth weak (33-41%). Good rate but short landing zone.", "BH DTL at 58% — missing almost 1 in 2 going DTL."],
+    key_number: "Backhand depth: 25% CC deep, 23% DTL deep. At 3.5+ those short backhands become the point every rally."
   },
   {
     id: "2026-01-17-nuno",
@@ -21,9 +21,9 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 85, dtl_in: 88, spd_cc: 75, spd_dtl: 71, depth_cc: 50, depth_dtl: 47 },
     backhand: { cc_in: 81, dtl_in: 71, spd_cc: 63, spd_dtl: 62, depth_cc: 36, depth_dtl: 50 },
     shot_stats: { winners: 19, ue: 33, df: 6, bp_saved_pct: 67, bp_won_pct: 40 },
-    what_worked: ["FH 85/88% — two matches running. That's a pattern.", "Return: 86/85% on 1st, Deuce depth 71%.", "19 winners — highest tracked."],
-    what_didnt: ["6 DFs despite strong 2nd serve %.", "BH CC depth 36% — lands mid-court.", "BP conversion 40% (6/15)."],
-    key_number: "BH CC depth 36%. Forehand is a weapon. Backhand is gifting the next ball."
+    what_worked: ["FH reliability 85/88% — two matches in a row. That's a pattern.", "Return game: 86/85% on 1st returns, Deuce depth at 71%.", "19 winners — highest tracked. Starting to construct and finish points."],
+    what_didnt: ["6 double faults — donating free points under pressure.", "BH CC depth 36% — ball goes in but lands mid-court.", "BP conversion 40% (6/15) — miss this rate vs 3.5+ and drop sets."],
+    key_number: "BH CC depth 36%. Forehand is now a weapon. Backhand is landing short and gifting the next ball."
   },
   {
     id: "2026-01-18-renato",
@@ -34,9 +34,9 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 85, dtl_in: 87, spd_cc: 68, spd_dtl: 65, depth_cc: 40, depth_dtl: 43 },
     backhand: { cc_in: 86, dtl_in: 79, spd_cc: 67, spd_dtl: 62, depth_cc: 51, depth_dtl: 37 },
     shot_stats: { winners: 13, ue: 35, df: 1, bp_saved_pct: 33, bp_won_pct: 50 },
-    what_worked: ["FH best ever — 85/87%. When committed, the shot is there.", "2nd serve near-perfect (90/100%). Only 1 DF.", "Return 84/88% on 1st returns."],
-    what_didnt: ["Lost TB 10-12. Mental execution.", "FH depth 40% CC despite high in-rate.", "2nd return depth collapsed to 33%."],
-    key_number: "10-12 super tiebreak. Stats 50/50. Mental execution loss."
+    what_worked: ["FH contact best ever — 85/87%. When committed, the shot is there.", "2nd serve near-perfect (90/100%). Only 1 DF.", "Return rate strong — 84/88% on 1st returns."],
+    what_didnt: ["Lost super tiebreak 10-12. Mental execution cost this.", "FH depth 40% CC despite high in-rate. Landing mid-court.", "2nd return depth collapsed to 33%."],
+    key_number: "10-12 super tiebreak. Stats were 50/50. Mental execution loss."
   },
   {
     id: "2026-02-03-goncalo1",
@@ -47,9 +47,9 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 76, dtl_in: 77, spd_cc: 71, spd_dtl: 72, depth_cc: null, depth_dtl: null },
     backhand: { cc_in: null, dtl_in: null, spd_cc: null, spd_dtl: null, depth_cc: null, depth_dtl: null },
     shot_stats: { winners: 17, ue: 38, df: 4, bp_saved_pct: 44, bp_won_pct: 28 },
-    what_worked: ["Won set 1 6-4.", "2nd serve solid (84/75%).", "FH 76/77%."],
-    what_didnt: ["BP 28% (5/18) — created, couldn't cash.", "Deuce return depth 31%.", "Super TB execution."],
-    key_number: "5/18 BP won. The opportunities were there."
+    what_worked: ["Won set 1 6-4. Game plan to start strong worked.", "2nd serve solid (84/75%). Not donating DFs.", "FH 76/77% — functional."],
+    what_didnt: ["BP conversion 28% (5/18) — created chances, couldn't cash.", "Deuce return depth 31% — free attacking balls every hold.", "Super tiebreak execution."],
+    key_number: "5/18 break points won (28%). The opportunities were there."
   },
   {
     id: "2026-02-06-goncalo2",
@@ -60,9 +60,9 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 73, dtl_in: 71, spd_cc: 68, spd_dtl: 66, depth_cc: 41, depth_dtl: 51 },
     backhand: { cc_in: 62, dtl_in: 83, spd_cc: 66, spd_dtl: 65, depth_cc: 43, depth_dtl: 61 },
     shot_stats: { winners: null, ue: null, df: null, bp_saved_pct: null, bp_won_pct: null },
-    what_worked: ["Ad return 93% — best ever.", "BH DTL 83% standout.", "Won despite 2nd serve struggles."],
-    what_didnt: ["2nd serve 50/44% — dangerously low.", "FH CC 73%.", "BH CC depth 43%."],
-    key_number: "2nd serve 50/44%. Won — won't hold at 3.5+."
+    what_worked: ["Ad return 93% — best ever. Owned his serve.", "BH DTL 83% standout.", "Won despite 2nd serve struggles."],
+    what_didnt: ["2nd serve 50/44% — dangerously low.", "FH CC 73% — needed BH DTL to compensate.", "BH CC depth 43% — still short."],
+    key_number: "2nd serve 50/44%. Won anyway — won't work against 3.5+."
   },
   {
     id: "2026-02-16-goncalo3",
@@ -73,9 +73,9 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 89, dtl_in: 75, spd_cc: 76, spd_dtl: 67, depth_cc: 58, depth_dtl: 50 },
     backhand: { cc_in: 85, dtl_in: 76, spd_cc: 64, spd_dtl: 62, depth_cc: 64, depth_dtl: 47 },
     shot_stats: { winners: 13, ue: 39, df: 1, bp_saved_pct: 56, bp_won_pct: 37 },
-    what_worked: ["FH CC 89% — best ever. Genuine weapon.", "BH CC depth 64% — best tracked.", "Return elite (88/72%, 100/88%)."],
-    what_didnt: ["39 UEs in clusters.", "BP conversion 37%.", "Ad 1st serve 75% — still the weaker side."],
-    key_number: "The template. FH CC 89% + BH depth 64% = easy win. Replicate it."
+    what_worked: ["FH CC 89% — best ever. Genuine weapon.", "BH CC depth 64% — best tracked.", "Return elite (88/72%, 100/88%). Owned Gonçalo's serve."],
+    what_didnt: ["39 UEs — errors in clusters.", "BP conversion 37% — quality there, not cashing enough.", "Ad 1st serve 75% — still the weaker side."],
+    key_number: "This was the template. FH CC 89% + BH depth 64% = easy win. Replicate it."
   },
   {
     id: "2026-02-17-unknown437",
@@ -86,8 +86,8 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 43, dtl_in: 68, spd_cc: 66, spd_dtl: 67, depth_cc: 20, depth_dtl: 42 },
     backhand: { cc_in: 72, dtl_in: 69, spd_cc: 69, spd_dtl: 68, depth_cc: 50, depth_dtl: 35 },
     shot_stats: { winners: 10, ue: 46, df: 4, bp_saved_pct: 38, bp_won_pct: 6 },
-    what_worked: ["2nd serve held — only 4 DFs.", "BH CC 72% held structure.", "Serve pace peaked on hard."],
-    what_didnt: ["FH CC 43% — cannot rally at this level.", "Return depth 27% Ad.", "1/16 BP won."],
+    what_worked: ["2nd serve held — only 4 DFs.", "BH CC 72% held structure.", "Serve pace peaked on hard — 81 km/h."],
+    what_didnt: ["FH CC 43% — cannot rally at this level.", "Return depth 27% Ad — free attacking balls.", "1/16 BP won — created, couldn't close."],
     key_number: "1/16 BP won. Got there. Couldn't close."
   },
   {
@@ -99,8 +99,8 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 58, dtl_in: 76, spd_cc: 66, spd_dtl: 65, depth_cc: 36, depth_dtl: 46 },
     backhand: { cc_in: 77, dtl_in: 66, spd_cc: 60, spd_dtl: 61, depth_cc: 42, depth_dtl: 33 },
     shot_stats: { winners: 19, ue: 52, df: 13, bp_saved_pct: 88, bp_won_pct: null },
-    what_worked: ["BP defense 88%.", "2nd return Ad 84%.", "BH CC 77% held structure."],
-    what_didnt: ["52 UEs — too many.", "FH depth 36% CC deep.", "13 DFs."],
+    what_worked: ["BP defense 88% — exceptional.", "2nd return Ad 84% — owned their serve.", "BH CC 77% held structure."],
+    what_didnt: ["52 UEs — too many even vs 2.5.", "FH depth 36% CC deep.", "13 DFs — serve a net negative."],
     key_number: "52 UEs. Won vs 2.5. Against 3.5+ this scoreline flips."
   },
   {
@@ -112,8 +112,8 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 73, dtl_in: 76, spd_cc: 68, spd_dtl: 76, depth_cc: null, depth_dtl: null },
     backhand: { cc_in: null, dtl_in: null, spd_cc: null, spd_dtl: null, depth_cc: null, depth_dtl: null },
     shot_stats: { winners: 11, ue: 41, df: 3, bp_saved_pct: 45, bp_won_pct: 33 },
-    what_worked: ["Return 86/85% — exceptional.", "Only 3 DFs.", "2nd return depth 60/62%."],
-    what_didnt: ["11W vs 41UE.", "Deuce 1st serve 50%.", "BP conversion 33%."],
+    what_worked: ["Return 86/85% — exceptional.", "Only 3 DFs.", "2nd return depth improved (60/62%)."],
+    what_didnt: ["11W vs 41UE — not winning points.", "Deuce 1st serve 50% — fatal.", "BP conversion 33%."],
     key_number: "11W vs 41UE. Need to win points at 3.5+, not just avoid losing them."
   },
   {
@@ -125,8 +125,8 @@ export const SEED_MATCHES = [
     forehand: { cc_in: 76, dtl_in: 82, spd_cc: 70, spd_dtl: 67, depth_cc: 50, depth_dtl: 44 },
     backhand: { cc_in: 71, dtl_in: 77, spd_cc: 66, spd_dtl: 64, depth_cc: 47, depth_dtl: 38 },
     shot_stats: { winners: 5, ue: 43, df: 4, bp_saved_pct: 64, bp_won_pct: 67 },
-    what_worked: ["Return depth best of Gonçalo series — 59/73%.", "2nd serve held (87/86%), 4 DFs.", "BP conversion 67% (4/6) — best tracked."],
-    what_didnt: ["5 winners — lowest ever. Too passive.", "1st serve 60/62% — weakest Gonçalo match.", "Lost TB 6-10 — 2nd TB loss vs Gonçalo."],
+    what_worked: ["Return depth best of Gonçalo series — 59/73% deep.", "2nd serve held (87/86%) with only 4 DFs.", "BP conversion 67% (4/6) — best tracked."],
+    what_didnt: ["5 winners — lowest ever. Too passive.", "1st serve 60/62% — weakest Gonçalo match.", "Lost super tiebreak 6-10 — 2nd TB loss vs Gonçalo."],
     key_number: "5 winners. Can't win a super tiebreak being purely reactive."
   }
 ]
