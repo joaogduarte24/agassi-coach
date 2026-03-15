@@ -311,6 +311,93 @@ function MiniChart({ data, color, labels }: any) {
   )
 }
 
+// ─── RADAR CHART ──────────────────────────────────────────────────────────────
+function RadarChart({ jdValues, atpValues, labels }: { jdValues: number[]; atpValues: number[] | null; labels: string[] }) {
+  const size = 220
+  const cx = size / 2, cy = size / 2
+  const r = 82
+  const n = labels.length
+  const levels = 4
+
+  const angleOf = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2
+
+  const point = (val: number, i: number) => {
+    const angle = angleOf(i)
+    const d = (val / 100) * r
+    return { x: cx + d * Math.cos(angle), y: cy + d * Math.sin(angle) }
+  }
+
+  const labelPoint = (i: number) => {
+    const angle = angleOf(i)
+    const d = r + 18
+    return { x: cx + d * Math.cos(angle), y: cy + d * Math.sin(angle) }
+  }
+
+  const polyPath = (pts: { x: number; y: number }[]) =>
+    pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ') + 'Z'
+
+  const gridPts = (frac: number) =>
+    Array.from({ length: n }, (_, i) => {
+      const angle = angleOf(i)
+      return { x: cx + r * frac * Math.cos(angle), y: cy + r * frac * Math.sin(angle) }
+    })
+
+  const jdPts = jdValues.map((v, i) => point(Math.min(v, 100), i))
+  const atpPts = atpValues ? atpValues.map((v, i) => point(Math.min(v, 100), i)) : null
+
+  const W = size + 60 // extra for labels
+
+  return (
+    <svg viewBox={`-30 -20 ${W} ${size + 40}`} style={{ width: '100%', maxWidth: 320 }}>
+      {/* Grid rings */}
+      {Array.from({ length: levels }, (_, li) => {
+        const frac = (li + 1) / levels
+        const gp = gridPts(frac)
+        return (
+          <polygon key={li} points={gp.map(p => `${p.x},${p.y}`).join(' ')}
+            fill="none" stroke="#1e1e1e" strokeWidth="1" />
+        )
+      })}
+      {/* Spokes */}
+      {Array.from({ length: n }, (_, i) => {
+        const angle = angleOf(i)
+        return (
+          <line key={i} x1={cx} y1={cy}
+            x2={cx + r * Math.cos(angle)} y2={cy + r * Math.sin(angle)}
+            stroke="#1a1a1a" strokeWidth="1" />
+        )
+      })}
+      {/* ATP polygon */}
+      {atpPts && (
+        <path d={polyPath(atpPts)} fill="rgba(251,191,36,0.08)" stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="4 3" />
+      )}
+      {/* JD polygon */}
+      <path d={polyPath(jdPts)} fill="rgba(74,222,128,0.12)" stroke="#4ade80" strokeWidth="2" />
+      {/* JD dots */}
+      {jdPts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#4ade80" />
+      ))}
+      {/* ATP dots */}
+      {atpPts && atpPts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3" fill="#fbbf24" />
+      ))}
+      {/* Labels */}
+      {labels.map((label, i) => {
+        const lp = labelPoint(i)
+        const anchor = lp.x < cx - 5 ? 'end' : lp.x > cx + 5 ? 'start' : 'middle'
+        return (
+          <text key={i} x={lp.x} y={lp.y + 4} textAnchor={anchor}
+            fontSize="9" fill="#555" fontFamily="monospace" letterSpacing="0.5">
+            {label}
+          </text>
+        )
+      })}
+      {/* Center dot */}
+      <circle cx={cx} cy={cy} r="2" fill="#252525" />
+    </svg>
+  )
+}
+
 // ─── COMPARE BAR ──────────────────────────────────────────────────────────────
 function CompareBar({ label, jd, atp, gThresh, aThresh, suffix='%', maxVal }: any) {
   if (jd == null) return null
@@ -343,6 +430,45 @@ function JDStats({ matches, avgs }: { matches: any[]; avgs: any }) {
   const [selectedPlayer, setSelectedPlayer] = useState<ATPPlayer | null>(null)
   const atp = selectedPlayer
 
+  // Radar axes — 8 key dimensions, each normalised 0-100
+  // normalise: map raw value to 0-100 scale where 100 = elite ceiling
+  const norm = (v: number | null, min: number, max: number) =>
+    v == null ? 0 : Math.min(100, Math.max(0, Math.round(((v - min) / (max - min)) * 100)))
+
+  const radarAxes = [
+    { label: '1ST SRV', jd: norm(avgs.s1_ad, 40, 80),       atp: norm(atp?.serve.first.pct_ad ?? null, 40, 80) },
+    { label: 'SRV SPD', jd: norm(avgs.spd_s1_ad, 70, 220),   atp: norm(atp?.serve.first.spd_ad ?? null, 70, 220) },
+    { label: '2ND SRV', jd: norm(avgs.s2_ad, 60, 95),        atp: norm(atp?.serve.second.pct_ad ?? null, 60, 95) },
+    { label: 'RETURN',  jd: norm(avgs.ret1_ad, 60, 95),      atp: norm(atp?.return.first.pct_ad ?? null, 60, 95) },
+    { label: 'FH CC',   jd: norm(avgs.fh_cc, 50, 95),        atp: norm(atp?.forehand.cc_in ?? null, 50, 95) },
+    { label: 'BH CC',   jd: norm(avgs.bh_cc, 50, 95),        atp: norm(atp?.backhand.cc_in ?? null, 50, 95) },
+    { label: 'BP GAME', jd: norm(avg(matches.map(m => m.shot_stats?.bp_saved_pct)), 30, 85), atp: norm(atp?.shot_stats.bp_saved_pct ?? null, 30, 85) },
+    { label: 'WINNERS', jd: norm(avg(matches.map(m => m.shot_stats?.winners)), 5, 50),      atp: norm(atp?.shot_stats.winners ?? null, 5, 50) },
+  ]
+
+  // Comparison rows for the summary panel — ordered by importance
+  const compRows: { label: string; jd: number | null; atp: number | null; unit: string; higherBetter: boolean; gT: number; aT: number }[] = [
+    { label: '1st Serve %',     jd: avgs.s1_ad,    atp: atp?.serve.first.pct_ad ?? null,    unit: '%',    higherBetter: true,  gT: 75, aT: 60 },
+    { label: '1st Srv Speed',   jd: avgs.spd_s1_ad, atp: atp?.serve.first.spd_ad ?? null,   unit: 'km/h', higherBetter: true,  gT: 185, aT: 160 },
+    { label: '2nd Serve %',     jd: avgs.s2_ad,    atp: atp?.serve.second.pct_ad ?? null,   unit: '%',    higherBetter: true,  gT: 80, aT: 65 },
+    { label: '2nd Srv Speed',   jd: avgs.spd_s2_ad, atp: atp?.serve.second.spd_ad ?? null,  unit: 'km/h', higherBetter: true,  gT: 148, aT: 130 },
+    { label: '1st Return %',    jd: avgs.ret1_ad,  atp: atp?.return.first.pct_ad ?? null,   unit: '%',    higherBetter: true,  gT: 80, aT: 65 },
+    { label: '2nd Return %',    jd: avgs.ret2_ad,  atp: atp?.return.second.pct_ad ?? null,  unit: '%',    higherBetter: true,  gT: 80, aT: 65 },
+    { label: 'FH CC In %',      jd: avgs.fh_cc,    atp: atp?.forehand.cc_in ?? null,        unit: '%',    higherBetter: true,  gT: 80, aT: 65 },
+    { label: 'FH DTL In %',     jd: avgs.fh_dtl,   atp: atp?.forehand.dtl_in ?? null,       unit: '%',    higherBetter: true,  gT: 80, aT: 65 },
+    { label: 'BH CC In %',      jd: avgs.bh_cc,    atp: atp?.backhand.cc_in ?? null,        unit: '%',    higherBetter: true,  gT: 80, aT: 65 },
+    { label: 'BH DTL In %',     jd: avgs.bh_dtl,   atp: atp?.backhand.dtl_in ?? null,       unit: '%',    higherBetter: true,  gT: 80, aT: 65 },
+    { label: 'Winners / match', jd: avg(matches.map(m=>m.shot_stats?.winners)), atp: atp?.shot_stats.winners ?? null, unit: '', higherBetter: true, gT: 30, aT: 20 },
+    { label: 'Unforced Errors', jd: avg(matches.map(m=>m.shot_stats?.ue)),      atp: atp?.shot_stats.ue ?? null,      unit: '', higherBetter: false, gT: 30, aT: 42 },
+    { label: 'Double Faults',   jd: avg(matches.map(m=>m.shot_stats?.df)),      atp: atp?.shot_stats.df ?? null,      unit: '', higherBetter: false, gT: 3,  aT: 6 },
+    { label: 'BP Saved %',      jd: avg(matches.map(m=>m.shot_stats?.bp_saved_pct)), atp: atp?.shot_stats.bp_saved_pct ?? null, unit: '%', higherBetter: true,  gT: 70, aT: 50 },
+    { label: 'BP Won %',        jd: avg(matches.map(m=>m.shot_stats?.bp_won_pct)),   atp: atp?.shot_stats.bp_won_pct ?? null,   unit: '%', higherBetter: true,  gT: 50, aT: 35 },
+  ]
+
+  // Which rows does JD beat ATP on?
+  const ahead = atp ? compRows.filter(r => r.jd != null && r.atp != null && (r.higherBetter ? r.jd >= r.atp : r.jd <= r.atp)) : []
+  const behind = atp ? compRows.filter(r => r.jd != null && r.atp != null && (r.higherBetter ? r.jd < r.atp : r.jd > r.atp)) : []
+
   const SectionTitle = ({ title }: { title: string }) => (
     <div style={{ fontSize: 10, letterSpacing: 2, color: '#555', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14, marginTop: 24, borderBottom: '1px solid #1a1a1a', paddingBottom: 8 }}>{title}</div>
   )
@@ -366,7 +492,6 @@ function JDStats({ matches, avgs }: { matches: any[]; avgs: any }) {
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#e8d5b0' }}>JD Stats</div>
           <div style={{ fontSize: 11, color: '#444', fontFamily: 'monospace', marginTop: 2 }}>Averages across {matches.length} matches</div>
         </div>
-        {/* Dropdown */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
           <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>COMPARE VS</div>
           <select
@@ -382,16 +507,135 @@ function JDStats({ matches, avgs }: { matches: any[]; avgs: any }) {
         </div>
       </div>
 
-      {/* Legend */}
+      {/* ── RADAR + SUMMARY ROW ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8, alignItems: 'start' }}>
+
+        {/* Radar card */}
+        <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>Player Profile</div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <RadarChart
+              jdValues={radarAxes.map(a => a.jd)}
+              atpValues={atp ? radarAxes.map(a => a.atp) : null}
+              labels={radarAxes.map(a => a.label)}
+            />
+          </div>
+          {/* Legend */}
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#555', fontFamily: 'monospace' }}>
+              <div style={{ width: 18, height: 2, background: '#4ade80', borderRadius: 1 }} />
+              <span>JD</span>
+            </div>
+            {atp && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#555', fontFamily: 'monospace' }}>
+                <div style={{ width: 18, height: 2, background: '#fbbf24', borderRadius: 1, borderTop: '2px dashed #fbbf24' }} />
+                <span>{atp.name.split(' ')[1]}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Summary card */}
+        <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>
+            {atp ? `JD vs ${atp.name}` : 'Player Summary'}
+          </div>
+
+          {!atp ? (
+            // Solo summary — JD strengths and weaknesses
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: 1.5, color: G, textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 8 }}>Strengths</div>
+              {compRows.filter(r => r.jd != null && col(r.jd, r.gT, r.aT) === G).slice(0, 4).map((r, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
+                  <span style={{ fontSize: 12, color: '#777' }}>{r.label}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: 12, color: G }}>{r.jd}{r.unit}</span>
+                </div>
+              ))}
+              <div style={{ fontSize: 10, letterSpacing: 1.5, color: R, textTransform: 'uppercase', fontFamily: 'monospace', marginTop: 16, marginBottom: 8 }}>Areas to Improve</div>
+              {compRows.filter(r => r.jd != null && col(r.jd, r.gT, r.aT) === R).slice(0, 4).map((r, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
+                  <span style={{ fontSize: 12, color: '#777' }}>{r.label}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: 12, color: R }}>{r.jd}{r.unit}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 16, padding: '10px 12px', background: '#0e0e0e', borderRadius: 8, fontSize: 11, color: '#555', fontFamily: 'monospace', lineHeight: 1.6 }}>
+                Select an ATP player above to compare directly.
+              </div>
+            </div>
+          ) : (
+            // Comparison summary
+            <div>
+              {/* Score pill */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <div style={{ flex: 1, textAlign: 'center', background: 'rgba(74,222,128,0.08)', borderRadius: 8, padding: '8px 4px', border: '1px solid rgba(74,222,128,0.15)' }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: G }}>{ahead.length}</div>
+                  <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>JD AHEAD</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center', background: 'rgba(248,113,113,0.08)', borderRadius: 8, padding: '8px 4px', border: '1px solid rgba(248,113,113,0.15)' }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: R }}>{behind.length}</div>
+                  <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>NEED WORK</div>
+                </div>
+              </div>
+
+              {/* Top gaps (biggest deltas) */}
+              {(() => {
+                const ranked = compRows
+                  .filter(r => r.jd != null && r.atp != null)
+                  .map(r => {
+                    const delta = r.higherBetter ? (r.jd! - r.atp!) : (r.atp! - r.jd!)
+                    return { ...r, delta }
+                  })
+                  .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+
+                const top5pos = ranked.filter(r => r.delta > 0).slice(0, 3)
+                const top5neg = ranked.filter(r => r.delta < 0).slice(0, 4)
+
+                return (
+                  <div>
+                    <div style={{ fontSize: 10, letterSpacing: 1.5, color: G, textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 6 }}>JD Edges</div>
+                    {top5pos.length === 0 && <div style={{ fontSize: 11, color: '#333', fontFamily: 'monospace', marginBottom: 10 }}>None yet</div>}
+                    {top5pos.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #1a1a1a' }}>
+                        <span style={{ fontSize: 11, color: '#888' }}>{r.label}</span>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: 11, color: G }}>{r.jd}{r.unit}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#333' }}>vs</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#555' }}>{r.atp}{r.unit}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 9, color: G, background: 'rgba(74,222,128,0.1)', padding: '1px 5px', borderRadius: 4 }}>+{Math.abs(r.delta).toFixed(0)}</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div style={{ fontSize: 10, letterSpacing: 1.5, color: R, textTransform: 'uppercase', fontFamily: 'monospace', marginTop: 14, marginBottom: 6 }}>Biggest Gaps</div>
+                    {top5neg.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: i < top5neg.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
+                        <span style={{ fontSize: 11, color: '#888' }}>{r.label}</span>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: 11, color: R }}>{r.jd}{r.unit}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#333' }}>vs</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#555' }}>{r.atp}{r.unit}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 9, color: R, background: 'rgba(248,113,113,0.1)', padding: '1px 5px', borderRadius: 4 }}>{Math.abs(r.delta).toFixed(0)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Legend bar */}
       {atp && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 10, color: '#555', padding: '7px 12px', background: '#111', borderRadius: 6, marginBottom: 20, fontFamily: 'monospace' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 10, color: '#555', padding: '7px 12px', background: '#111', borderRadius: 6, marginBottom: 4, fontFamily: 'monospace' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 20, height: 6, borderRadius: 3, background: '#4ade80' }} />
-            <span>Your average</span>
+            <span>JD average</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 2, height: 14, borderRadius: 1, background: '#fff' }} />
-            <span>{atp.name}</span>
+            <span>{atp.name} (white marker)</span>
           </div>
         </div>
       )}
@@ -431,12 +675,12 @@ function JDStats({ matches, avgs }: { matches: any[]; avgs: any }) {
       <Card title="Match Averages">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 16 }}>
           {[
-            { label: 'Winners', val: avg(matches.map(m => m.shot_stats?.winners)), atp: atp?.shot_stats.winners, higherBetter: true },
-            { label: 'Unf. Errors', val: avg(matches.map(m => m.shot_stats?.ue)), atp: atp?.shot_stats.ue, higherBetter: false },
-            { label: 'Dbl Faults', val: avg(matches.map(m => m.shot_stats?.df)), atp: atp?.shot_stats.df, higherBetter: false },
-            { label: 'BP Saved %', val: avgs.bp_saved ?? avg(matches.map(m => m.shot_stats?.bp_saved_pct)), atp: atp?.shot_stats.bp_saved_pct, higherBetter: true },
-            { label: 'BP Won %', val: avgs.bp_won ?? avg(matches.map(m => m.shot_stats?.bp_won_pct)), atp: atp?.shot_stats.bp_won_pct, higherBetter: true },
-          ].map(({ label, val, atp: atpVal, higherBetter }, i) => (
+            { label: 'Winners', val: avg(matches.map(m => m.shot_stats?.winners)), atp: atp?.shot_stats.winners },
+            { label: 'Unf. Errors', val: avg(matches.map(m => m.shot_stats?.ue)), atp: atp?.shot_stats.ue },
+            { label: 'Dbl Faults', val: avg(matches.map(m => m.shot_stats?.df)), atp: atp?.shot_stats.df },
+            { label: 'BP Saved %', val: avg(matches.map(m => m.shot_stats?.bp_saved_pct)), atp: atp?.shot_stats.bp_saved_pct },
+            { label: 'BP Won %', val: avg(matches.map(m => m.shot_stats?.bp_won_pct)), atp: atp?.shot_stats.bp_won_pct },
+          ].map(({ label, val, atp: atpVal }, i) => (
             <div key={i} style={{ background: '#1a1a1a', borderRadius: 8, padding: '10px 6px', textAlign: 'center' }}>
               <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: val == null ? '#333' : '#e8d5b0' }}>{val ?? '—'}</div>
               {atpVal != null && <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#555', marginTop: 2 }}>ATP: {atpVal}</div>}
