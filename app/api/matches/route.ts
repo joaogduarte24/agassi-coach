@@ -2,11 +2,13 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { SEED_MATCHES } from '@/lib/seed'
 
-// Server-side supabase client (uses service role for writes if needed)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Server-side supabase client (lazy — avoids build-time env errors)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 function matchToDb(m: any) {
   return {
@@ -50,6 +52,7 @@ function dbToMatch(row: any) {
 // GET — fetch all matches (seed if empty)
 export async function GET() {
   try {
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('matches')
       .select('*')
@@ -74,6 +77,7 @@ export async function GET() {
 // POST — save a new match
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getSupabase()
     const { match } = await req.json()
     const { error } = await supabase.from('matches').upsert(matchToDb(match))
     if (error) throw error
@@ -86,6 +90,7 @@ export async function POST(req: NextRequest) {
 // DELETE — remove a match
 export async function DELETE(req: NextRequest) {
   try {
+    const supabase = getSupabase()
     const { id } = await req.json()
     const { error } = await supabase.from('matches').delete().eq('id', id)
     if (error) throw error
