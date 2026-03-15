@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { ATP_PLAYERS, ATPPlayer } from '@/lib/atp-players'
 
 const G = '#4ade80', A = '#fbbf24', R = '#f87171', B = '#60a5fa'
 const GD = 'rgba(74,222,128,0.12)', AD = 'rgba(251,191,36,0.12)', RD = 'rgba(248,113,113,0.12)'
@@ -310,6 +311,168 @@ function MiniChart({ data, color, labels }: any) {
   )
 }
 
+// ─── COMPARE BAR ──────────────────────────────────────────────────────────────
+function CompareBar({ label, jd, atp, gThresh, aThresh, suffix='%', maxVal }: any) {
+  if (jd == null) return null
+  const scale = suffix === 'km/h' ? (maxVal || 220) : 100
+  const jdPct = Math.min((jd / scale) * 100, 100)
+  const atpPct = atp != null ? Math.min((atp / scale) * 100, 100) : null
+  const color = col(jd, gThresh, aThresh)
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+        <span style={{ fontSize: 11, color: '#666' }}>{label}</span>
+        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, fontWeight: 500, color }}>{jd}{suffix}</span>
+      </div>
+      <div style={{ height: 7, background: '#1e1e1e', borderRadius: 4, position: 'relative', overflow: 'visible' }}>
+        <div style={{ height: '100%', width: `${jdPct}%`, background: color, borderRadius: 4, transition: 'width 0.3s' }} />
+        {atpPct != null && (
+          <div style={{ position: 'absolute', top: -5, left: `${atpPct}%`, width: 2, height: 17, background: '#fff', borderRadius: 1, zIndex: 2, transform: 'translateX(-50%)' }}>
+            <span style={{ position: 'absolute', top: 19, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#888', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+              {atp}{suffix}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── JD STATS TAB ─────────────────────────────────────────────────────────────
+function JDStats({ matches, avgs }: { matches: any[]; avgs: any }) {
+  const [selectedPlayer, setSelectedPlayer] = useState<ATPPlayer | null>(null)
+  const atp = selectedPlayer
+
+  const SectionTitle = ({ title }: { title: string }) => (
+    <div style={{ fontSize: 10, letterSpacing: 2, color: '#555', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14, marginTop: 24, borderBottom: '1px solid #1a1a1a', paddingBottom: 8 }}>{title}</div>
+  )
+
+  const Card = ({ title, children }: any) => (
+    <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>{title}</div>
+      {children}
+    </div>
+  )
+
+  if (matches.length === 0) {
+    return <div style={{ color: '#333', fontFamily: 'monospace', textAlign: 'center', padding: 60 }}>No matches yet. Upload your first match →</div>
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#e8d5b0' }}>JD Stats</div>
+          <div style={{ fontSize: 11, color: '#444', fontFamily: 'monospace', marginTop: 2 }}>Averages across {matches.length} matches</div>
+        </div>
+        {/* Dropdown */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>COMPARE VS</div>
+          <select
+            value={selectedPlayer?.name || ''}
+            onChange={e => setSelectedPlayer(ATP_PLAYERS.find(p => p.name === e.target.value) || null)}
+            style={{ background: '#161616', border: '1px solid #252525', borderRadius: 8, padding: '7px 12px', color: selectedPlayer ? '#e8d5b0' : '#555', fontSize: 12, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', minWidth: 180 }}
+          >
+            <option value=''>— Select ATP Player —</option>
+            {ATP_PLAYERS.map(p => (
+              <option key={p.name} value={p.name}>{p.nationality} #{p.rank} {p.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Legend */}
+      {atp && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 10, color: '#555', padding: '7px 12px', background: '#111', borderRadius: 6, marginBottom: 20, fontFamily: 'monospace' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 20, height: 6, borderRadius: 3, background: '#4ade80' }} />
+            <span>Your average</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 2, height: 14, borderRadius: 1, background: '#fff' }} />
+            <span>{atp.name}</span>
+          </div>
+        </div>
+      )}
+
+      {/* SERVE */}
+      <SectionTitle title="Serve" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Card title="1st Serve">
+          <CompareBar label="Ad %" jd={avgs.s1_ad} atp={atp?.serve.first.pct_ad} gThresh={75} aThresh={60} />
+          <CompareBar label="Deuce %" jd={avgs.s1_deuce} atp={atp?.serve.first.pct_deuce} gThresh={75} aThresh={60} />
+          <CompareBar label="Ad Speed" jd={avgs.spd_s1_ad} atp={atp?.serve.first.spd_ad} gThresh={185} aThresh={160} suffix="km/h" maxVal={230} />
+          <CompareBar label="Deuce Speed" jd={avgs.spd_s1_deuce} atp={atp?.serve.first.spd_deuce} gThresh={185} aThresh={160} suffix="km/h" maxVal={230} />
+        </Card>
+        <Card title="2nd Serve">
+          <CompareBar label="Ad %" jd={avgs.s2_ad} atp={atp?.serve.second.pct_ad} gThresh={80} aThresh={65} />
+          <CompareBar label="Deuce %" jd={avgs.s2_deuce} atp={atp?.serve.second.pct_deuce} gThresh={80} aThresh={65} />
+          <CompareBar label="Ad Speed" jd={avgs.spd_s2_ad} atp={atp?.serve.second.spd_ad} gThresh={148} aThresh={130} suffix="km/h" maxVal={180} />
+          <CompareBar label="Deuce Speed" jd={avgs.spd_s2_deuce} atp={atp?.serve.second.spd_deuce} gThresh={148} aThresh={130} suffix="km/h" maxVal={180} />
+        </Card>
+      </div>
+
+      {/* RETURN */}
+      <SectionTitle title="Return" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Card title="1st Return Won %">
+          <CompareBar label="Ad" jd={avgs.ret1_ad} atp={atp?.return.first.pct_ad} gThresh={80} aThresh={65} />
+          <CompareBar label="Deuce" jd={avgs.ret1_deuce} atp={atp?.return.first.pct_deuce} gThresh={80} aThresh={65} />
+        </Card>
+        <Card title="2nd Return Won %">
+          <CompareBar label="Ad" jd={avgs.ret2_ad} atp={atp?.return.second.pct_ad} gThresh={80} aThresh={65} />
+          <CompareBar label="Deuce" jd={avgs.ret2_deuce} atp={atp?.return.second.pct_deuce} gThresh={80} aThresh={65} />
+        </Card>
+      </div>
+
+      {/* SHOT STATS */}
+      <SectionTitle title="Shot Stats" />
+      <Card title="Match Averages">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 16 }}>
+          {[
+            { label: 'Winners', val: avg(matches.map(m => m.shot_stats?.winners)), atp: atp?.shot_stats.winners, higherBetter: true },
+            { label: 'Unf. Errors', val: avg(matches.map(m => m.shot_stats?.ue)), atp: atp?.shot_stats.ue, higherBetter: false },
+            { label: 'Dbl Faults', val: avg(matches.map(m => m.shot_stats?.df)), atp: atp?.shot_stats.df, higherBetter: false },
+            { label: 'BP Saved %', val: avgs.bp_saved ?? avg(matches.map(m => m.shot_stats?.bp_saved_pct)), atp: atp?.shot_stats.bp_saved_pct, higherBetter: true },
+            { label: 'BP Won %', val: avgs.bp_won ?? avg(matches.map(m => m.shot_stats?.bp_won_pct)), atp: atp?.shot_stats.bp_won_pct, higherBetter: true },
+          ].map(({ label, val, atp: atpVal, higherBetter }, i) => (
+            <div key={i} style={{ background: '#1a1a1a', borderRadius: 8, padding: '10px 6px', textAlign: 'center' }}>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: val == null ? '#333' : '#e8d5b0' }}>{val ?? '—'}</div>
+              {atpVal != null && <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#555', marginTop: 2 }}>ATP: {atpVal}</div>}
+              <div style={{ fontSize: 9, color: '#333', textTransform: 'uppercase', letterSpacing: 1, marginTop: 3, fontFamily: 'monospace' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+        <CompareBar label="BP Saved %" jd={avg(matches.map(m => m.shot_stats?.bp_saved_pct))} atp={atp?.shot_stats.bp_saved_pct} gThresh={70} aThresh={50} />
+        <CompareBar label="BP Won %" jd={avg(matches.map(m => m.shot_stats?.bp_won_pct))} atp={atp?.shot_stats.bp_won_pct} gThresh={50} aThresh={35} />
+      </Card>
+
+      {/* FOREHAND / BACKHAND */}
+      <SectionTitle title="Ground Strokes" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Card title="Forehand">
+          <CompareBar label="CC In %" jd={avgs.fh_cc} atp={atp?.forehand.cc_in} gThresh={80} aThresh={65} />
+          <CompareBar label="DTL In %" jd={avgs.fh_dtl} atp={atp?.forehand.dtl_in} gThresh={80} aThresh={65} />
+          <CompareBar label="CC Speed" jd={avgs.spd_fh_cc} atp={atp?.forehand.spd_cc} gThresh={125} aThresh={110} suffix="km/h" maxVal={160} />
+          <CompareBar label="DTL Speed" jd={avgs.spd_fh_dtl} atp={atp?.forehand.spd_dtl} gThresh={130} aThresh={115} suffix="km/h" maxVal={160} />
+        </Card>
+        <Card title="Backhand">
+          <CompareBar label="CC In %" jd={avgs.bh_cc} atp={atp?.backhand.cc_in} gThresh={80} aThresh={65} />
+          <CompareBar label="DTL In %" jd={avgs.bh_dtl} atp={atp?.backhand.dtl_in} gThresh={80} aThresh={65} />
+          <CompareBar label="CC Speed" jd={avgs.spd_bh_cc} atp={atp?.backhand.spd_cc} gThresh={118} aThresh={105} suffix="km/h" maxVal={160} />
+          <CompareBar label="DTL Speed" jd={avgs.spd_bh_dtl} atp={atp?.backhand.spd_dtl} gThresh={122} aThresh={108} suffix="km/h" maxVal={160} />
+        </Card>
+      </div>
+
+      {/* Context note */}
+      <div style={{ marginTop: 16, padding: '12px 16px', background: '#111', border: '1px solid #1a1a1a', borderRadius: 8, fontSize: 10, color: '#333', fontFamily: 'monospace', lineHeight: 1.6 }}>
+        ⚠ ATP stats are 2024-25 season tour averages. Forehand/backhand direction splits are tour-average estimates (not publicly available per player). Serve speeds shown in km/h.
+      </div>
+    </div>
+  )
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const [tab, setTab] = useState('last')
@@ -368,7 +531,7 @@ export default function Home() {
     spd_bh_dtl:avg(matches.map(m=>m.backhand?.spd_dtl)),
   }
 
-  const NAV = [{id:'last',l:'Last Match'},{id:'history',l:'Match History'},{id:'focus',l:'Next Focus'},{id:'evolution',l:'Evolution'},{id:'upload',l:'+ Upload'}]
+  const NAV = [{id:'last',l:'Last Match'},{id:'history',l:'Match History'},{id:'focus',l:'Next Focus'},{id:'evolution',l:'Evolution'},{id:'jd',l:'JD Stats'},{id:'upload',l:'+ Upload'}]
 
   if (loading) return (
     <div style={{background:'#0a0a0a',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:'#333',fontFamily:'monospace',fontSize:13}}>
@@ -581,6 +744,9 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* JD STATS */}
+        {tab==='jd' && <JDStats matches={matches} avgs={avgs}/>}
 
         {/* UPLOAD */}
         {tab==='upload' && <UploadMatch onMatchAdded={addMatch}/>}
