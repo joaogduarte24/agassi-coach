@@ -725,11 +725,23 @@ function NextMatchStrategy({ matches, avgs }: { matches: any[]; avgs: any }) {
   const utr = parseFloat(oppUtr)
   const utrValid = !isNaN(utr) && utr > 0
 
-  // Fuzzy match against match history by name
-  const historyMatches = oppName.trim().length >= 2
-    ? matches.filter(m => m.opponent?.name?.toLowerCase().includes(oppName.trim().toLowerCase()))
+  // Unique past opponents from match history
+  const pastOpponents = Array.from(
+    new Map(
+      matches
+        .filter(m => m.opponent?.name)
+        .map(m => [m.opponent.name, m.opponent])
+    ).values()
+  ).sort((a: any, b: any) => a.name.localeCompare(b.name))
+
+  // Match against selected name
+  const historyMatches = oppName
+    ? matches.filter(m => m.opponent?.name === oppName)
     : []
   const isKnown = historyMatches.length > 0
+
+  // When a known opponent is selected, pre-fill their UTR from the most recent match
+  const knownUtr = isKnown ? historyMatches[historyMatches.length - 1]?.opponent?.utr : null
   const knownWins = historyMatches.filter(m => m.score?.winner === 'JD').length
   const knownLosses = historyMatches.length - knownWins
 
@@ -836,20 +848,40 @@ function NextMatchStrategy({ matches, avgs }: { matches: any[]; avgs: any }) {
         <div style={{ fontSize: 10, letterSpacing: 2, color: '#555', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 16 }}>Next Opponent</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>NAME <span style={{ color: '#2a2a2a' }}>optional</span></div>
-            <input
+            <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
+              OPPONENT <span style={{ color: '#2a2a2a' }}>optional</span>
+            </div>
+            <select
               value={oppName}
-              onChange={e => setOppName(e.target.value)}
-              placeholder="e.g. Gonçalo"
-              style={inp()}
-            />
+              onChange={e => {
+                const name = e.target.value
+                setOppName(name)
+                // auto-fill UTR from their last match if known
+                if (name) {
+                  const lastM = matches.filter(m => m.opponent?.name === name).slice(-1)[0]
+                  if (lastM?.opponent?.utr) setOppUtr(String(lastM.opponent.utr))
+                }
+              }}
+              style={inp({ cursor: 'pointer', appearance: 'none' as any, color: oppName ? '#e8d5b0' : '#555' })}
+            >
+              <option value=''>— New opponent —</option>
+              {pastOpponents.map((p: any) => {
+                const pMatches = matches.filter(m => m.opponent?.name === p.name)
+                const pWins = pMatches.filter(m => m.score?.winner === 'JD').length
+                return (
+                  <option key={p.name} value={p.name}>
+                    {p.name}{p.utr ? ` · UTR ${p.utr}` : ''} ({pWins}W {pMatches.length - pWins}L)
+                  </option>
+                )
+              })}
+            </select>
             {isKnown && (
               <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'monospace', color: G }}>
                 ✓ {historyMatches.length} match{historyMatches.length > 1 ? 'es' : ''} on record · {knownWins}W {knownLosses}L
               </div>
             )}
-            {oppName.trim().length >= 2 && !isKnown && (
-              <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'monospace', color: '#333' }}>No history found — UTR-based plan will apply</div>
+            {!oppName && (
+              <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'monospace', color: '#2a2a2a' }}>UTR-based plan will apply for new opponents</div>
             )}
           </div>
           <div>
