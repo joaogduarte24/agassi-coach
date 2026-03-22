@@ -717,6 +717,279 @@ function JDStats({ matches, avgs }: { matches: any[]; avgs: any }) {
   )
 }
 
+// ─── NEXT MATCH STRATEGY ──────────────────────────────────────────────────────
+function NextMatchStrategy({ matches, avgs }: { matches: any[]; avgs: any }) {
+  const [oppName, setOppName] = useState('')
+  const [oppUtr, setOppUtr] = useState('')
+
+  const utr = parseFloat(oppUtr)
+  const utrValid = !isNaN(utr) && utr > 0
+
+  // Fuzzy match against match history by name
+  const historyMatches = oppName.trim().length >= 2
+    ? matches.filter(m => m.opponent?.name?.toLowerCase().includes(oppName.trim().toLowerCase()))
+    : []
+  const isKnown = historyMatches.length > 0
+  const knownWins = historyMatches.filter(m => m.score?.winner === 'JD').length
+  const knownLosses = historyMatches.length - knownWins
+
+  // JD's persistent weak spots (always relevant)
+  const myWeakSpots = [
+    avgs.s1_ad != null && avgs.s1_ad < 68 ? `1st serve Ad (${avgs.s1_ad}% avg, target 70%+)` : null,
+    avgs.bh_dtl != null && avgs.bh_dtl < 72 ? `BH DTL (${avgs.bh_dtl}% avg — tend to go mid-court)` : null,
+    avg(matches.map(m => m.shot_stats?.df)) != null && (avg(matches.map(m => m.shot_stats?.df)) ?? 0) > 4 ? `Double faults (avg ${avg(matches.map(m => m.shot_stats?.df))} per match)` : null,
+  ].filter(Boolean) as string[]
+
+  // UTR-bracket strategy matrix
+  type BracketStrategy = { bracket: string; threat: string; serve: string; return: string; pattern: string; mindset: string; watchOut: string }
+  const getUtrStrategy = (u: number): BracketStrategy => {
+    if (u < 2.5) return {
+      bracket: 'Below 2.5 UTR — Consistency wins',
+      threat: 'Low power, high UE rate. They will hand you points — take them.',
+      serve: 'High %: flat wide Deuce, body Ad. First serve percentage > pace.',
+      return: 'Attack every 2nd serve. Step inside the baseline and drive.',
+      pattern: 'Deep CC rally → first short ball → inside-out FH winner.',
+      mindset: 'Don\'t tighten up. Play loose, high-margin tennis. Win 6-2 6-2.',
+      watchOut: 'Junk ball — floaty slices and moonballs. Stay patient, reset with depth.',
+    }
+    if (u < 3.0) return {
+      bracket: '2.5–3.0 UTR — Your level, no margin for error',
+      threat: 'Comparable consistency. Rallies will be long. Errors decide the match.',
+      serve: 'Lead with 1st serve Ad (commit to body/T pre-toss). 68%+ keeps you in.',
+      return: 'Deep CC to BH. Neutralise — don\'t go for too much.',
+      pattern: 'Out-rally with depth. BH CC deep → wait for FH → attack DTL.',
+      mindset: 'Compete for every point. Tiebreaks: trust your process, go for it.',
+      watchOut: 'UE spikes under pressure. Breathe, reset between points.',
+    }
+    if (u < 3.5) return {
+      bracket: '3.0–3.5 UTR — Competitive, winnable with clean execution',
+      threat: 'More consistent baseline game, stronger serve, better court position.',
+      serve: '1st serve % is critical. Target Ad side body or T — avoid predictable patterns.',
+      return: 'Chip/block back deep on fast 1st serves. Attack 2nd serve early.',
+      pattern: 'Get to neutral → build with BH depth → attack when FH is on.',
+      mindset: 'Super TBs — go aggressive from 5+. Don\'t play not to lose.',
+      watchOut: 'Getting drawn into their pace. Reset with a high looping ball if pushed wide.',
+    }
+    if (u < 4.5) return {
+      bracket: '3.5–4.5 UTR — Strong player, tactical match',
+      threat: 'Fast serve, consistent deep balls, will punish anything mid-court.',
+      serve: 'Variety is key: wide + body combo. Mix speeds. 2nd serve kick to BH.',
+      return: 'Block deep, don\'t try to blast it. Look for a short 2nd serve to attack.',
+      pattern: 'Serve + 1: force weak return, step in early. Limit rally length.',
+      mindset: 'Accept that you\'ll be on defence more. Win the short-point battle.',
+      watchOut: 'Trying to match their pace from the back. Play smarter, not harder.',
+    }
+    return {
+      bracket: '4.5+ UTR — Elite level, defensive game plan',
+      threat: 'High-quality serve, heavy topspin, exceptional positioning. Will dominate long rallies.',
+      serve: 'Big body serve on Ad to limit their FH attack. Use wide Deuce to open court.',
+      return: 'Ultra-conservative: land it in and stay in the point. 1 in = 1 free point.',
+      pattern: 'High defensive margin. Slice BH to buy time. Attack only clear short balls.',
+      mindset: 'Every game won is a success. Compete until the last ball.',
+      watchOut: 'Trying to play like them. Accept their level, frustrate with consistency.',
+    }
+  }
+
+  const strat = utrValid ? getUtrStrategy(utr) : null
+
+  // Known opponent specific patterns
+  const knownAvg = (fn: (m: any) => any) => avg(historyMatches.map(fn))
+  const knownWinRate = historyMatches.length ? Math.round((knownWins / historyMatches.length) * 100) : null
+
+  const inp = (extra: any = {}) => ({
+    background: '#161616', border: '1px solid #252525', borderRadius: 8,
+    padding: '10px 14px', color: '#e8d5b0', fontSize: 13, outline: 'none',
+    fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const, ...extra
+  })
+
+  const FocusCard = ({ n, title, stat, body, action }: any) => (
+    <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 14, padding: 20, marginBottom: 12, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 44, color: '#1e1e1e', lineHeight: 1, flexShrink: 0, width: 40 }}>{n}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#e8d5b0', marginBottom: 6 }}>{title}</div>
+        <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#444', background: '#1a1a1a', padding: '3px 8px', borderRadius: 4, display: 'inline-block', marginBottom: 8 }}>{stat}</div>
+        <div style={{ fontSize: 13, color: '#777', lineHeight: 1.65, marginBottom: 10 }}>{body}</div>
+        <div style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: 1, color: A, background: AD, padding: '5px 10px', borderRadius: 4, display: 'inline-block' }}>{action}</div>
+      </div>
+    </div>
+  )
+
+  const PlanRow = ({ l, v, last }: any) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: last ? 'none' : '1px solid #1a1a1a', gap: 16 }}>
+      <span style={{ fontSize: 12, color: '#444', minWidth: 140, flexShrink: 0 }}>{l}</span>
+      <span style={{ fontSize: 12, color: '#999', textAlign: 'right' }}>{v}</span>
+    </div>
+  )
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ textAlign: 'center', padding: '16px 0 24px' }}>
+        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 38, letterSpacing: 3, color: '#e8d5b0' }}>Next Match Strategy</div>
+        <div style={{ fontSize: 11, color: '#444', fontFamily: 'monospace', marginTop: 4 }}>
+          {matches.length > 0 ? `Based on ${matches.length} matches · updated after every session` : 'Add your first match to get personalised strategy'}
+        </div>
+      </div>
+
+      {/* Opponent Inputs */}
+      <div style={{ background: '#141414', border: '1px solid #252525', borderRadius: 14, padding: 20, marginBottom: 20 }}>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: '#555', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 16 }}>Next Opponent</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>NAME <span style={{ color: '#2a2a2a' }}>optional</span></div>
+            <input
+              value={oppName}
+              onChange={e => setOppName(e.target.value)}
+              placeholder="e.g. Gonçalo"
+              style={inp()}
+            />
+            {isKnown && (
+              <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'monospace', color: G }}>
+                ✓ {historyMatches.length} match{historyMatches.length > 1 ? 'es' : ''} on record · {knownWins}W {knownLosses}L
+              </div>
+            )}
+            {oppName.trim().length >= 2 && !isKnown && (
+              <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'monospace', color: '#333' }}>No history found — UTR-based plan will apply</div>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 6 }}>
+              UTR LEVEL <span style={{ color: '#fbbf24', marginLeft: 4 }}>required</span>
+            </div>
+            <input
+              value={oppUtr}
+              onChange={e => setOppUtr(e.target.value)}
+              placeholder="e.g. 3.2"
+              type="number"
+              step="0.1"
+              min="0"
+              max="16"
+              style={inp({ borderColor: oppUtr && !utrValid ? '#f87171' : '#252525' })}
+            />
+            {utrValid && (
+              <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'monospace', color: '#555' }}>
+                {utr < 2.5 ? 'Below your level' : utr < 3.3 ? 'Your level (~3.1 est.)' : utr < 4.5 ? 'Above your level' : 'Well above — tough match'}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* No UTR entered — show placeholder */}
+      {!utrValid && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#2a2a2a', fontFamily: 'monospace', fontSize: 12 }}>
+          Enter opponent UTR above to generate your match strategy ↑
+        </div>
+      )}
+
+      {/* Strategy content */}
+      {utrValid && strat && (
+        <>
+          {/* Bracket banner */}
+          <div style={{ background: '#141414', border: '1px solid #252525', borderRadius: 10, padding: '12px 16px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: 1.5, color: '#444', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 4 }}>Matchup</div>
+              <div style={{ fontSize: 14, color: '#e8d5b0', fontWeight: 600 }}>
+                {oppName.trim() || 'Opponent'} · UTR {utr.toFixed(1)}
+              </div>
+              <div style={{ fontSize: 11, color: '#555', fontFamily: 'monospace', marginTop: 2 }}>{strat.bracket}</div>
+            </div>
+            {isKnown && knownWinRate != null && (
+              <div style={{ textAlign: 'center', minWidth: 80 }}>
+                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: knownWinRate >= 50 ? G : R }}>{knownWinRate}%</div>
+                <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#444', letterSpacing: 1 }}>WIN RATE VS THEM</div>
+              </div>
+            )}
+          </div>
+
+          {/* Known opponent — history breakdown */}
+          {isKnown && (
+            <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>History vs {oppName.trim()}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+                {[
+                  { l: 'Matches', v: historyMatches.length },
+                  { l: 'Record', v: `${knownWins}W ${knownLosses}L` },
+                  { l: 'Avg 1st Srv %', v: knownAvg(m => m.serve?.first?.pct_ad) != null ? `${knownAvg(m => m.serve?.first?.pct_ad)}%` : '—' },
+                  { l: 'Avg UE', v: knownAvg(m => m.shot_stats?.ue) ?? '—' },
+                ].map(({ l, v }, i) => (
+                  <div key={i} style={{ background: '#1a1a1a', borderRadius: 8, padding: '10px 6px', textAlign: 'center' }}>
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: '#e8d5b0' }}>{v}</div>
+                    <div style={{ fontSize: 8, color: '#333', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2, fontFamily: 'monospace' }}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: '#555', fontFamily: 'monospace', lineHeight: 1.7 }}>
+                {historyMatches.map((m: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < historyMatches.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
+                    <span style={{ color: '#333' }}>{fmtDate(m.date)}</span>
+                    <span style={{ color: m.score?.winner === 'JD' ? G : R }}>{m.score?.winner === 'JD' ? 'W' : 'L'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key focus cards */}
+          <FocusCard
+            n="01"
+            title={`Threat: ${strat.threat.split('.')[0]}`}
+            stat={strat.bracket}
+            body={strat.threat}
+            action={`MINDSET: ${strat.mindset}`}
+          />
+          <FocusCard
+            n="02"
+            title="Serve strategy"
+            stat={`UTR ${utr.toFixed(1)} → ${utr < 3.0 ? 'high % priority' : 'variety + aggression'}`}
+            body={strat.serve}
+            action={avgs.s1_ad != null && avgs.s1_ad < 68 ? `YOUR AD SERVE IS ${avgs.s1_ad}% AVG — COMMIT EARLY, PICK TARGET PRE-TOSS` : 'LEAD WITH THE SERVE — IT SETS UP EVERYTHING'}
+          />
+          <FocusCard
+            n="03"
+            title="Return game"
+            stat={`1st return avg: ${avgs.ret1_ad ?? '—'}% · 2nd return avg: ${avgs.ret2_ad ?? '—'}%`}
+            body={strat.return}
+            action="DEEP CC RETURN → STEP IN ON BALL 3"
+          />
+          <FocusCard
+            n="04"
+            title="Tactical pattern"
+            stat={`FH CC: ${avgs.fh_cc ?? '—'}% · BH CC: ${avgs.bh_cc ?? '—'}%`}
+            body={strat.pattern}
+            action={`WATCH OUT: ${strat.watchOut}`}
+          />
+
+          {/* JD weak spots (always relevant) */}
+          {myWeakSpots.length > 0 && (
+            <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: R, textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 12 }}>Your Persistent Gaps — Don't Let Them Exploit These</div>
+              {myWeakSpots.map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 0', borderBottom: i < myWeakSpots.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
+                  <span style={{ color: R, fontSize: 10, marginTop: 1 }}>▲</span>
+                  <span style={{ fontSize: 12, color: '#777', lineHeight: 1.5 }}>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Match Plan */}
+          <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 14, padding: 20, marginTop: 6 }}>
+            <div style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: 2, color: '#333', textTransform: 'uppercase', marginBottom: 14 }}>
+              Match Plan — {oppName.trim() || 'Opponent'} UTR {utr.toFixed(1)}
+            </div>
+            <PlanRow l="1st serve Ad" v={strat.serve.split('.')[0]} />
+            <PlanRow l="2nd serve" v={avgs.spd_s2_ad ? `Kick to body (~${avgs.spd_s2_ad} km/h avg). Don't overthink.` : 'Kick to body. Consistently strong.'} />
+            <PlanRow l="Return" v={strat.return.split('.')[0]} />
+            <PlanRow l="Pattern" v={strat.pattern} />
+            <PlanRow l="Mindset" v={strat.mindset} last />
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const [tab, setTab] = useState('last')
@@ -775,7 +1048,7 @@ export default function Home() {
     spd_bh_dtl:avg(matches.map(m=>m.backhand?.spd_dtl)),
   }
 
-  const NAV = [{id:'last',l:'Last Match'},{id:'history',l:'Match History'},{id:'focus',l:'Next Focus'},{id:'evolution',l:'Evolution'},{id:'jd',l:'JD Stats'},{id:'upload',l:'+ Upload'}]
+  const NAV = [{id:'last',l:'Last Match'},{id:'history',l:'Match History'},{id:'focus',l:'Next Strategy'},{id:'evolution',l:'Evolution'},{id:'jd',l:'JD Stats'},{id:'upload',l:'+ Upload'}]
 
   if (loading) return (
     <div style={{background:'#0a0a0a',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:'#333',fontFamily:'monospace',fontSize:13}}>
@@ -875,45 +1148,7 @@ export default function Home() {
         )}
 
         {/* FOCUS */}
-        {tab==='focus' && (
-          <div>
-            <div style={{textAlign:'center',padding:'16px 0 22px'}}>
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:38,letterSpacing:3,color:'#e8d5b0'}}>Next Match Focus</div>
-              <div style={{fontSize:11,color:'#444',fontFamily:'monospace',marginTop:4}}>Based on last {Math.min(matches.length,5)} matches · updated after every session</div>
-            </div>
-            {[
-              {n:'01',title:'Add depth to your backhand',stat:`BH CC depth avg: ${avg(matches.map(m=>m.backhand?.depth_cc))??'limited'}% · target 55%+`,body:"Chronic across all 10 tracked matches. BH goes in consistently (72-87%) but lands mid-court — handing every opponent a free attacking ball. Contact point needs to drive through, not guide.",action:'AIM 1–1.5m inside baseline. Hit through the ball.'},
-              {n:'02',title:'Attack ball 3 after the return',stat:`Super TB record: 0–3 · all vs 3.5+`,body:"Return rate is excellent (77-93%). Problem is what happens next — you get in the rally and wait. At 3.5+, passive baseline play loses close matches and super tiebreaks.",action:'AFTER A DEEP RETURN: step in on ball 3. Decide early, commit fully.'},
-              {n:'03',title:'Fix the Ad side 1st serve',stat:`1st serve Ad avg: ${avgs.s1_ad??'—'}% · target 70%+`,body:"Ad side 1st serve is consistently your weakest metric. Sub-65% means starting too many points on 2nd serve from the most important position — break points, ad-outs, closing games.",action:'PICK ONE TARGET before the toss. No last-second changes.'},
-              {n:'04',title:'Super tiebreak mindset',stat:'TB record: 0–3 · consistent pattern',body:"Three super tiebreaks, three losses. You go passive when the score matters most. The data shows you can win those matches — you just need to change gear at 5+.",action:'AT 5+ IN A TB: attack the first short ball. Play to WIN, not to survive.'},
-            ].map(({n,title,stat,body,action})=>(
-              <div key={n} style={{background:'#141414',border:'1px solid #1a1a1a',borderRadius:14,padding:20,marginBottom:12,display:'flex',gap:14,alignItems:'flex-start'}}>
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:44,color:'#1e1e1e',lineHeight:1,flexShrink:0,width:40}}>{n}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:15,fontWeight:600,color:'#e8d5b0',marginBottom:6}}>{title}</div>
-                  <div style={{fontFamily:'monospace',fontSize:10,color:'#444',background:'#1a1a1a',padding:'3px 8px',borderRadius:4,display:'inline-block',marginBottom:8}}>{stat}</div>
-                  <div style={{fontSize:13,color:'#777',lineHeight:1.65,marginBottom:10}}>{body}</div>
-                  <div style={{fontFamily:'monospace',fontSize:10,letterSpacing:1,color:A,background:AD,padding:'5px 10px',borderRadius:4,display:'inline-block'}}>{action}</div>
-                </div>
-              </div>
-            ))}
-            <div style={{background:'#141414',border:'1px solid #1a1a1a',borderRadius:14,padding:20,marginTop:6}}>
-              <div style={{fontFamily:'monospace',fontSize:10,letterSpacing:2,color:'#333',textTransform:'uppercase',marginBottom:14}}>Match Plan</div>
-              {[
-                {l:'1st serve Ad',v:'Body or T — commit pre-toss. 70%+ target.'},
-                {l:'1st serve Deuce',v:'Wide — solid (68-75% avg). Keep it.'},
-                {l:'2nd serve',v:'Kick to body. Consistently strong. Don\'t overthink.'},
-                {l:'Return',v:'Deep CC to BH. Get it deep, step in on ball 3.'},
-                {l:'Pattern',v:'Deep return → FH CC / BH CC deep → attack short ball.'},
-              ].map(({l,v},i)=>(
-                <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:i===4?'none':'1px solid #1a1a1a',gap:16}}>
-                  <span style={{fontSize:12,color:'#444',minWidth:130,flexShrink:0}}>{l}</span>
-                  <span style={{fontSize:12,color:'#999',textAlign:'right'}}>{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {tab==='focus' && <NextMatchStrategy matches={matches} avgs={avgs} />}
 
         {/* EVOLUTION */}
         {tab==='evolution' && (
