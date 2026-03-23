@@ -31,6 +31,13 @@ function matchToDb(m: any) {
   }
 }
 
+function toArr(v: any): string[] | null {
+  if (!v) return null
+  if (Array.isArray(v)) return v
+  // Supabase can deserialise JSON arrays as objects with numeric keys — normalise
+  return Object.values(v).filter((x): x is string => typeof x === 'string')
+}
+
 function dbToMatch(row: any) {
   return {
     id: row.id,
@@ -43,8 +50,8 @@ function dbToMatch(row: any) {
     forehand: row.forehand,
     backhand: row.backhand,
     shot_stats: row.shot_stats,
-    what_worked: row.what_worked,
-    what_didnt: row.what_didnt,
+    what_worked: toArr(row.what_worked),
+    what_didnt: toArr(row.what_didnt),
     key_number: row.key_number,
   }
 }

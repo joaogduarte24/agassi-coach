@@ -153,9 +153,9 @@ function MatchDetail({ m, avgs }: any) {
         <div style={{background:'#0e0e0e',border:'1px solid #1e1e1e',borderRadius:12,padding:20}}>
           <div style={{fontFamily:'monospace',fontSize:11,letterSpacing:2,color:A,marginBottom:14}}>🎙 COACH'S READ</div>
           {m.what_worked&&<><div style={{fontSize:10,letterSpacing:1.5,color:'#444',textTransform:'uppercase',fontFamily:'monospace',marginBottom:6}}>What Worked</div>
-          <ul style={{listStyle:'none',padding:0,marginBottom:10}}>{m.what_worked.map((x:string,i:number)=><li key={i} style={{paddingLeft:14,position:'relative',fontSize:13,color:'#bbb',lineHeight:1.6,paddingBottom:3}}><span style={{position:'absolute',left:0,color:'#333'}}>—</span>{x}</li>)}</ul></>}
+          <ul style={{listStyle:'none',padding:0,marginBottom:10}}>{(Array.isArray(m.what_worked)?m.what_worked:Object.values(m.what_worked)).map((x:any,i:number)=><li key={i} style={{paddingLeft:14,position:'relative',fontSize:13,color:'#bbb',lineHeight:1.6,paddingBottom:3}}><span style={{position:'absolute',left:0,color:'#333'}}>—</span>{x}</li>)}</ul></>}
           {m.what_didnt&&<><div style={{fontSize:10,letterSpacing:1.5,color:'#444',textTransform:'uppercase',fontFamily:'monospace',marginBottom:6,marginTop:10}}>What Didn't</div>
-          <ul style={{listStyle:'none',padding:0,marginBottom:10}}>{m.what_didnt.map((x:string,i:number)=><li key={i} style={{paddingLeft:14,position:'relative',fontSize:13,color:'#bbb',lineHeight:1.6,paddingBottom:3}}><span style={{position:'absolute',left:0,color:'#333'}}>—</span>{x}</li>)}</ul></>}
+          <ul style={{listStyle:'none',padding:0,marginBottom:10}}>{(Array.isArray(m.what_didnt)?m.what_didnt:Object.values(m.what_didnt)).map((x:any,i:number)=><li key={i} style={{paddingLeft:14,position:'relative',fontSize:13,color:'#bbb',lineHeight:1.6,paddingBottom:3}}><span style={{position:'absolute',left:0,color:'#333'}}>—</span>{x}</li>)}</ul></>}
           {m.key_number&&<div style={{background:'rgba(248,113,113,0.08)',borderLeft:'3px solid #f87171',padding:'10px 14px',borderRadius:'0 8px 8px 0',color:R,fontSize:13,lineHeight:1.6}}>{m.key_number}</div>}
         </div>
       )}
