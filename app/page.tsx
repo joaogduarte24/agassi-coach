@@ -1,6 +1,22 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Component } from 'react'
 import { ATP_PLAYERS, ATPPlayer } from '@/lib/atp-players'
+
+// ─── ERROR BOUNDARY ───────────────────────────────────────────────────────────
+class ErrorBoundary extends Component<{children: React.ReactNode}, {err: string|null}> {
+  constructor(props: any) { super(props); this.state = { err: null } }
+  static getDerivedStateFromError(e: any) { return { err: e?.message || String(e) } }
+  componentDidCatch(e: any) { console.error('MatchDetail crash:', e?.stack || e) }
+  render() {
+    if (this.state.err) return (
+      <div style={{background:'#1a0a0a',border:'1px solid #f87171',borderRadius:10,padding:16,margin:'12px 0',fontFamily:'monospace',fontSize:11,color:'#f87171',whiteSpace:'pre-wrap',wordBreak:'break-all'}}>
+        <div style={{fontWeight:700,marginBottom:6}}>⚠ Render error — copy this and send to debug:</div>
+        {this.state.err}
+      </div>
+    )
+    return this.props.children
+  }
+}
 
 const G = '#4ade80', A = '#fbbf24', R = '#f87171', B = '#60a5fa'
 const GD = 'rgba(74,222,128,0.12)', AD = 'rgba(251,191,36,0.12)', RD = 'rgba(248,113,113,0.12)'
@@ -1768,7 +1784,7 @@ export default function Home() {
       <div style={{maxWidth:900,margin:'0 auto',padding:'24px 16px 80px'}}>
 
         {/* LAST MATCH */}
-        {tab==='last' && (lastMatch ? <MatchDetail m={lastMatch} avgs={avgs}/> : <div style={{color:'#333',fontFamily:'monospace',textAlign:'center',padding:60}}>No matches yet. Upload your first match →</div>)}
+        {tab==='last' && (lastMatch ? <ErrorBoundary><MatchDetail m={lastMatch} avgs={avgs}/></ErrorBoundary> : <div style={{color:'#333',fontFamily:'monospace',textAlign:'center',padding:60}}>No matches yet. Upload your first match →</div>)}
 
         {/* HISTORY */}
         {tab==='history' && (
@@ -1831,7 +1847,7 @@ export default function Home() {
                           ))}
                         </div>
                       )}
-                      {isExp&&<div style={{borderTop:'1px solid #1a1a1a',paddingTop:16}}><MatchDetail m={m} avgs={avgs}/></div>}
+                      {isExp&&<div style={{borderTop:'1px solid #1a1a1a',paddingTop:16}}><ErrorBoundary><MatchDetail m={m} avgs={avgs}/></ErrorBoundary></div>}
                     </div>
                   </div>
                 )
