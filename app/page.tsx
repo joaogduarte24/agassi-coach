@@ -80,19 +80,39 @@ function MatchDetail({ m, avgs }: any) {
           </span>
         </div>
         <div style={{display:'flex',gap:8}}>
-          {(m.score?.sets_arr||[]).map(([j,o]: number[], i: number) => (
+          {(Array.isArray(m.score?.sets_arr) ? m.score.sets_arr : Object.values(m.score?.sets_arr || {})).map(([j,o]: any, i: number) => (
             <span key={i} style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,padding:'3px 12px',borderRadius:6,background:j>o?GD:RD,color:j>o?G:R}}>{j}–{o}</span>
           ))}
         </div>
       </div>
 
+      {/* Row 1 — key match stats */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:8}}>
+        {[
+          {v:s.total_pts_won_pct, l:'Pts Won', pct:true, g:55, a:48},
+          {v:s.s1_pts_won_pct,    l:'1st Srv Pts', pct:true, g:70, a:55},
+          {v:s.s2_pts_won_pct,    l:'2nd Srv Pts', pct:true, g:55, a:45},
+          {v:s.return_pts_won_pct,l:'Ret Pts Won', pct:true, g:55, a:45},
+        ].map(({v,l,pct,g,a}:any,i:number)=>(
+          <div key={i} style={{background:'#1e1e1e',borderRadius:8,padding:'10px 6px',textAlign:'center'}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,
+              color:v==null?'#333':v>=g?G:v>=a?A:R}}>
+              {v??'—'}{v!=null&&pct?'%':''}
+            </div>
+            <div style={{fontSize:9,color:'#444',textTransform:'uppercase',letterSpacing:1.2,marginTop:3,fontFamily:'monospace'}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      {/* Row 2 — shot counts */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8,marginBottom:14}}>
         {[
-          {v:s.winners,l:'Winners'},{v:s.ue,l:'UE',inv:true},{v:s.df,l:'DFs',inv:true,lo:true},
-          {v:s.bp_saved_pct,l:'BP Saved',pct:true},{v:s.bp_won_pct,l:'BP Won',pct:true}
+          {v:s.aces,l:'Aces'},
+          {v:s.service_winners??s.winners,l:s.service_winners!=null?'Srv W':'Winners'},
+          {v:s.ue,l:'UE',inv:true},{v:s.df,l:'DFs',inv:true,lo:true},
+          {v:s.bp_saved_pct,l:'BP Saved',pct:true},
         ].map(({v,l,inv,lo,pct}:any,i:number)=>(
           <div key={i} style={{background:'#1e1e1e',borderRadius:8,padding:'10px 6px',textAlign:'center'}}>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,
               color:v==null?'#333':inv?(lo?(v<=3?G:v<=6?A:R):(v<30?G:v<42?A:R)):pct?col(v,70,50):'#f0ede8'}}>
               {v??'—'}{v!=null&&pct?'%':''}
             </div>
@@ -149,6 +169,38 @@ function MatchDetail({ m, avgs }: any) {
         </Card>
       </div>
 
+      {/* Opponent Scout */}
+      {m.opp_shots && (
+        <div style={{background:'#1a1a1a',border:'1px solid #222',borderRadius:10,padding:14,marginBottom:12}}>
+          <div style={{fontSize:10,letterSpacing:2,color:'#555',textTransform:'uppercase',fontFamily:'monospace',marginBottom:12}}>
+            {m.opponent?.name} — Shot Tendencies
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            {/* Opponent serve */}
+            <div>
+              <div style={{fontSize:9,color:'#333',fontFamily:'monospace',letterSpacing:1,textTransform:'uppercase',marginBottom:6}}>Their Serve</div>
+              {m.opp_shots.serve?.first?.pct_ad != null && <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'3px 0',borderBottom:'1px solid #161616'}}><span>1st Ad</span><span style={{fontFamily:'monospace',color:m.opp_shots.serve.first.pct_ad>=65?R:A}}>{m.opp_shots.serve.first.pct_ad}%</span></div>}
+              {m.opp_shots.serve?.first?.pct_deuce != null && <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'3px 0',borderBottom:'1px solid #161616'}}><span>1st Deuce</span><span style={{fontFamily:'monospace',color:m.opp_shots.serve.first.pct_deuce>=65?R:A}}>{m.opp_shots.serve.first.pct_deuce}%</span></div>}
+              {m.opp_shots.serve?.first?.spd_ad != null && <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'3px 0'}}><span>Avg Speed</span><span style={{fontFamily:'monospace',color:'#888'}}>{m.opp_shots.serve.first.spd_ad} km/h</span></div>}
+            </div>
+            {/* Opponent groundstrokes */}
+            <div>
+              <div style={{fontSize:9,color:'#333',fontFamily:'monospace',letterSpacing:1,textTransform:'uppercase',marginBottom:6}}>Their Groundstrokes</div>
+              {m.opp_shots.forehand?.cc_in != null && <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'3px 0',borderBottom:'1px solid #161616'}}><span>FH CC</span><span style={{fontFamily:'monospace',color:m.opp_shots.forehand.cc_in>=75?R:A}}>{m.opp_shots.forehand.cc_in}%</span></div>}
+              {m.opp_shots.backhand?.cc_in != null && <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'3px 0',borderBottom:'1px solid #161616'}}><span>BH CC</span><span style={{fontFamily:'monospace',color:m.opp_shots.backhand.cc_in>=75?R:A}}>{m.opp_shots.backhand.cc_in}%</span></div>}
+              {m.opp_shots.stats?.ue != null && <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'3px 0'}}><span>Their UE</span><span style={{fontFamily:'monospace',color:m.opp_shots.stats.ue>35?G:A}}>{m.opp_shots.stats.ue}</span></div>}
+            </div>
+          </div>
+          {/* Opponent key stats if available */}
+          {m.opp_shots.stats?.s2_pts_won_pct != null && (
+            <div style={{marginTop:10,padding:'6px 10px',background:'#111',borderRadius:6,fontSize:10,color:'#555',fontFamily:'monospace'}}>
+              💡 Their 2nd serve pts won: <span style={{color:m.opp_shots.stats.s2_pts_won_pct<45?G:A}}>{m.opp_shots.stats.s2_pts_won_pct}%</span>
+              {m.opp_shots.stats?.total_pts_won_pct != null && <> · Total pts won: <span style={{color:'#666'}}>{m.opp_shots.stats.total_pts_won_pct}%</span></>}
+            </div>
+          )}
+        </div>
+      )}
+
       {(m.what_worked||m.what_didnt||m.key_number) && (
         <div style={{background:'#0e0e0e',border:'1px solid #1e1e1e',borderRadius:12,padding:20}}>
           <div style={{fontFamily:'monospace',fontSize:11,letterSpacing:2,color:A,marginBottom:14}}>🎙 COACH'S READ</div>
@@ -177,6 +229,11 @@ const IMPORTANT_FIELDS: { path: string[]; label: string; section: string }[] = [
   { path: ['backhand','dtl_in'],          label: 'BH Down-the-Line %',    section: 'Groundstrokes' },
   { path: ['shot_stats','ue'],            label: 'Unforced Errors',       section: 'Shot Stats' },
   { path: ['shot_stats','winners'],       label: 'Winners',               section: 'Shot Stats' },
+  { path: ['shot_stats','aces'],              label: 'Aces',                  section: 'Match Stats' },
+  { path: ['shot_stats','s1_pts_won_pct'],    label: '1st Srv Pts Won %',     section: 'Match Stats' },
+  { path: ['shot_stats','s2_pts_won_pct'],    label: '2nd Srv Pts Won %',     section: 'Match Stats' },
+  { path: ['shot_stats','return_pts_won_pct'],label: 'Return Pts Won %',      section: 'Match Stats' },
+  { path: ['shot_stats','total_pts_won_pct'], label: 'Total Pts Won %',       section: 'Match Stats' },
 ]
 function getStatVal(obj: any, path: string[]): any { return path.reduce((o, k) => o?.[k], obj) }
 function getMissingFields(match: any) { return IMPORTANT_FIELDS.filter(f => getStatVal(match, f.path) == null) }
@@ -192,7 +249,7 @@ function deepMerge(existing: any, incoming: any): any {
 }
 
 // ─── UPLOAD ───────────────────────────────────────────────────────────────────
-function UploadMatch({ onMatchAdded }: { onMatchAdded: (m: any) => void }) {
+function UploadMatch({ onMatchAdded, matches = [] }: { onMatchAdded: (m: any) => void; matches?: any[] }) {
   const [images, setImages] = useState<any[]>([])
   const [oppName, setOppName] = useState('')
   const [oppUtr, setOppUtr] = useState('')
@@ -202,6 +259,17 @@ function UploadMatch({ onMatchAdded }: { onMatchAdded: (m: any) => void }) {
   const [pendingMatch, setPendingMatch] = useState<any>(null)
   const [missingAlert, setMissingAlert] = useState<{ path: string[]; label: string; section: string }[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Derive unique previous opponents — canonical name + most recent UTR
+  const knownOpponents: { name: string; utr: number | null }[] = (() => {
+    const map = new Map<string, { name: string; utr: number | null; date: string }>()
+    ;[...matches].sort((a,b) => a.date < b.date ? -1 : 1).forEach(m => {
+      const name = m.opponent?.name?.trim()
+      if (!name || name === 'Unknown') return
+      map.set(name, { name, utr: m.opponent?.utr ?? null, date: m.date })
+    })
+    return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name))
+  })()
 
   const handleFiles = (e: any) => {
     const files = Array.from(e.target.files) as File[]
@@ -219,9 +287,13 @@ function UploadMatch({ onMatchAdded }: { onMatchAdded: (m: any) => void }) {
 
   const doSave = async (match: any) => {
     setStatus('💾 Saving match...')
+    // Trim opponent name to prevent whitespace duplicates
+    const cleanMatch = match.opponent?.name
+      ? { ...match, opponent: { ...match.opponent, name: match.opponent.name.trim() } }
+      : match
     const saveRes = await fetch('/api/matches', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ match })
+      body: JSON.stringify({ match: cleanMatch })
     })
     const saveData = await saveRes.json()
     if (!saveRes.ok || saveData.error) throw new Error(saveData.error || 'Save failed')
@@ -237,7 +309,7 @@ function UploadMatch({ onMatchAdded }: { onMatchAdded: (m: any) => void }) {
     try {
       const res = await fetch('/api/extract', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images, oppName, oppUtr, surface })
+        body: JSON.stringify({ images, oppName: oppName.trim(), oppUtr, surface })
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || 'Extraction failed')
@@ -269,7 +341,7 @@ function UploadMatch({ onMatchAdded }: { onMatchAdded: (m: any) => void }) {
             <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,color:A}}>Missing Stats Detected</span>
             <span style={{fontFamily:'monospace',fontSize:10,color:'#555',marginLeft:'auto',background:'rgba(251,191,36,0.1)',padding:'2px 7px',borderRadius:4}}>{missingAlert.length} field{missingAlert.length>1?'s':''}</span>
           </div>
-          {(['Serve','Return','Groundstrokes','Shot Stats'] as const).map(section => {
+          {(['Serve','Return','Groundstrokes','Shot Stats','Match Stats'] as const).map(section => {
             const fields = missingAlert.filter(f => f.section === section)
             if (!fields.length) return null
             return (
@@ -323,9 +395,35 @@ function UploadMatch({ onMatchAdded }: { onMatchAdded: (m: any) => void }) {
             )}
           </div>
 
+          {/* ── PREVIOUS OPPONENTS ── */}
+          {knownOpponents.length > 0 && (
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:10,color:'#444',fontFamily:'monospace',letterSpacing:1,marginBottom:7}}>PREVIOUS OPPONENT</div>
+              <div style={{display:'flex',flexWrap:'wrap' as any,gap:6}}>
+                {knownOpponents.map(opp => {
+                  const selected = oppName.trim() === opp.name
+                  return (
+                    <button key={opp.name} onClick={() => { setOppName(opp.name); setOppUtr(opp.utr != null ? String(opp.utr) : '') }}
+                      style={{padding:'5px 11px',borderRadius:20,border:'1px solid',fontSize:11,cursor:'pointer',transition:'all 0.15s',
+                        borderColor: selected ? '#c4a96a' : '#252525',
+                        background: selected ? 'rgba(196,169,106,0.14)' : 'transparent',
+                        color: selected ? '#e8d5b0' : '#666',
+                        fontFamily:'monospace'}}>
+                      {opp.name}{opp.utr != null ? ` · ${opp.utr}` : ''}
+                    </button>
+                  )
+                })}
+                {oppName && <button onClick={() => { setOppName(''); setOppUtr('') }}
+                  style={{padding:'5px 11px',borderRadius:20,border:'1px solid #252525',fontSize:11,cursor:'pointer',background:'transparent',color:'#333',fontFamily:'monospace'}}>
+                  ✕ clear
+                </button>}
+              </div>
+            </div>
+          )}
+
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
             <div>
-              <div style={{fontSize:10,color:'#444',fontFamily:'monospace',letterSpacing:1,marginBottom:5}}>OPPONENT</div>
+              <div style={{fontSize:10,color:'#444',fontFamily:'monospace',letterSpacing:1,marginBottom:5}}>OPPONENT{knownOpponents.length > 0 ? ' (or type new)' : ''}</div>
               <input value={oppName} onChange={e=>setOppName(e.target.value)} placeholder="e.g. Gonçalo" style={inp({})} />
             </div>
             <div>
@@ -480,7 +578,7 @@ function FixMatchModal({ match, onPatched, onClose }: { match: any; onPatched: (
         {missing.length > 0 ? (
           <div style={{background:'rgba(0,0,0,0.4)',borderRadius:10,padding:12,marginBottom:16}}>
             <div style={{fontSize:9,letterSpacing:1.5,color:A,fontFamily:'monospace',textTransform:'uppercase',marginBottom:10}}>Missing Fields</div>
-            {(['Serve','Return','Groundstrokes','Shot Stats'] as const).map(section => {
+            {(['Serve','Return','Groundstrokes','Shot Stats','Match Stats'] as const).map(section => {
               const fields = missing.filter(f => f.section === section)
               if (!fields.length) return null
               return (
@@ -1176,6 +1274,24 @@ function NextMatchStrategy({ matches }: { matches: any[]; avgs: any }) {
           ? 'Only one match on record — use all data points below to build your plan.'
           : `${historyMatches.length} matches played. Review the pattern — execution consistency is the differentiator.`)
       if (sd) parts01.push(`Style: ${sd.threat}`)
+
+      // Aggregate opponent shot tendencies from all matches vs them
+      const oppShotMatches = historyMatches.filter(m => m.opp_shots != null)
+      if (oppShotMatches.length > 0) {
+        const oppS1Ad  = avg(oppShotMatches.map(m => m.opp_shots?.serve?.first?.pct_ad))
+        const oppBhCC  = avg(oppShotMatches.map(m => m.opp_shots?.backhand?.cc_in))
+        const oppFhCC  = avg(oppShotMatches.map(m => m.opp_shots?.forehand?.cc_in))
+        const oppUE    = avg(oppShotMatches.map(m => m.opp_shots?.stats?.ue))
+        const oppSpd   = avg(oppShotMatches.map(m => m.opp_shots?.serve?.first?.spd_ad))
+        const oppS2Won = avg(oppShotMatches.map(m => m.opp_shots?.stats?.s2_pts_won_pct))
+
+        if (oppS1Ad != null) parts01.push(`Their 1st serve: ${oppS1Ad}% in — ${oppS1Ad < 55 ? 'low, expect lots of 2nd serves' : oppS1Ad < 65 ? 'average' : 'reliable — read direction early'}.`)
+        if (oppSpd != null) parts01.push(`Serve speed: avg ${oppSpd} km/h — ${oppSpd < 100 ? 'slow — step in and attack' : oppSpd < 130 ? 'medium pace' : 'heavy — block deep, don\'t swing big'}.`)
+        if (oppBhCC != null && oppBhCC < 65) parts01.push(`Their BH CC at ${oppBhCC}% — they miss it often. Push them wide to their backhand.`)
+        if (oppUE != null) parts01.push(`They averaged ${oppUE} UE — ${oppUE > 35 ? 'error-prone, stay consistent and let them self-destruct' : 'disciplined player, you need to create your own opportunities'}.`)
+        if (oppS2Won != null) parts01.push(`Their 2nd serve points won: ${oppS2Won}% — ${oppS2Won < 40 ? 'attack their 2nd serve, it\'s a free point' : 'they hold well even on 2nd serve — step in early'}.`)
+      }
+
       action01 = knownWinRate != null && knownWinRate >= 50
         ? `YOU\'VE BEATEN THEM BEFORE — EXECUTE THE SAME PLAN. DON\'T REINVENT THE WHEEL.`
         : `MORE LOSSES THAN WINS — SOMETHING MUST CHANGE. START WITH YOUR SERVE AND UE COUNT.`
@@ -1190,6 +1306,23 @@ function NextMatchStrategy({ matches }: { matches: any[]; avgs: any }) {
       if (simCtx) parts01.push(simCtx.trim())
       if (sd) parts01.push(`Playing style: ${sd.threat}`)
       else parts01.push('Add a playing style above for more specific tactical advice.')
+
+      // Aggregate opponent shot tendencies from similar-UTR matches
+      const simOppShotMatches = similarMatches.filter(m => m.opp_shots != null)
+      if (simOppShotMatches.length > 0) {
+        const oppS1Ad  = avg(simOppShotMatches.map(m => m.opp_shots?.serve?.first?.pct_ad))
+        const oppBhCC  = avg(simOppShotMatches.map(m => m.opp_shots?.backhand?.cc_in))
+        const oppUE    = avg(simOppShotMatches.map(m => m.opp_shots?.stats?.ue))
+        const oppSpd   = avg(simOppShotMatches.map(m => m.opp_shots?.serve?.first?.spd_ad))
+        const oppS2Won = avg(simOppShotMatches.map(m => m.opp_shots?.stats?.s2_pts_won_pct))
+
+        if (oppS1Ad != null) parts01.push(`Similar UTR opponents avg 1st serve: ${oppS1Ad}% — ${oppS1Ad < 55 ? 'expect lots of 2nd serves, attack them' : oppS1Ad < 65 ? 'average serve, read direction early' : 'reliable servers at this level — stay sharp'}.`)
+        if (oppSpd != null) parts01.push(`Avg serve speed at this UTR: ${oppSpd} km/h — ${oppSpd < 100 ? 'slow — step in and attack' : oppSpd < 130 ? 'medium pace' : 'heavy — block deep'}.`)
+        if (oppBhCC != null && oppBhCC < 65) parts01.push(`Opponents at this level avg BH CC at ${oppBhCC}% — push wide to their backhand.`)
+        if (oppUE != null) parts01.push(`Similar opponents avg ${oppUE} UE — ${oppUE > 35 ? 'error-prone level, stay consistent' : 'disciplined at this UTR, create your own chances'}.`)
+        if (oppS2Won != null) parts01.push(`Their 2nd serve pts won avg ${oppS2Won}% at this UTR — ${oppS2Won < 40 ? 'attack 2nd serves hard' : 'they compete well on 2nd serve — stay aggressive'}.`)
+      }
+
       action01 = utr >= 3.5
         ? 'COMPETE WITH NOTHING TO LOSE — YOUR BEST TENNIS WINS HERE, NOT SAFE TENNIS'
         : 'EXECUTE YOUR GAME — THE DATA SHOWS YOU CAN WIN AT THIS LEVEL'
@@ -1785,7 +1918,7 @@ export default function Home() {
         {tab==='jd' && <JDStats matches={matches} avgs={avgs}/>}
 
         {/* UPLOAD */}
-        {tab==='upload' && <UploadMatch onMatchAdded={addMatch}/>}
+        {tab==='upload' && <UploadMatch onMatchAdded={addMatch} matches={matches}/>}
       </div>
 
       {/* FIX MATCH MODAL — full-screen overlay */}
