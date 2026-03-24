@@ -238,11 +238,14 @@ const IMPORTANT_FIELDS: { path: string[]; label: string; section: string }[] = [
 function getStatVal(obj: any, path: string[]): any { return path.reduce((o, k) => o?.[k], obj) }
 function getMissingFields(match: any) { return IMPORTANT_FIELDS.filter(f => getStatVal(match, f.path) == null) }
 function deepMerge(existing: any, incoming: any): any {
+  // Never recurse into arrays — they hold ordered data (sets, bullet points) and
+  // spreading them into objects destroys structure and causes "not iterable" crashes.
+  if (Array.isArray(existing)) return existing.length > 0 ? existing : (incoming ?? existing)
   if (typeof existing !== 'object' || existing === null) return existing ?? incoming
   const result = { ...existing }
   for (const k of Object.keys(incoming || {})) {
     if (result[k] == null && incoming[k] != null) result[k] = incoming[k]
-    else if (typeof result[k] === 'object' && result[k] !== null && typeof incoming[k] === 'object' && incoming[k] !== null)
+    else if (!Array.isArray(result[k]) && typeof result[k] === 'object' && result[k] !== null && typeof incoming[k] === 'object' && incoming[k] !== null)
       result[k] = deepMerge(result[k], incoming[k])
   }
   return result
