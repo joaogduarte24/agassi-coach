@@ -96,9 +96,12 @@ function MatchDetail({ m, avgs }: any) {
           </span>
         </div>
         <div style={{display:'flex',gap:8}}>
-          {(Array.isArray(m.score?.sets_arr) ? m.score.sets_arr : Object.values(m.score?.sets_arr || {})).map(([j,o]: any, i: number) => (
-            <span key={i} style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,padding:'3px 12px',borderRadius:6,background:j>o?GD:RD,color:j>o?G:R}}>{j}–{o}</span>
-          ))}
+          {(Array.isArray(m.score?.sets_arr) ? m.score.sets_arr : Object.values(m.score?.sets_arr || {})).map((set: any, i: number) => {
+            // Handle both [7,5] arrays and {"0":7,"1":5} plain objects from deepMerge
+            const j = Array.isArray(set) ? set[0] : (set?.['0'] ?? Object.values(set||{})[0])
+            const o = Array.isArray(set) ? set[1] : (set?.['1'] ?? Object.values(set||{})[1])
+            return <span key={i} style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,padding:'3px 12px',borderRadius:6,background:j>o?GD:RD,color:j>o?G:R}}>{j}–{o}</span>
+          })}
         </div>
       </div>
 
