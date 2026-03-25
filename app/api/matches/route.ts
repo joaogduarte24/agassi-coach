@@ -31,6 +31,7 @@ function matchToDb(m: any) {
     what_worked: m.what_worked,
     what_didnt: m.what_didnt,
     key_number: m.key_number,
+    journal: m.journal ?? null,
   }
 }
 
@@ -69,6 +70,7 @@ function dbToMatch(row: any) {
     what_worked: toArr(row.what_worked),
     what_didnt: toArr(row.what_didnt),
     key_number: row.key_number,
+    journal: row.journal ?? null,
   }
 }
 
