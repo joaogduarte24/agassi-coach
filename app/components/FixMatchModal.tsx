@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { G, A, R, deepMerge, getMissingFields, IMPORTANT_FIELDS, fmtDate } from '@/app/lib/helpers'
+import { G, A, R, deepMerge, overwriteMerge, getMissingFields, IMPORTANT_FIELDS, fmtDate } from '@/app/lib/helpers'
 
 interface FixMatchModalProps {
   match: any
@@ -12,6 +12,7 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
   const [images, setImages] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState('')
+  const [mode, setMode] = useState<'fill' | 'overwrite'>('fill')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const missing = getMissingFields(match)
@@ -32,7 +33,8 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
 
   const handleFix = async () => {
     if (!images.length) return
-    setLoading(true); setStatus('Extracting from new screenshots...')
+    setLoading(true)
+    setStatus(mode === 'overwrite' ? 'Re-extracting all stats...' : 'Extracting from new screenshots...')
     try {
       const res = await fetch('/api/extract', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -40,8 +42,12 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error)
-      const merged = deepMerge(match, data.match)
+
+      const merged = mode === 'overwrite'
+        ? overwriteMerge(match, data.match)
+        : deepMerge(match, data.match)
       merged.id = match.id
+
       setStatus('Saving...')
       const saveRes = await fetch('/api/matches', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -49,17 +55,21 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
       })
       const saveData = await saveRes.json()
       if (!saveRes.ok || saveData.error) throw new Error(saveData.error)
+
       const stillMissing = getMissingFields(merged)
-      setStatus(stillMissing.length === 0 ? 'All stats filled!' : `Saved — ${stillMissing.length} field${stillMissing.length>1?'s':''} still missing`)
+      setStatus(stillMissing.length === 0
+        ? (mode === 'overwrite' ? 'All stats refreshed!' : 'All stats filled!')
+        : `Saved — ${stillMissing.length} field${stillMissing.length > 1 ? 's' : ''} still missing`)
       onPatched(merged)
       setTimeout(() => onClose(), 1800)
-    } catch(e: any) { setStatus('Error: ' + e.message) }
+    } catch (e: any) { setStatus('Error: ' + e.message) }
     setLoading(false)
   }
 
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#141414',border:'1px solid #252525',borderRadius:16,padding:24,maxWidth:460,width:'100%',maxHeight:'90vh',overflowY:'auto' as any}}>
+
         {/* Header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
           <div>
@@ -82,33 +92,56 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
           </div>
         </div>
 
-        {/* Missing fields */}
-        {missing.length > 0 ? (
-          <div style={{background:'rgba(0,0,0,0.4)',borderRadius:10,padding:12,marginBottom:16}}>
-            <div style={{fontSize:9,letterSpacing:1.5,color:A,fontFamily:'monospace',textTransform:'uppercase',marginBottom:10}}>Missing Fields</div>
-            {(['Serve','Return','Groundstrokes','Shot Stats','Match Stats'] as const).map(section => {
-              const fields = missing.filter(f => f.section === section)
-              if (!fields.length) return null
-              return (
-                <div key={section} style={{marginBottom:8}}>
-                  <div style={{fontSize:9,color:'#333',fontFamily:'monospace',letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{section}</div>
-                  <div style={{display:'flex',flexWrap:'wrap' as any,gap:4}}>
-                    {fields.map(f => (
-                      <span key={f.label} style={{fontSize:10,color:A,fontFamily:'monospace',background:'rgba(251,191,36,0.06)',padding:'2px 7px',borderRadius:4,border:'1px solid rgba(251,191,36,0.15)'}}>
-                        {f.label}
-                      </span>
-                    ))}
+        {/* Mode toggle */}
+        <div style={{display:'flex',gap:6,marginBottom:16,background:'#0e0e0e',borderRadius:8,padding:4}}>
+          {([['fill','Fill Gaps','Only adds missing fields'] , ['overwrite','Correct Values','Re-extracts everything, overwrites wrong values']] as const).map(([m, label, desc]) => (
+            <button key={m} onClick={()=>setMode(m)}
+              style={{flex:1,padding:'8px 6px',borderRadius:6,border:'none',cursor:'pointer',transition:'all 0.15s',
+                background: mode===m ? (m==='overwrite'?'rgba(248,113,113,0.15)':'rgba(251,191,36,0.12)') : 'transparent',
+                color: mode===m ? (m==='overwrite'?R:A) : '#444'}}>
+              <div style={{fontSize:11,fontWeight:700,fontFamily:'monospace',letterSpacing:0.5}}>{label}</div>
+              <div style={{fontSize:9,color:mode===m?(m==='overwrite'?'rgba(248,113,113,0.6)':'rgba(251,191,36,0.5)'):'#2a2a2a',marginTop:2,lineHeight:1.3}}>{desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Missing fields (fill mode) or overwrite warning */}
+        {mode === 'fill' ? (
+          missing.length > 0 ? (
+            <div style={{background:'rgba(0,0,0,0.4)',borderRadius:10,padding:12,marginBottom:16}}>
+              <div style={{fontSize:9,letterSpacing:1.5,color:A,fontFamily:'monospace',textTransform:'uppercase',marginBottom:10}}>Missing Fields</div>
+              {(['Serve','Return','Groundstrokes','Shot Stats','Match Stats'] as const).map(section => {
+                const fields = missing.filter(f => f.section === section)
+                if (!fields.length) return null
+                return (
+                  <div key={section} style={{marginBottom:8}}>
+                    <div style={{fontSize:9,color:'#333',fontFamily:'monospace',letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{section}</div>
+                    <div style={{display:'flex',flexWrap:'wrap' as any,gap:4}}>
+                      {fields.map(f => (
+                        <span key={f.label} style={{fontSize:10,color:A,fontFamily:'monospace',background:'rgba(251,191,36,0.06)',padding:'2px 7px',borderRadius:4,border:'1px solid rgba(251,191,36,0.15)'}}>
+                          {f.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-            <div style={{marginTop:10,fontSize:10,color:'#444',fontFamily:'monospace',lineHeight:1.55,borderTop:'1px solid #1a1a1a',paddingTop:8}}>
-              SwingVision → this match → <strong style={{color:'#666'}}>My Shots</strong> → scroll to the missing section → screenshot → upload below. Existing data is never overwritten.
+                )
+              })}
+              <div style={{marginTop:10,fontSize:10,color:'#444',fontFamily:'monospace',lineHeight:1.55,borderTop:'1px solid #1a1a1a',paddingTop:8}}>
+                Upload the relevant SwingVision screenshot — existing data is never overwritten in Fill mode.
+              </div>
             </div>
-          </div>
+          ) : (
+            <div style={{background:'rgba(74,222,128,0.06)',border:'1px solid rgba(74,222,128,0.15)',borderRadius:8,padding:12,marginBottom:16,fontSize:12,color:G,fontFamily:'monospace',textAlign:'center'}}>
+              All key stats present — switch to Correct Values if a number looks wrong
+            </div>
+          )
         ) : (
-          <div style={{background:'rgba(74,222,128,0.06)',border:'1px solid rgba(74,222,128,0.15)',borderRadius:8,padding:12,marginBottom:16,fontSize:12,color:G,fontFamily:'monospace',textAlign:'center'}}>
-            All key stats present — nothing to fix
+          <div style={{background:'rgba(248,113,113,0.06)',border:'1px solid rgba(248,113,113,0.15)',borderRadius:8,padding:12,marginBottom:16}}>
+            <div style={{fontSize:11,fontWeight:700,color:R,fontFamily:'monospace',marginBottom:6}}>OVERWRITE MODE</div>
+            <div style={{fontSize:11,color:'rgba(248,113,113,0.7)',fontFamily:'monospace',lineHeight:1.6}}>
+              Every field visible in your screenshots will be re-extracted and replace the stored value. Fields Claude can't see stay unchanged.<br/><br/>
+              Use this when a value looks wrong (e.g. DTL speed shows 73 km/h in SwingVision but 81 km/h in the app).
+            </div>
           </div>
         )}
 
@@ -120,13 +153,16 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
             <div>
               <div style={{color:G,fontSize:13,marginBottom:3}}>{images.length} screenshot{images.length>1?'s':''} selected</div>
               <div style={{fontSize:10,color:'#444',fontFamily:'monospace'}}>{images.map(i=>i.name).join(', ')}</div>
-              <button onClick={e=>{e.stopPropagation();setImages([]);if(fileRef.current)fileRef.current.value=''}} style={{marginTop:6,background:'none',border:'none',color:'#555',fontSize:11,cursor:'pointer',textDecoration:'underline'}}>clear</button>
+              <button onClick={e=>{e.stopPropagation();setImages([]);if(fileRef.current)fileRef.current.value=''}}
+                style={{marginTop:6,background:'none',border:'none',color:'#555',fontSize:11,cursor:'pointer',textDecoration:'underline'}}>clear</button>
             </div>
           ) : (
             <div>
               <div style={{fontSize:26,marginBottom:6,opacity:0.3}}>↑</div>
               <div style={{color:'#555',fontSize:12}}>Tap to add screenshots</div>
-              <div style={{fontSize:10,color:'#333',marginTop:3}}>Only null fields will be filled — existing data preserved</div>
+              <div style={{fontSize:10,color:'#333',marginTop:3}}>
+                {mode === 'overwrite' ? 'Upload all relevant screenshots — values will be overwritten' : 'Only null fields will be filled — existing data preserved'}
+              </div>
             </div>
           )}
         </div>
@@ -134,10 +170,11 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
         <button onClick={handleFix} disabled={loading||!images.length}
           style={{width:'100%',padding:12,borderRadius:9,border:'none',
             cursor:loading||!images.length?'not-allowed':'pointer',
-            background:loading||!images.length?'#1a1a1a':'linear-gradient(135deg,#fbbf24,#f59e0b)',
+            background:loading||!images.length?'#1a1a1a':
+              mode==='overwrite'?'linear-gradient(135deg,#f87171,#ef4444)':'linear-gradient(135deg,#fbbf24,#f59e0b)',
             color:loading||!images.length?'#333':'#0a0a0a',
             fontSize:13,fontWeight:700,letterSpacing:1.5,fontFamily:"'Bebas Neue',sans-serif",transition:'all 0.2s'}}>
-          {loading ? 'EXTRACTING...' : 'EXTRACT & FILL MISSING STATS'}
+          {loading ? 'EXTRACTING...' : mode==='overwrite' ? 'RE-EXTRACT & OVERWRITE' : 'EXTRACT & FILL MISSING STATS'}
         </button>
 
         {status && (

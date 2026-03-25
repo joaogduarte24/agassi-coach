@@ -59,6 +59,27 @@ export function deepMerge(existing: any, incoming: any): any {
   }
   return result
 }
+
+// Overwrite merge: incoming values replace existing where not null; falls back to existing where null
+export function overwriteMerge(existing: any, incoming: any): any {
+  if (Array.isArray(incoming)) return incoming.length > 0 ? incoming : (existing ?? incoming)
+  if (typeof incoming !== 'object' || incoming === null) return incoming ?? existing
+  if (typeof existing !== 'object' || existing === null) return incoming ?? existing
+  const result = { ...existing }
+  for (const k of Object.keys(incoming)) {
+    if (incoming[k] != null) {
+      if (!Array.isArray(incoming[k]) && typeof incoming[k] === 'object' &&
+          typeof existing?.[k] === 'object' && !Array.isArray(existing?.[k])) {
+        result[k] = overwriteMerge(existing[k], incoming[k])
+      } else {
+        result[k] = incoming[k]
+      }
+    }
+    // incoming[k] is null → keep existing[k] as-is
+  }
+  return result
+}
+
 export function computeAvgs(matches: any[]) {
   return {
     s1_ad:      avg(matches.map(m=>m.serve?.first?.pct_ad)),
