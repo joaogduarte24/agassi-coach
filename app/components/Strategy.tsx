@@ -568,6 +568,119 @@ export default function NextMatchStrategy({ matches }: NextMatchStrategyProps) {
             </div>
           )}
 
+          {/* Opponent Tendencies — data panel from recorded opp_shots */}
+          {isKnown && (() => {
+            const osm = historyMatches.filter((m: any) => m.opp_shots != null)
+            if (osm.length === 0) return null
+            const oS1  = avg(osm.map((m: any) => m.opp_shots?.serve?.first?.pct_ad))
+            const oS1Spd = avg(osm.map((m: any) => m.opp_shots?.serve?.first?.spd_ad))
+            const oS2  = avg(osm.map((m: any) => m.opp_shots?.serve?.second?.pct_ad))
+            const oFhCC = avg(osm.map((m: any) => m.opp_shots?.forehand?.cc_in))
+            const oFhDTL = avg(osm.map((m: any) => m.opp_shots?.forehand?.dtl_in))
+            const oBhCC = avg(osm.map((m: any) => m.opp_shots?.backhand?.cc_in))
+            const oBhDTL = avg(osm.map((m: any) => m.opp_shots?.backhand?.dtl_in))
+            const oFhSpd = avg(osm.map((m: any) => m.opp_shots?.forehand?.spd_cc))
+            const oBhSpd = avg(osm.map((m: any) => m.opp_shots?.backhand?.spd_cc))
+            const oWinners = avg(osm.map((m: any) => m.opp_shots?.stats?.winners))
+            const oUE     = avg(osm.map((m: any) => m.opp_shots?.stats?.ue))
+            const oBpWon  = avg(osm.map((m: any) => m.opp_shots?.stats?.bp_won_pct))
+            const oTopspin = avg(osm.map((m: any) => m.opp_shots?.distribution?.topspin_pct))
+            const oSlice   = avg(osm.map((m: any) => m.opp_shots?.distribution?.slice_pct))
+
+            const Row = ({ l, v, note }: { l: string; v: string | null; note?: string }) =>
+              v == null ? null : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', borderBottom: '1px solid #1a1a1a' }}>
+                  <span style={{ fontSize: 11, color: '#555', minWidth: 130 }}>{l}</span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#e8d5b0' }}>{v}</span>
+                    {note && <span style={{ fontSize: 10, color: '#444', fontFamily: 'monospace' }}>{note}</span>}
+                  </div>
+                </div>
+              )
+
+            return (
+              <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                    {oppName} — Recorded Tendencies
+                  </div>
+                  <div style={{ fontSize: 9, color: '#333', fontFamily: 'monospace' }}>from {osm.length} match{osm.length > 1 ? 'es' : ''}</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+                  <div>
+                    <div style={{ fontSize: 9, letterSpacing: 1.5, color: '#333', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Serve</div>
+                    <Row l="1st Serve %" v={oS1 != null ? `${oS1}%` : null} note={oS1 != null ? (oS1 < 55 ? '← lots of 2nd serves' : oS1 > 70 ? '← reliable, read early' : undefined) : undefined} />
+                    <Row l="1st Serve Speed" v={oS1Spd != null ? `${oS1Spd} km/h` : null} note={oS1Spd != null ? (oS1Spd < 110 ? '← step in & attack' : oS1Spd > 150 ? '← block deep' : undefined) : undefined} />
+                    <Row l="2nd Serve %" v={oS2 != null ? `${oS2}%` : null} />
+                    <div style={{ fontSize: 9, letterSpacing: 1.5, color: '#333', fontFamily: 'monospace', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 }}>Groundstrokes</div>
+                    <Row l="FH CC In %" v={oFhCC != null ? `${oFhCC}%` : null} note={oFhCC != null && oFhCC < 65 ? '← misses it often' : undefined} />
+                    <Row l="FH DTL In %" v={oFhDTL != null ? `${oFhDTL}%` : null} />
+                    <Row l="FH Speed CC" v={oFhSpd != null ? `${oFhSpd} km/h` : null} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, letterSpacing: 1.5, color: '#333', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Stats</div>
+                    <Row l="Winners / match" v={oWinners != null ? `${oWinners}` : null} />
+                    <Row l="Unforced Errors" v={oUE != null ? `${oUE}` : null} note={oUE != null ? (oUE > 35 ? '← error-prone' : oUE < 20 ? '← disciplined' : undefined) : undefined} />
+                    <Row l="BP Won %" v={oBpWon != null ? `${oBpWon}%` : null} note={oBpWon != null && oBpWon < 35 ? '← struggles on BP' : undefined} />
+                    {(oTopspin != null || oSlice != null) && <>
+                      <div style={{ fontSize: 9, letterSpacing: 1.5, color: '#333', fontFamily: 'monospace', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 }}>Backhand</div>
+                      <Row l="BH CC In %" v={oBhCC != null ? `${oBhCC}%` : null} note={oBhCC != null && oBhCC < 65 ? '← push wide to BH' : undefined} />
+                      <Row l="BH DTL In %" v={oBhDTL != null ? `${oBhDTL}%` : null} />
+                      <Row l="BH Speed CC" v={oBhSpd != null ? `${oBhSpd} km/h` : null} />
+                    </>}
+                    {(oTopspin != null || oSlice != null) && <>
+                      <div style={{ fontSize: 9, letterSpacing: 1.5, color: '#333', fontFamily: 'monospace', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 }}>Spin Mix</div>
+                      <Row l="Topspin %" v={oTopspin != null ? `${oTopspin}%` : null} />
+                      <Row l="Slice %" v={oSlice != null ? `${oSlice}%` : null} />
+                    </>}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Field Notes — what worked / what didn't in past H2H matches */}
+          {isKnown && (() => {
+            const notedMatches = historyMatches
+              .filter((m: any) => m.what_worked?.length || m.what_didnt?.length)
+              .slice(-3)
+            if (notedMatches.length === 0) return null
+            return (
+              <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>
+                  Field Notes vs {oppName}
+                </div>
+                {notedMatches.reverse().map((m: any, i: number) => (
+                  <div key={i} style={{ marginBottom: i < notedMatches.length - 1 ? 14 : 0, paddingBottom: i < notedMatches.length - 1 ? 14 : 0, borderBottom: i < notedMatches.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
+                    <div style={{ fontSize: 9, color: '#333', fontFamily: 'monospace', marginBottom: 6 }}>
+                      {fmtDate(m.date)} · {m.score?.winner === 'JD' ? <span style={{ color: G }}>W</span> : <span style={{ color: R }}>L</span>} {m.score?.sets}
+                    </div>
+                    {m.what_worked?.length > 0 && (
+                      <div style={{ marginBottom: 4 }}>
+                        {m.what_worked.map((w: string, j: number) => (
+                          <div key={j} style={{ display: 'flex', gap: 6, fontSize: 11, color: '#666', lineHeight: 1.5 }}>
+                            <span style={{ color: G, flexShrink: 0 }}>✓</span>
+                            <span>{w}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {m.what_didnt?.length > 0 && (
+                      <div>
+                        {m.what_didnt.map((w: string, j: number) => (
+                          <div key={j} style={{ display: 'flex', gap: 6, fontSize: 11, color: '#666', lineHeight: 1.5 }}>
+                            <span style={{ color: R, flexShrink: 0 }}>✗</span>
+                            <span>{w}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
           {/* Focus cards */}
           {focusCards.map(c => <FocusCard key={c.n} {...c} />)}
 
