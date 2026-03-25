@@ -15,6 +15,7 @@ create table if not exists matches (
   forehand jsonb,
   backhand jsonb,
   shot_stats jsonb,
+  opp_shots jsonb,
   what_worked jsonb,
   what_didnt jsonb,
   key_number text,
@@ -24,3 +25,6 @@ create table if not exists matches (
 -- Enable Row Level Security (open read/write for now — add auth later if needed)
 alter table matches enable row level security;
 create policy "Allow all" on matches for all using (true) with check (true);
+
+-- Migration: add opp_shots if upgrading from earlier schema
+alter table matches add column if not exists opp_shots jsonb;
