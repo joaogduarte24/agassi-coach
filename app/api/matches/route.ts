@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { SEED_MATCHES } from '@/lib/seed'
 
+const DEV_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL
+
 // Server-side supabase client (lazy — avoids build-time env errors)
 function getSupabase() {
   return createClient(
@@ -72,6 +74,7 @@ function dbToMatch(row: any) {
 
 // GET — fetch all matches (seed if empty)
 export async function GET() {
+  if (DEV_MODE) return NextResponse.json({ matches: SEED_MATCHES })
   try {
     const supabase = getSupabase()
     const { data, error } = await supabase
@@ -97,6 +100,7 @@ export async function GET() {
 
 // POST — save a new match
 export async function POST(req: NextRequest) {
+  if (DEV_MODE) return NextResponse.json({ ok: true, dev: true })
   try {
     const supabase = getSupabase()
     const { match } = await req.json()
@@ -110,6 +114,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE — remove a match
 export async function DELETE(req: NextRequest) {
+  if (DEV_MODE) return NextResponse.json({ ok: true, dev: true })
   try {
     const supabase = getSupabase()
     const { id } = await req.json()
