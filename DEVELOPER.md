@@ -48,13 +48,15 @@ agassi/
 ```
 
 ## Adding a New Feature
-1. Read `CLAUDE.md` to understand data shape
-2. If it touches match data, update `app/types.ts` first
-3. Add helper functions to `app/lib/helpers.ts`
-4. If the extraction prompt needs updating, edit `app/api/extract/route.ts`
-5. If the DB schema changes, add a migration and update `supabase-schema.sql`
-6. Build the component in `app/components/`
-7. Wire it into `app/page.tsx`
+Every feature follows the 6-gate process defined in `CLAUDE.md`. No code is written until gates 01–03 are approved by JD.
+
+Short version:
+1. Read `PRODUCT.md` — understand why this feature matters
+2. Read `ROADMAP.md` — confirm it's in scope and prioritised
+3. Run gates 01–03 (benchmark, user journey, design + copy) and get sign-off
+4. Gate 04: identify which files change, whether DB/types/API need updating
+5. Gate 05: implement, `npm run build` clean, screenshot proof
+6. Gate 06: update `FEATURES.md` + `ROADMAP.md`, open PR using the template
 
 ## Supabase Setup
 1. Create project at supabase.com
@@ -67,6 +69,13 @@ ANTHROPIC_API_KEY=sk-ant-...
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
+
+## Contribution flow
+1. Work from `ROADMAP.md` — pick the top NOW item, or the top NEXT item if NOW is clear
+2. Follow the 6-gate process — no implementation without approved design
+3. Run `npm run build` locally before pushing — never push a broken build
+4. Open a PR using `.github/PULL_REQUEST_TEMPLATE.md`
+5. After merge: update `ROADMAP.md` (mark item done) and add entry to `FEATURES.md`
 
 ## Deployment
 Auto-deploys to Vercel on push to `main`. Env vars are set in the Vercel project settings.

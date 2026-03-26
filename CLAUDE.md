@@ -4,6 +4,23 @@
 Next.js 14 app for João Duarte (JD) to track tennis matches and get AI strategy coaching.
 Live: https://agassi-app.vercel.app | Supabase: NEXT_PUBLIC_SUPABASE_URL in .env
 
+## Product Context
+
+**User:** João Duarte (JD) — serious amateur tennis player. Single user. Every feature is built for him specifically.
+
+**Core goal (in priority order):**
+1. Coach relationship with data — connect match stats to outcomes, surface patterns that explain wins and losses
+2. More match wins — specific, data-driven game plans before every match
+3. Progress tracking — make improvement visible over time
+
+**Future:** At some point "JD" becomes any amateur player. The architecture should make that swap easy, but never build for it until explicitly decided.
+
+**Design principles:** mobile-first (used post-match on phone), tap-based (no typing), high-leverage only (if it doesn't change on-court behaviour, cut it), direct copy (coach voice, not product voice).
+
+**Read `PRODUCT.md` for the full context before making any product or design decisions.**
+
+---
+
 ## Key Architecture
 - `app/page.tsx` — Home component only (~150 lines). Nav + tab routing.
 - `app/components/` — One file per UI component (MatchDetail, Strategy, JDStats, UploadMatch, FixMatchModal, RadarChart, StatBar)
