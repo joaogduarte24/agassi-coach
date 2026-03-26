@@ -108,6 +108,19 @@ Three tabs to capture per match:
 - Red `#f87171` (R) = needs work
 - Blue `#60a5fa` (B) = neutral/info
 
+## Bug Fix Process
+
+1. **Reproduce** — confirm broken state before touching code
+2. **Locate** — read the exact file/line, no guessing
+3. **Fix** — minimal change only, no scope creep
+4. **Build** — `npm run build` zero errors
+5. **Verify** — preview test + screenshot of the fixed behaviour
+6. **Ship** — commit + push
+
+**Rules:** no permission needed · one fix per commit · if root cause is bigger, flag it · if stuck in a loop, stop and flag it — never retry the same failing approach
+
+---
+
 ## Feature Development Process
 
 Every feature goes through all 6 gates — no skipping.
