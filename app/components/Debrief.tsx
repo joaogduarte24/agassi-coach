@@ -134,7 +134,7 @@ export default function Debrief({ m, avgs, allMatches }: DeBriefProps) {
 
       {/* Full stats toggle */}
       {hasStats && (
-        <button onClick={() => setShowFull(v => !v)}
+        <button onClick={e => { e.stopPropagation(); setShowFull(v => !v) }}
           style={{ width: '100%', padding: 14, background: 'none', border: `1px solid ${BORDER2}`, borderRadius: 12, color: MUTED, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: showFull ? 20 : 0, transition: 'all 0.15s' }}>
           {showFull ? 'Hide full stats ↑' : 'Full stats ↓'}
         </button>
