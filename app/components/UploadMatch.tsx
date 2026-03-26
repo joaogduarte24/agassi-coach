@@ -126,22 +126,26 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   const [contextOpen, setContextOpen] = useState(false)
 
   // Before
-  const [recovery, setRecovery] = useState('')
-  const [physicalFeel, setPhysicalFeel] = useState(0)
+  const [recoveryPct, setRecoveryPct] = useState('')
   const [matchType, setMatchType] = useState('')
   const [warmup, setWarmup] = useState('')
 
   // After
+  const [oppDifficulty, setOppDifficulty] = useState('')
   const [planExecuted, setPlanExecuted] = useState('')
   const [focus, setFocus] = useState(0)
   const [composure, setComposure] = useState(0)
+  const [whoopStrain, setWhoopStrain] = useState('')
   const [decidedBy, setDecidedBy] = useState<string[]>([])
   const [priorityNext, setPriorityNext] = useState('')
 
-  // Context
+  // Opponent
   const [oppStyle, setOppStyle] = useState('')
   const [oppLefty, setOppLefty] = useState('')
-  const [conditions, setConditions] = useState<string[]>([])
+  const [netGame, setNetGame] = useState('')
+  const [mentalGame, setMentalGame] = useState('')
+  const [oppWeapon, setOppWeapon] = useState('')
+  const [oppWeakness, setOppWeakness] = useState('')
 
   // Pre-fill opponent context from previous matches when a known opponent is selected
   useEffect(() => {
@@ -150,30 +154,38 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
       .filter(m => m.opponent?.name === oppName && m.journal?.opp_style)
       .sort((a, b) => b.date.localeCompare(a.date))[0]
     if (prevWithJournal) {
-      if (!oppStyle) setOppStyle(prevWithJournal.journal.opp_style)
-      if (!oppLefty && prevWithJournal.journal.opp_lefty != null)
-        setOppLefty(prevWithJournal.journal.opp_lefty ? 'yes' : 'no')
+      const j = prevWithJournal.journal
+      if (!oppStyle && j.opp_style) setOppStyle(j.opp_style)
+      if (!oppLefty && j.opp_lefty != null) setOppLefty(j.opp_lefty ? 'yes' : 'no')
+      if (!netGame && j.net_game) setNetGame(j.net_game)
+      if (!mentalGame && j.mental_game) setMentalGame(j.mental_game)
+      if (!oppWeapon && j.opp_weapon) setOppWeapon(j.opp_weapon)
+      if (!oppWeakness && j.opp_weakness) setOppWeakness(j.opp_weakness)
     }
   }, [oppName])
 
   const journalData = {
-    recovery: recovery || null,
-    physical_feel: physicalFeel || null,
+    recovery: recoveryPct !== '' ? Number(recoveryPct) : null,
     match_type: matchType || null,
     warmup: warmup || null,
+    opp_difficulty: oppDifficulty || null,
     plan_executed: planExecuted || null,
     focus: focus || null,
     composure: composure || null,
+    whoop_strain: whoopStrain !== '' ? Number(whoopStrain) : null,
     decided_by: decidedBy.length ? decidedBy : null,
     priority_next: priorityNext || null,
     opp_style: oppStyle || null,
     opp_lefty: oppLefty === 'yes' ? true : oppLefty === 'no' ? false : null,
-    conditions: conditions.length ? conditions : null,
+    net_game: netGame || null,
+    mental_game: mentalGame || null,
+    opp_weapon: oppWeapon || null,
+    opp_weakness: oppWeakness || null,
   }
 
-  const beforeAnswered = [recovery, physicalFeel, matchType, warmup].filter(Boolean).length
-  const afterAnswered = [planExecuted, focus, composure, decidedBy.length > 0 ? 1 : 0, priorityNext].filter(Boolean).length
-  const contextAnswered = [oppStyle, oppLefty, conditions.length > 0 ? 1 : 0].filter(Boolean).length
+  const beforeAnswered = [recoveryPct, matchType, warmup].filter(Boolean).length
+  const afterAnswered = [oppDifficulty, planExecuted, focus, composure, whoopStrain, decidedBy.length > 0 ? 1 : 0, priorityNext].filter(Boolean).length
+  const oppAnswered = [oppStyle, oppLefty, netGame, mentalGame, oppWeapon, oppWeakness].filter(Boolean).length
 
   const knownOpponents: { name: string; utr: number | null }[] = (() => {
     const map = new Map<string, { name: string; utr: number | null; date: string }>()
@@ -216,6 +228,11 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     if (!saveRes.ok || saveData.error) throw new Error(saveData.error || 'Save failed')
     onMatchAdded(cleanMatch)
     clearImages(); setOppName(''); setOppUtr(''); setPendingMatch(null); setMissingAlert([])
+    // Reset journal
+    setRecoveryPct(''); setMatchType(''); setWarmup('')
+    setOppDifficulty(''); setPlanExecuted(''); setFocus(0); setComposure(0); setWhoopStrain('')
+    setDecidedBy([]); setPriorityNext('')
+    setOppStyle(''); setOppLefty(''); setNetGame(''); setMentalGame(''); setOppWeapon(''); setOppWeakness('')
     setStatus('Match saved!'); setTimeout(() => setStatus(''), 3000)
   }
 
@@ -374,12 +391,19 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
               <>
                 {/* BEFORE THE MATCH */}
                 <JSection title="Before the Match" open={beforeOpen} onToggle={() => setBeforeOpen(v => !v)} answered={beforeAnswered}>
-                  <Q label="Recovery score">
-                    <Chips options={['Low', 'Moderate', 'Good', 'Peak']} value={recovery} onChange={setRecovery}
-                      color={recovery === 'Low' ? '#f87171' : recovery === 'Moderate' ? '#fbbf24' : '#4ade80'} />
-                  </Q>
-                  <Q label="How does your body feel?" note="1 = dead  5 = fresh">
-                    <Dots value={physicalFeel} onChange={setPhysicalFeel} />
+                  <Q label="Whoop recovery" note="0 – 100%">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="number" min={0} max={100} placeholder="e.g. 74"
+                        value={recoveryPct} onChange={e => setRecoveryPct(e.target.value)}
+                        style={{ width: 90, background: '#161616', border: '1px solid #252525', borderRadius: 8, padding: '9px 12px', color: '#f0f0f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                      />
+                      {recoveryPct !== '' && (
+                        <span style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: Number(recoveryPct) >= 67 ? '#4ade80' : Number(recoveryPct) >= 34 ? '#fbbf24' : '#f87171', letterSpacing: 1 }}>
+                          {recoveryPct}%
+                        </span>
+                      )}
+                    </div>
                   </Q>
                   <Q label="Match type">
                     <Chips options={['Practice', 'League', 'Tournament', 'Friendly']} value={matchType} onChange={setMatchType} />
@@ -391,6 +415,10 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
 
                 {/* AFTER THE MATCH */}
                 <JSection title="After the Match" open={afterOpen} onToggle={() => setAfterOpen(v => !v)} answered={afterAnswered}>
+                  <Q label="How tough was this opponent?">
+                    <Chips options={['Easier than me', 'Even', 'Tougher than me', 'Much tougher']} value={oppDifficulty} onChange={setOppDifficulty}
+                      color={oppDifficulty === 'Much tougher' ? '#c084fc' : oppDifficulty === 'Tougher than me' ? '#60a5fa' : oppDifficulty === 'Even' ? GOLD : '#4ade80'} />
+                  </Q>
                   <Q label="Did you execute your game plan?">
                     <Chips options={['Yes', 'Mostly', 'No']} value={planExecuted} onChange={setPlanExecuted}
                       color={planExecuted === 'Yes' ? '#4ade80' : planExecuted === 'No' ? '#f87171' : '#fbbf24'} />
@@ -400,6 +428,20 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
                   </Q>
                   <Q label="Composure on big points" note="1 = shaky  5 = ice">
                     <Dots value={composure} onChange={setComposure} />
+                  </Q>
+                  <Q label="Whoop match strain" note="0 – 21">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="number" min={0} max={21} step={0.1} placeholder="e.g. 14.2"
+                        value={whoopStrain} onChange={e => setWhoopStrain(e.target.value)}
+                        style={{ width: 90, background: '#161616', border: '1px solid #252525', borderRadius: 8, padding: '9px 12px', color: '#f0f0f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                      />
+                      {whoopStrain !== '' && (
+                        <span style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: Number(whoopStrain) >= 14 ? '#f87171' : Number(whoopStrain) >= 10 ? '#fbbf24' : '#4ade80', letterSpacing: 1 }}>
+                          {whoopStrain}
+                        </span>
+                      )}
+                    </div>
                   </Q>
                   <Q label="What decided the match?" note="pick any">
                     <Chips options={['My serve', 'My return', 'My errors', 'Their level', 'Pressure moments', 'Fitness', 'Luck']}
@@ -411,18 +453,27 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
                   </Q>
                 </JSection>
 
-                {/* CONTEXT */}
-                <JSection title="Context" open={contextOpen} onToggle={() => setContextOpen(v => !v)} answered={contextAnswered}>
-                  <Q label="Opponent style">
+                {/* OPPONENT */}
+                <JSection title="Opponent" open={contextOpen} onToggle={() => setContextOpen(v => !v)} answered={oppAnswered}>
+                  <Q label="Playing style">
                     <Chips options={['Baseliner', 'Serve & Volleyer', 'All-Court', 'Pusher', 'Big Server', 'Moonballer']}
                       value={oppStyle} onChange={setOppStyle} color='#c084fc' />
                   </Q>
                   <Q label="Handedness">
                     <Chips options={['Right-handed', 'Lefty']} value={oppLefty === 'yes' ? 'Lefty' : oppLefty === 'no' ? 'Right-handed' : ''}
-                      onChange={v => setOppLefty(v === 'Lefty' ? 'yes' : v === 'Right-handed' ? 'no' : '')} />
+                      onChange={v => setOppLefty(v === 'Lefty' ? 'yes' : v === 'Right-handed' ? 'no' : '')} color='#c084fc' />
                   </Q>
-                  <Q label="Conditions" note="pick any">
-                    <Chips options={['Hot', 'Windy', 'Cold', 'Normal']} value={conditions} onChange={setConditions} multi />
+                  <Q label="Net game">
+                    <Chips options={['Stays back', 'Comes to net', 'Chip & charge']} value={netGame} onChange={setNetGame} color='#c084fc' />
+                  </Q>
+                  <Q label="Mental game">
+                    <Chips options={['Crumbles under pressure', 'Steady', 'Ice cold']} value={mentalGame} onChange={setMentalGame} color='#c084fc' />
+                  </Q>
+                  <Q label="Their weapon">
+                    <Chips options={['Serve', 'Forehand', 'Backhand', 'Volley', 'Movement']} value={oppWeapon} onChange={setOppWeapon} color='#c084fc' />
+                  </Q>
+                  <Q label="Their weakness">
+                    <Chips options={['Serve', 'Backhand', 'Movement', 'Second ball']} value={oppWeakness} onChange={setOppWeakness} color='#c084fc' />
                   </Q>
                 </JSection>
               </>

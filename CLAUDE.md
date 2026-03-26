@@ -45,18 +45,22 @@ Live: https://agassi-app.vercel.app | Supabase: NEXT_PUBLIC_SUPABASE_URL in .env
   "opp_shots": {serve, return, forehand, backhand (same structure as JD), stats (same as shot_stats), distribution},
   "what_worked": ["string"], "what_didnt": ["string"], "key_number": "string",
   "journal": {
-    "recovery": "Low|Moderate|Good|Peak|null",
-    "physical_feel": 1-5|null,
+    "recovery": 0-100|null,
     "match_type": "Practice|League|Tournament|Friendly|null",
     "warmup": "Full|Light|None|null",
+    "opp_difficulty": "Easier than me|Even|Tougher than me|Much tougher|null",
     "plan_executed": "Yes|Mostly|No|null",
     "focus": 1-5|null,
     "composure": 1-5|null,
+    "whoop_strain": 0-21|null,
     "decided_by": ["My serve"|"My return"|"My errors"|"Their level"|"Pressure moments"|"Fitness"|"Luck"]|null,
     "priority_next": "Serve %|Reduce UE|Return depth|BP conversion|Footwork|Composure|Aggression|null",
     "opp_style": "Baseliner|Serve & Volleyer|All-Court|Pusher|Big Server|Moonballer|null",
     "opp_lefty": true|false|null,
-    "conditions": ["Hot"|"Windy"|"Cold"|"Normal"]|null
+    "net_game": "Stays back|Comes to net|Chip & charge|null",
+    "mental_game": "Crumbles under pressure|Steady|Ice cold|null",
+    "opp_weapon": "Serve|Forehand|Backhand|Volley|Movement|null",
+    "opp_weakness": "Serve|Backhand|Movement|Second ball|null"
   }
 }
 ```
@@ -64,12 +68,6 @@ Live: https://agassi-app.vercel.app | Supabase: NEXT_PUBLIC_SUPABASE_URL in .env
 ## Supabase Schema
 Table: `matches`
 Columns: id(text PK), date, opponent_name, opponent_utr, surface, score_sets, score_sets_arr(jsonb), score_winner, serve(jsonb), return(jsonb), forehand(jsonb), backhand(jsonb), shot_stats(jsonb), opp_shots(jsonb), what_worked(jsonb), what_didnt(jsonb), key_number, journal(jsonb), created_at
-
-**Pending migrations** (run in Supabase SQL Editor if not yet applied):
-```sql
-ALTER TABLE matches ADD COLUMN IF NOT EXISTS opp_shots JSONB;
-ALTER TABLE matches ADD COLUMN IF NOT EXISTS journal JSONB;
-```
 
 **Known Supabase quirk:** JSONB arrays can deserialize as plain objects `{"0":"a","1":"b"}`. Fixed in `dbToMatch()` with `toArr()` (strings) and `toSetsArr()` (score sets [[n,n]]).
 

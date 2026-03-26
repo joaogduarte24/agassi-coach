@@ -8,14 +8,21 @@ This is the single source of truth for what's being built, what's next, and what
 
 ## NOW — In progress
 
-### Journal function (match stats + player input)
-The Whoop-style post-match journal is implemented in the upload flow. Outstanding work:
-- [ ] Run Supabase migration: `ALTER TABLE matches ADD COLUMN IF NOT EXISTS journal JSONB;`
-- [ ] Stress-test the question set — cut low-leverage questions (physical feel dots may be redundant with recovery score, conditions section may be too low-leverage)
-- [ ] Surface journal data in JDStats (recovery score correlation with stats, game plan execution vs win rate)
-- [ ] Surface journal priority notes in Strategy tab (per-opponent priority history)
+### UX/UI revamp — full design rethink
+Starting gate 01. See NEXT #1 below for full scope.
 
-**Why it matters:** Connects subjective player state to objective match data. Enables the coach relationship — "when your recovery is Low, your UE spikes by 40%".
+---
+
+## SHIPPED
+
+### Journal function (match stats + player input) ✓
+Whoop-style post-match journal, fully shipped. All 16 fields collected, stored in Supabase, and surfaced in the app:
+- [x] Supabase migration applied: `ALTER TABLE matches ADD COLUMN IF NOT EXISTS journal JSONB;`
+- [x] Question set finalised — cut physical feel (redundant with recovery %) and conditions (low-leverage). Added Whoop recovery %, Whoop strain, opponent difficulty, net game, mental game, opponent weapon, opponent weakness.
+- [x] Journal data surfaced in JDStats — Mindset section: plan execution win rate, recovery % in wins vs losses, avg focus and composure
+- [x] Journal priority notes surfaced in Strategy tab — Priority History panel per opponent (last 3 entries, date + W/L + priority chip)
+
+**Note:** Journal UI design (fonts, chip style, layout) is intentionally unpolished — will be unified with overall app design language in the UX/UI revamp.
 
 ---
 
@@ -29,6 +36,7 @@ Key questions to answer in the design phase:
 - How should stats be presented to feel like coaching insight rather than raw numbers?
 - What does the "coach relationship" feel and look like at a UI level?
 - What are the most important things on each screen, and are they visually dominant?
+- **Match Journal**: the current journal UI (fonts, chip style, layout) feels disconnected from the rest of the app — it needs to be unified with the overall design language as part of this revamp.
 
 **Why it matters:** JD said the stat presentation isn't ideal. Design debt compounds — fixing it now before more features are added is the right time.
 
@@ -54,12 +62,6 @@ Examples of insights to surface:
 - "You've won 100% of matches where you rated game plan execution as Yes or Mostly"
 
 ---
-
-### 4. Journal data in Strategy + JDStats
-The journal is being stored. The next step is making it analytically visible:
-- Recovery score distribution in wins vs losses
-- Game plan execution vs win rate
-- Per-opponent priority history in the Strategy tab
 
 ---
 

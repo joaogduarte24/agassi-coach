@@ -19,6 +19,7 @@ create table if not exists matches (
   what_worked jsonb,
   what_didnt jsonb,
   key_number text,
+  journal jsonb,
   created_at timestamptz default now()
 );
 
@@ -26,5 +27,6 @@ create table if not exists matches (
 alter table matches enable row level security;
 create policy "Allow all" on matches for all using (true) with check (true);
 
--- Migration: add opp_shots if upgrading from earlier schema
+-- Migrations: run these if upgrading from an earlier schema
 alter table matches add column if not exists opp_shots jsonb;
+alter table matches add column if not exists journal jsonb;

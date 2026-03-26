@@ -488,6 +488,98 @@ export default function JDStats({ matches }: JDStatsProps) {
             </>
           )}
 
+          {/* MINDSET */}
+          {(() => {
+            const withJournal = filteredMatches.filter(m => m.journal != null)
+            if (withJournal.length === 0) return null
+
+            const wins = filteredMatches.filter(m => m.score?.winner === 'JD')
+            const losses = filteredMatches.filter(m => m.score?.winner !== 'JD')
+
+            // Plan execution win rate
+            const planMatches = filteredMatches.filter(m => m.journal?.plan_executed != null)
+            const planWinRate = (vals: string[]) => {
+              const ms = planMatches.filter(m => vals.includes(m.journal.plan_executed))
+              if (!ms.length) return null
+              return Math.round(ms.filter(m => m.score?.winner === 'JD').length / ms.length * 100)
+            }
+            const execYesMostly = planWinRate(['Yes', 'Mostly'])
+            const execNo = planWinRate(['No'])
+
+            // Avg recovery in wins vs losses
+            const avgRecovery = (ms: any[]) => {
+              const vals = ms.map(m => m.journal?.recovery).filter((v): v is number => v != null)
+              return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
+            }
+            const recWins = avgRecovery(wins)
+            const recLosses = avgRecovery(losses)
+
+            // Avg focus & composure
+            const avgJ = (fn: (m: any) => number | null | undefined) => {
+              const vals = withJournal.map(fn).filter((v): v is number => v != null)
+              return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null
+            }
+            const avgFocus = avgJ(m => m.journal?.focus)
+            const avgComposure = avgJ(m => m.journal?.composure)
+
+            const hasData = execYesMostly != null || recWins != null || avgFocus != null
+
+            return hasData ? (
+              <>
+                <SectionTitle title="Mindset" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {execYesMostly != null && (
+                    <Card title="Game Plan Execution">
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
+                          <span style={{ fontSize: 12, color: '#666' }}>Yes / Mostly</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: execYesMostly >= 60 ? G : execYesMostly >= 40 ? A : R }}>{execYesMostly}% win rate</span>
+                        </div>
+                        {execNo != null && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
+                            <span style={{ fontSize: 12, color: '#666' }}>No</span>
+                            <span style={{ fontFamily: 'monospace', fontSize: 13, color: execNo >= 60 ? G : execNo >= 40 ? A : R }}>{execNo}% win rate</span>
+                          </div>
+                        )}
+                        {planMatches.length > 0 && (
+                          <div style={{ fontSize: 10, color: '#333', fontFamily: 'monospace', marginTop: 8 }}>from {planMatches.length} match{planMatches.length > 1 ? 'es' : ''} with journal</div>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                  {(recWins != null || recLosses != null || avgFocus != null) && (
+                    <Card title="Recovery & Focus">
+                      {recWins != null && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
+                          <span style={{ fontSize: 12, color: '#666' }}>Recovery in wins</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: recWins >= 67 ? G : recWins >= 34 ? A : R }}>{recWins}%</span>
+                        </div>
+                      )}
+                      {recLosses != null && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
+                          <span style={{ fontSize: 12, color: '#666' }}>Recovery in losses</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: recLosses >= 67 ? G : recLosses >= 34 ? A : R }}>{recLosses}%</span>
+                        </div>
+                      )}
+                      {avgFocus != null && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
+                          <span style={{ fontSize: 12, color: '#666' }}>Avg focus</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: avgFocus >= 4 ? G : avgFocus >= 3 ? A : R }}>{avgFocus}/5</span>
+                        </div>
+                      )}
+                      {avgComposure != null && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                          <span style={{ fontSize: 12, color: '#666' }}>Avg composure</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: avgComposure >= 4 ? G : avgComposure >= 3 ? A : R }}>{avgComposure}/5</span>
+                        </div>
+                      )}
+                    </Card>
+                  )}
+                </div>
+              </>
+            ) : null
+          })()}
+
           {/* Context note */}
           <div style={{ marginTop: 16, padding: '12px 16px', background: '#111', border: '1px solid #1a1a1a', borderRadius: 8, fontSize: 10, color: '#333', fontFamily: 'monospace', lineHeight: 1.6 }}>
             ATP stats are 2024-25 season tour averages. Forehand/backhand direction splits are tour-average estimates. Serve speeds in km/h. Trend lines show last 8 matches in chronological order.

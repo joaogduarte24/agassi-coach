@@ -681,6 +681,31 @@ export default function NextMatchStrategy({ matches }: NextMatchStrategyProps) {
             )
           })()}
 
+          {/* Journal — priority history for this opponent */}
+          {isKnown && (() => {
+            const withPriority = historyMatches
+              .filter((m: any) => m.journal?.priority_next)
+              .sort((a: any, b: any) => b.date.localeCompare(a.date))
+              .slice(0, 3)
+            if (withPriority.length === 0) return null
+            return (
+              <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>
+                  Priority History vs {oppName}
+                </div>
+                {withPriority.map((m: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: i < withPriority.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
+                    <span style={{ fontSize: 9, color: '#333', fontFamily: 'monospace', minWidth: 70 }}>{fmtDate(m.date)}</span>
+                    <span style={{ fontSize: 9, color: m.score?.winner === 'JD' ? G : R, fontFamily: 'monospace', minWidth: 12 }}>{m.score?.winner === 'JD' ? 'W' : 'L'}</span>
+                    <span style={{ fontSize: 11, color: '#60a5fa', background: 'rgba(96,165,250,0.1)', padding: '2px 8px', borderRadius: 10, border: '1px solid rgba(96,165,250,0.2)', fontFamily: 'monospace' }}>
+                      {m.journal.priority_next}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
           {/* Focus cards */}
           {focusCards.map(c => <FocusCard key={c.n} {...c} />)}
 

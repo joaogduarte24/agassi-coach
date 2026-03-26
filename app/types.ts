@@ -21,6 +21,24 @@ export interface OppShots {
   stats: ShotStats
   distribution: { total_shots: number|null; fh_pct: number|null; bh_pct: number|null; first_serve_pct: number|null; second_serve_pct: number|null; volley_pct: number|null; flat_pct: number|null; topspin_pct: number|null; slice_pct: number|null }
 }
+export interface Journal {
+  recovery: number|null           // Whoop recovery % 0–100
+  match_type: string|null         // Practice|League|Tournament|Friendly
+  warmup: string|null             // Full|Light|None
+  opp_difficulty: string|null     // Easier than me|Even|Tougher than me|Much tougher
+  plan_executed: string|null      // Yes|Mostly|No
+  focus: number|null              // 1–5
+  composure: number|null          // 1–5
+  whoop_strain: number|null       // 0–21
+  decided_by: string[]|null
+  priority_next: string|null
+  opp_style: string|null
+  opp_lefty: boolean|null
+  net_game: string|null           // Stays back|Comes to net|Chip & charge
+  mental_game: string|null        // Crumbles under pressure|Steady|Ice cold
+  opp_weapon: string|null         // Serve|Forehand|Backhand|Volley|Movement
+  opp_weakness: string|null       // Serve|Backhand|Movement|Second ball
+}
 export interface Match {
   id: string; date: string
   opponent: { name: string; utr: number|null }
@@ -29,6 +47,7 @@ export interface Match {
   serve: Serve|null; return: Return|null; forehand: Groundstroke|null; backhand: Groundstroke|null
   shot_stats: ShotStats|null; opp_shots: OppShots|null
   what_worked: string[]|null; what_didnt: string[]|null; key_number: string|null
+  journal: Journal|null
 }
 export interface Avgs {
   s1_ad: number|null; s1_deuce: number|null; s2_ad: number|null; s2_deuce: number|null
