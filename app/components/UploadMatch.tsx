@@ -1,46 +1,25 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { G, A, GD, deepMerge, getMissingFields } from '@/app/lib/helpers'
+import { G, A, R, GD, deepMerge, getMissingFields, matchState, makeMatchId,
+         FONT_BODY, FONT_DATA, FONT_DISPLAY, BG2, BG3, BORDER, BORDER2, WHITE, MUTED, DIM, GOLD, GOLD_DIM } from '@/app/lib/helpers'
 
 interface UploadMatchProps {
   onMatchAdded: (m: any) => void
   matches?: any[]
 }
 
-// ─── JOURNAL SUB-COMPONENTS ──────────────────────────────────────────────────
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+const inp = (extra?: any) => ({
+  background: BG2, border: `1px solid ${BORDER2}`, borderRadius: 10, padding: '10px 14px',
+  color: WHITE, fontSize: 14, outline: 'none', fontFamily: FONT_BODY, width: '100%', ...extra
+})
 
-const GOLD = '#e8d5b0'
-
-function Dots({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <div style={{ display: 'flex', gap: 10 }}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <button key={i} onClick={() => onChange(value === i ? 0 : i)} style={{
-          width: 44, height: 44, borderRadius: '50%', padding: 0, cursor: 'pointer',
-          border: `2px solid ${i <= value ? GOLD : '#2a2a2a'}`,
-          background: i <= value ? 'rgba(232,213,176,0.1)' : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.15s', flexShrink: 0,
-        }}>
-          <div style={{
-            width: 14, height: 14, borderRadius: '50%',
-            background: i <= value ? GOLD : '#2a2a2a',
-            transition: 'all 0.15s',
-          }} />
-        </button>
-      ))}
-    </div>
-  )
-}
-
+// ─── CHIP ─────────────────────────────────────────────────────────────────────
 function Chips({ options, value, onChange, multi = false, color = GOLD }: {
   options: string[]; value: string | string[]; onChange: (v: any) => void
   multi?: boolean; color?: string
 }) {
-  const isActive = (opt: string) => multi
-    ? (value as string[]).includes(opt)
-    : value === opt
-
+  const isActive = (opt: string) => multi ? (value as string[]).includes(opt) : value === opt
   const toggle = (opt: string) => {
     if (multi) {
       const arr = value as string[]
@@ -49,88 +28,88 @@ function Chips({ options, value, onChange, multi = false, color = GOLD }: {
       onChange(value === opt ? '' : opt)
     }
   }
-
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 8 }}>
       {options.map(opt => {
         const active = isActive(opt)
         return (
           <button key={opt} onClick={() => toggle(opt)} style={{
-            padding: '9px 16px', borderRadius: 20, fontSize: 13,
-            border: `1px solid ${active ? color : '#2a2a2a'}`,
-            background: active ? `${color}1a` : '#161616',
-            color: active ? color : '#555', cursor: 'pointer',
-            fontFamily: 'inherit', minHeight: 40, transition: 'all 0.15s',
-          }}>
-            {opt}
-          </button>
+            padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+            border: `1px solid ${active ? color : BORDER2}`,
+            background: active ? `${color}1a` : BG2,
+            color: active ? color : MUTED, cursor: 'pointer',
+            fontFamily: FONT_BODY, transition: 'all 0.15s',
+          }}>{opt}</button>
         )
       })}
     </div>
   )
 }
 
+// ─── DOTS ─────────────────────────────────────────────────────────────────────
+function Dots({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div style={{ display: 'flex', gap: 10 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <button key={i} onClick={() => onChange(value === i ? 0 : i)} style={{
+          width: 44, height: 44, borderRadius: '50%', padding: 0, cursor: 'pointer',
+          border: `2px solid ${i <= value ? GOLD : BORDER2}`,
+          background: i <= value ? `${GOLD}1a` : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
+        }}>
+          <div style={{ width: 14, height: 14, borderRadius: '50%', background: i <= value ? GOLD : BORDER2, transition: 'all 0.15s' }} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── QUESTION ─────────────────────────────────────────────────────────────────
 function Q({ label, note, children }: { label: string; note?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 22 }}>
-      <div style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 14, color: '#ccc' }}>{label}</span>
-        {note && <span style={{ fontSize: 11, color: '#444', marginLeft: 8, fontFamily: 'monospace' }}>{note}</span>}
+      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: WHITE, fontFamily: FONT_BODY }}>{label}</span>
+        {note && <span style={{ fontSize: 11, color: MUTED, fontFamily: FONT_DATA }}>{note}</span>}
       </div>
       {children}
     </div>
   )
 }
 
+// ─── SECTION ──────────────────────────────────────────────────────────────────
 function JSection({ title, open, onToggle, answered, children }: {
   title: string; open: boolean; onToggle: () => void; answered: number; children: React.ReactNode
 }) {
   return (
     <div>
-      <button onClick={onToggle} style={{
-        width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'none', border: 'none', padding: '14px 0', cursor: 'pointer',
-      }}>
-        <span style={{ fontSize: 11, letterSpacing: 2, color: open ? '#888' : '#444', fontFamily: 'monospace', textTransform: 'uppercase' as const }}>{title}</span>
+      <button onClick={onToggle} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', padding: '14px 0', cursor: 'pointer' }}>
+        <span style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: open ? MUTED : DIM }}>{title}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {answered > 0 && !open && (
-            <span style={{ fontSize: 10, color: G, fontFamily: 'monospace', background: 'rgba(74,222,128,0.1)', padding: '2px 7px', borderRadius: 10 }}>{answered} answered</span>
+            <span style={{ fontSize: 10, color: G, fontFamily: FONT_DATA, background: 'rgba(74,222,128,0.08)', padding: '2px 7px', borderRadius: 10 }}>{answered} answered</span>
           )}
-          <span style={{ color: '#333', fontSize: 12, fontFamily: 'monospace' }}>{open ? '▲' : '▼'}</span>
+          <span style={{ color: DIM, fontSize: 12 }}>{open ? '▲' : '▼'}</span>
         </div>
       </button>
       {open && <div style={{ paddingBottom: 8 }}>{children}</div>}
-      <div style={{ height: 1, background: '#1a1a1a' }} />
+      <div style={{ height: 1, background: BORDER }} />
     </div>
   )
 }
 
-// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
+// ─── SECTION HEADER ───────────────────────────────────────────────────────────
+const SH = ({ children }: { children: React.ReactNode }) => (
+  <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 8 }}>
+    {children}
+  </div>
+)
 
-export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchProps) {
-  // Upload state
-  const [images, setImages] = useState<any[]>([])
-  const [oppName, setOppName] = useState('')
-  const [oppUtr, setOppUtr] = useState('')
-  const [surface, setSurface] = useState('Clay')
-  const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState('')
-  const [pendingMatch, setPendingMatch] = useState<any>(null)
-  const [missingAlert, setMissingAlert] = useState<{ path: string[]; label: string; section: string }[]>([])
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  // Journal state
-  const [journalOpen, setJournalOpen] = useState(true)
-  const [beforeOpen, setBeforeOpen] = useState(false)
-  const [afterOpen, setAfterOpen] = useState(true)
-  const [contextOpen, setContextOpen] = useState(false)
-
-  // Before
+// ─── JOURNAL FIELDS HOOK ──────────────────────────────────────────────────────
+function useJournalFields() {
   const [recoveryPct, setRecoveryPct] = useState('')
   const [matchType, setMatchType] = useState('')
   const [warmup, setWarmup] = useState('')
-
-  // After
   const [oppDifficulty, setOppDifficulty] = useState('')
   const [planExecuted, setPlanExecuted] = useState('')
   const [focus, setFocus] = useState(0)
@@ -138,8 +117,6 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   const [whoopStrain, setWhoopStrain] = useState('')
   const [decidedBy, setDecidedBy] = useState<string[]>([])
   const [priorityNext, setPriorityNext] = useState('')
-
-  // Opponent
   const [oppStyle, setOppStyle] = useState('')
   const [oppLefty, setOppLefty] = useState('')
   const [netGame, setNetGame] = useState('')
@@ -147,24 +124,14 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   const [oppWeapon, setOppWeapon] = useState('')
   const [oppWeakness, setOppWeakness] = useState('')
 
-  // Pre-fill opponent context from previous matches when a known opponent is selected
-  useEffect(() => {
-    if (!oppName) return
-    const prevWithJournal = [...matches]
-      .filter(m => m.opponent?.name === oppName && m.journal?.opp_style)
-      .sort((a, b) => b.date.localeCompare(a.date))[0]
-    if (prevWithJournal) {
-      const j = prevWithJournal.journal
-      if (!oppStyle && j.opp_style) setOppStyle(j.opp_style)
-      if (!oppLefty && j.opp_lefty != null) setOppLefty(j.opp_lefty ? 'yes' : 'no')
-      if (!netGame && j.net_game) setNetGame(j.net_game)
-      if (!mentalGame && j.mental_game) setMentalGame(j.mental_game)
-      if (!oppWeapon && j.opp_weapon) setOppWeapon(j.opp_weapon)
-      if (!oppWeakness && j.opp_weakness) setOppWeakness(j.opp_weakness)
-    }
-  }, [oppName])
+  const reset = () => {
+    setRecoveryPct(''); setMatchType(''); setWarmup('')
+    setOppDifficulty(''); setPlanExecuted(''); setFocus(0); setComposure(0); setWhoopStrain('')
+    setDecidedBy([]); setPriorityNext('')
+    setOppStyle(''); setOppLefty(''); setNetGame(''); setMentalGame(''); setOppWeapon(''); setOppWeakness('')
+  }
 
-  const journalData = {
+  const toData = () => ({
     recovery: recoveryPct !== '' ? Number(recoveryPct) : null,
     match_type: matchType || null,
     warmup: warmup || null,
@@ -181,21 +148,203 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     mental_game: mentalGame || null,
     opp_weapon: oppWeapon || null,
     opp_weakness: oppWeakness || null,
-  }
+  })
 
   const beforeAnswered = [recoveryPct, matchType, warmup].filter(Boolean).length
   const afterAnswered = [oppDifficulty, planExecuted, focus, composure, whoopStrain, decidedBy.length > 0 ? 1 : 0, priorityNext].filter(Boolean).length
   const oppAnswered = [oppStyle, oppLefty, netGame, mentalGame, oppWeapon, oppWeakness].filter(Boolean).length
 
-  const knownOpponents: { name: string; utr: number | null }[] = (() => {
-    const map = new Map<string, { name: string; utr: number | null; date: string }>()
+  return {
+    fields: { recoveryPct, matchType, warmup, oppDifficulty, planExecuted, focus, composure, whoopStrain, decidedBy, priorityNext, oppStyle, oppLefty, netGame, mentalGame, oppWeapon, oppWeakness },
+    setters: { setRecoveryPct, setMatchType, setWarmup, setOppDifficulty, setPlanExecuted, setFocus, setComposure, setWhoopStrain, setDecidedBy, setPriorityNext, setOppStyle, setOppLefty, setNetGame, setMentalGame, setOppWeapon, setOppWeakness },
+    beforeAnswered, afterAnswered, oppAnswered,
+    reset, toData
+  }
+}
+
+// ─── JOURNAL FORM ─────────────────────────────────────────────────────────────
+function JournalForm({ j, showResult, result, setResult, scoreStr, setScoreStr }: any) {
+  const { fields, setters, beforeAnswered, afterAnswered, oppAnswered } = j
+  const [beforeOpen, setBeforeOpen] = useState(false)
+  const [afterOpen, setAfterOpen] = useState(true)
+  const [oppOpen, setOppOpen] = useState(false)
+
+  return (
+    <div style={{ background: '#111', borderRadius: 14, padding: '4px 16px 8px', border: `1px solid ${BORDER}` }}>
+      {/* Result — only in journal-only flow */}
+      {showResult && (
+        <div style={{ padding: '14px 0 10px', borderBottom: `1px solid ${BORDER}` }}>
+          <SH>Result</SH>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            {(['Win', 'Loss'] as const).map(opt => (
+              <button key={opt} onClick={() => setResult(result === opt.toLowerCase() ? '' : opt.toLowerCase())}
+                style={{ padding: '8px 20px', borderRadius: 20, fontSize: 12, fontWeight: 500, border: `1px solid ${result === opt.toLowerCase() ? (opt === 'Win' ? G : R) : BORDER2}`, background: result === opt.toLowerCase() ? (opt === 'Win' ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)') : BG2, color: result === opt.toLowerCase() ? (opt === 'Win' ? G : R) : MUTED, cursor: 'pointer', fontFamily: FONT_BODY, transition: 'all 0.15s' }}>
+                {opt}
+              </button>
+            ))}
+            <input value={scoreStr} onChange={e => setScoreStr(e.target.value)} placeholder="Score (optional: 6-3 7-5)" style={{ ...inp(), flex: 1, fontSize: 12 }} />
+          </div>
+        </div>
+      )}
+
+      {/* BEFORE */}
+      <JSection title="Before the Match" open={beforeOpen} onToggle={() => setBeforeOpen(v => !v)} answered={beforeAnswered}>
+        <Q label="Whoop recovery" note="0 – 100%">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input type="number" min={0} max={100} placeholder="e.g. 74" value={fields.recoveryPct} onChange={e => setters.setRecoveryPct(e.target.value)}
+              style={{ width: 90, background: BG2, border: `1px solid ${BORDER2}`, borderRadius: 8, padding: '9px 12px', color: WHITE, fontSize: 15, outline: 'none', fontFamily: FONT_BODY }} />
+            {fields.recoveryPct !== '' && (
+              <span style={{ fontSize: 22, fontFamily: FONT_DISPLAY, color: Number(fields.recoveryPct) >= 67 ? G : Number(fields.recoveryPct) >= 34 ? A : R, letterSpacing: 1 }}>{fields.recoveryPct}%</span>
+            )}
+          </div>
+        </Q>
+        <Q label="Match type"><Chips options={['Practice', 'League', 'Tournament', 'Friendly']} value={fields.matchType} onChange={setters.setMatchType} /></Q>
+        <Q label="Warmup"><Chips options={['Full', 'Light', 'None']} value={fields.warmup} onChange={setters.setWarmup} /></Q>
+      </JSection>
+
+      {/* AFTER */}
+      <JSection title="After the Match" open={afterOpen} onToggle={() => setAfterOpen(v => !v)} answered={afterAnswered}>
+        <Q label="How tough was this opponent?">
+          <Chips options={['Easier than me', 'Even', 'Tougher than me', 'Much tougher']} value={fields.oppDifficulty} onChange={setters.setOppDifficulty}
+            color={fields.oppDifficulty === 'Much tougher' ? '#c084fc' : fields.oppDifficulty === 'Tougher than me' ? '#60a5fa' : fields.oppDifficulty === 'Even' ? GOLD : G} />
+        </Q>
+        <Q label="Did you execute your game plan?">
+          <Chips options={['Yes', 'Mostly', 'No']} value={fields.planExecuted} onChange={setters.setPlanExecuted}
+            color={fields.planExecuted === 'Yes' ? G : fields.planExecuted === 'No' ? R : A} />
+        </Q>
+        <Q label="Focus during the match" note="1 = scattered · 5 = locked in"><Dots value={fields.focus} onChange={setters.setFocus} /></Q>
+        <Q label="Composure on big points" note="1 = shaky · 5 = ice"><Dots value={fields.composure} onChange={setters.setComposure} /></Q>
+        <Q label="Whoop match strain" note="0 – 21">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input type="number" min={0} max={21} step={0.1} placeholder="e.g. 14.2" value={fields.whoopStrain} onChange={e => setters.setWhoopStrain(e.target.value)}
+              style={{ width: 90, background: BG2, border: `1px solid ${BORDER2}`, borderRadius: 8, padding: '9px 12px', color: WHITE, fontSize: 15, outline: 'none', fontFamily: FONT_BODY }} />
+            {fields.whoopStrain !== '' && (
+              <span style={{ fontSize: 22, fontFamily: FONT_DISPLAY, color: Number(fields.whoopStrain) >= 14 ? R : Number(fields.whoopStrain) >= 10 ? A : G, letterSpacing: 1 }}>{fields.whoopStrain}</span>
+            )}
+          </div>
+        </Q>
+        <Q label="What decided the match?" note="pick any">
+          <Chips options={['My serve', 'My return', 'My errors', 'Their level', 'Pressure moments', 'Fitness', 'Luck']} value={fields.decidedBy} onChange={setters.setDecidedBy} multi />
+        </Q>
+        <Q label="Top priority for next match with this opponent">
+          <Chips options={['Serve %', 'Reduce UE', 'Return depth', 'BP conversion', 'Footwork', 'Composure', 'Aggression']} value={fields.priorityNext} onChange={setters.setPriorityNext} color='#60a5fa' />
+        </Q>
+      </JSection>
+
+      {/* OPPONENT */}
+      <JSection title="Opponent" open={oppOpen} onToggle={() => setOppOpen(v => !v)} answered={oppAnswered}>
+        <Q label="Playing style"><Chips options={['Baseliner', 'Serve & Volleyer', 'All-Court', 'Pusher', 'Big Server', 'Moonballer']} value={fields.oppStyle} onChange={setters.setOppStyle} color='#c084fc' /></Q>
+        <Q label="Handedness">
+          <Chips options={['Right-handed', 'Lefty']} value={fields.oppLefty === 'yes' ? 'Lefty' : fields.oppLefty === 'no' ? 'Right-handed' : ''}
+            onChange={v => setters.setOppLefty(v === 'Lefty' ? 'yes' : v === 'Right-handed' ? 'no' : '')} color='#c084fc' />
+        </Q>
+        <Q label="Net game"><Chips options={['Stays back', 'Comes to net', 'Chip & charge']} value={fields.netGame} onChange={setters.setNetGame} color='#c084fc' /></Q>
+        <Q label="Mental game"><Chips options={['Crumbles under pressure', 'Steady', 'Ice cold']} value={fields.mentalGame} onChange={setters.setMentalGame} color='#c084fc' /></Q>
+        <Q label="Their weapon"><Chips options={['Serve', 'Forehand', 'Backhand', 'Volley', 'Movement']} value={fields.oppWeapon} onChange={setters.setOppWeapon} color='#c084fc' /></Q>
+        <Q label="Their weakness"><Chips options={['Serve', 'Backhand', 'Movement', 'Second ball']} value={fields.oppWeakness} onChange={setters.setOppWeakness} color='#c084fc' /></Q>
+      </JSection>
+    </div>
+  )
+}
+
+// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
+export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchProps) {
+  // Entry state
+  const [step, setStep] = useState<'entry' | 'branch' | 'journal' | 'upload'>('entry')
+  const [oppName, setOppName] = useState('')
+  const [oppUtr, setOppUtr] = useState('')
+  const [surface, setSurface] = useState('Clay')
+  const [matchDate, setMatchDate] = useState(new Date().toISOString().split('T')[0])
+  const [existingMatch, setExistingMatch] = useState<any>(null)
+
+  // Journal state
+  const j = useJournalFields()
+  const [result, setResult] = useState('')
+  const [scoreStr, setScoreStr] = useState('')
+
+  // Upload state
+  const [images, setImages] = useState<any[]>([])
+  const [pendingMatch, setPendingMatch] = useState<any>(null)
+  const [missingAlert, setMissingAlert] = useState<{ path: string[]; label: string; section: string }[]>([])
+  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  // Pre-fill opponent context from previous matches
+  useEffect(() => {
+    if (!oppName) return
+    const prev = [...matches].filter(m => m.opponent?.name === oppName && m.journal?.opp_style).sort((a, b) => b.date.localeCompare(a.date))[0]
+    if (prev) {
+      const jj = prev.journal
+      const s = j.setters
+      if (!j.fields.oppStyle && jj.opp_style) s.setOppStyle(jj.opp_style)
+      if (!j.fields.oppLefty && jj.opp_lefty != null) s.setOppLefty(jj.opp_lefty ? 'yes' : 'no')
+      if (!j.fields.netGame && jj.net_game) s.setNetGame(jj.net_game)
+      if (!j.fields.mentalGame && jj.mental_game) s.setMentalGame(jj.mental_game)
+      if (!j.fields.oppWeapon && jj.opp_weapon) s.setOppWeapon(jj.opp_weapon)
+      if (!j.fields.oppWeakness && jj.opp_weakness) s.setOppWeakness(jj.opp_weakness)
+    }
+  }, [oppName])
+
+  const knownOpponents = (() => {
+    const map = new Map<string, { name: string; utr: number | null }>()
     ;[...matches].sort((a, b) => a.date < b.date ? -1 : 1).forEach(m => {
       const name = m.opponent?.name?.trim()
       if (!name || name === 'Unknown') return
-      map.set(name, { name, utr: m.opponent?.utr ?? null, date: m.date })
+      map.set(name, { name, utr: m.opponent?.utr ?? null })
     })
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
   })()
+
+  const handleContinue = () => {
+    if (!oppName.trim()) { setStatus('Enter opponent name'); return }
+    const id = makeMatchId(matchDate, oppName)
+    const found = matches.find(m => m.id === id)
+    setExistingMatch(found || null)
+    setPendingMatch(found || null)
+    setStatus('')
+    setStep('branch')
+  }
+
+  const resetAll = () => {
+    setStep('entry'); setOppName(''); setOppUtr(''); setSurface('Clay')
+    setMatchDate(new Date().toISOString().split('T')[0]); setExistingMatch(null)
+    setPendingMatch(null); setMissingAlert([]); setImages([]); setResult(''); setScoreStr('')
+    j.reset()
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const doSave = async (match: any) => {
+    setStatus('Saving...')
+    const journalData = j.toData()
+    const hasJournal = Object.values(journalData).some(v => v != null)
+    const cleanMatch = {
+      ...match,
+      opponent: { ...match.opponent, name: (match.opponent?.name || oppName).trim() },
+      ...(hasJournal ? { journal: journalData } : {}),
+    }
+    const res = await fetch('/api/matches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match: cleanMatch }) })
+    const data = await res.json()
+    if (!res.ok || data.error) throw new Error(data.error || 'Save failed')
+    onMatchAdded(cleanMatch)
+    setStatus('Saved!')
+    setTimeout(resetAll, 1500)
+  }
+
+  const doJournalSave = async () => {
+    setLoading(true)
+    try {
+      const id = makeMatchId(matchDate, oppName)
+      const base = existingMatch || {
+        id, date: matchDate,
+        opponent: { name: oppName.trim(), utr: oppUtr ? Number(oppUtr) : null },
+        surface,
+        score: { sets: scoreStr || '', sets_arr: null, winner: result === 'win' ? 'JD' : result === 'loss' ? 'opponent' : '' },
+      }
+      await doSave(base)
+    } catch (e: any) { setStatus('Error: ' + e.message) }
+    setLoading(false)
+  }
 
   const handleFiles = (e: any) => {
     const files = Array.from(e.target.files) as File[]
@@ -211,31 +360,6 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
 
   const clearImages = () => { setImages([]); if (fileRef.current) fileRef.current.value = '' }
 
-  const doSave = async (match: any) => {
-    setStatus('Saving match...')
-    const hasJournal = Object.values(journalData).some(v => v != null)
-    const cleanMatch = {
-      ...(match.opponent?.name
-        ? { ...match, opponent: { ...match.opponent, name: match.opponent.name.trim() } }
-        : match),
-      ...(hasJournal ? { journal: journalData } : {}),
-    }
-    const saveRes = await fetch('/api/matches', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ match: cleanMatch })
-    })
-    const saveData = await saveRes.json()
-    if (!saveRes.ok || saveData.error) throw new Error(saveData.error || 'Save failed')
-    onMatchAdded(cleanMatch)
-    clearImages(); setOppName(''); setOppUtr(''); setPendingMatch(null); setMissingAlert([])
-    // Reset journal
-    setRecoveryPct(''); setMatchType(''); setWarmup('')
-    setOppDifficulty(''); setPlanExecuted(''); setFocus(0); setComposure(0); setWhoopStrain('')
-    setDecidedBy([]); setPriorityNext('')
-    setOppStyle(''); setOppLefty(''); setNetGame(''); setMentalGame(''); setOppWeapon(''); setOppWeakness('')
-    setStatus('Match saved!'); setTimeout(() => setStatus(''), 3000)
-  }
-
   const processMatch = async () => {
     if (!images.length) { setStatus('Upload at least one screenshot'); return }
     setLoading(true)
@@ -249,6 +373,8 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
       if (!res.ok || data.error) throw new Error(data.error || 'Extraction failed')
       const merged = pendingMatch ? deepMerge(pendingMatch, data.match) : data.match
       if (pendingMatch?.id) merged.id = pendingMatch.id
+      else merged.id = makeMatchId(matchDate, oppName)
+      merged.date = matchDate
       const missing = getMissingFields(merged)
       if (missing.length > 0) {
         setPendingMatch(merged); setMissingAlert(missing); clearImages(); setStatus('')
@@ -259,264 +385,238 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     setLoading(false)
   }
 
-  const inp = (style: any) => ({ ...style, background: '#161616', border: '1px solid #252525', borderRadius: 8, padding: '9px 12px', color: '#f0f0f0', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%' })
   const hasPending = pendingMatch && missingAlert.length > 0
+  const state = existingMatch ? matchState(existingMatch) : null
 
+  // ── ENTRY SCREEN ────────────────────────────────────────────────────────────
+  if (step === 'entry') return (
+    <div style={{ maxWidth: 520, margin: '0 auto' }}>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 36, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>Add Match</div>
+      <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 28 }}>Log a new match or continue where you left off</div>
+
+      {/* Known opponents */}
+      {knownOpponents.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 10 }}>Previous Opponents</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
+            {knownOpponents.map(opp => {
+              const selected = oppName.trim() === opp.name
+              return (
+                <button key={opp.name} onClick={() => { setOppName(opp.name); setOppUtr(opp.utr != null ? String(opp.utr) : '') }}
+                  style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${selected ? GOLD_DIM : BORDER2}`, fontSize: 12, fontWeight: 500, cursor: 'pointer', background: selected ? `${GOLD}1a` : BG2, color: selected ? GOLD : MUTED, fontFamily: FONT_BODY, transition: 'all 0.15s' }}>
+                  {opp.name}{opp.utr != null ? ` · ${opp.utr}` : ''}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 6 }}>Opponent</div>
+          <input value={oppName} onChange={e => setOppName(e.target.value)} placeholder="e.g. Gonçalo" style={inp()} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 6 }}>UTR (optional)</div>
+          <input value={oppUtr} onChange={e => setOppUtr(e.target.value)} placeholder="e.g. 3.75" style={inp()} />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 6 }}>Date</div>
+          <input type="date" value={matchDate} onChange={e => setMatchDate(e.target.value)} style={inp()} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 6 }}>Surface</div>
+          <select value={surface} onChange={e => setSurface(e.target.value)} style={{ ...inp(), cursor: 'pointer' }}>
+            {['Clay', 'Clay (Indoor)', 'Hard', 'Hard (Indoor)', 'Grass'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {status && <div style={{ marginBottom: 12, fontSize: 13, color: R, fontFamily: FONT_DATA }}>{status}</div>}
+
+      <button onClick={handleContinue} style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: `linear-gradient(135deg,${GOLD_DIM},${GOLD})`, color: '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY, cursor: 'pointer' }}>
+        Continue →
+      </button>
+    </div>
+  )
+
+  // ── BRANCH SCREEN ────────────────────────────────────────────────────────────
+  if (step === 'branch') {
+    const matchId = makeMatchId(matchDate, oppName)
+    return (
+      <div style={{ maxWidth: 520, margin: '0 auto' }}>
+        <button onClick={() => setStep('entry')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 12, fontFamily: FONT_BODY, marginBottom: 20, padding: 0 }}>← Back</button>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>{oppName}</div>
+        <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 28 }}>
+          {new Date(matchDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · {surface}
+        </div>
+
+        {/* Existing match state notice */}
+        {existingMatch && (
+          <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: MUTED, fontFamily: FONT_BODY }}>
+              {state === 'journal-only' && 'Journal logged for this match. Add stats when SwingVision is ready.'}
+              {state === 'stats-only' && 'Stats uploaded. Add your journal to unlock the full debrief.'}
+              {state === 'complete' && 'This match is fully logged.'}
+            </div>
+          </div>
+        )}
+
+        {/* Branch options */}
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+          {(state === null || state === 'stats-only') && (
+            <button onClick={() => setStep('journal')}
+              style={{ padding: '18px 20px', borderRadius: 14, border: `1px solid ${BORDER2}`, background: BG2, color: WHITE, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer', textAlign: 'left' as const, transition: 'border-color 0.15s' }}>
+              <div>Journal</div>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4, fontFamily: FONT_BODY }}>How did it feel? Fill now, stats can come later.</div>
+            </button>
+          )}
+          {state === 'journal-only' && (
+            <button onClick={() => setStep('journal')}
+              style={{ padding: '18px 20px', borderRadius: 14, border: `1px solid ${BORDER2}`, background: BG2, color: WHITE, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer', textAlign: 'left' as const }}>
+              <div>Edit Journal</div>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>Update your notes for this match.</div>
+            </button>
+          )}
+          {state === 'complete' && (
+            <button onClick={() => setStep('journal')}
+              style={{ padding: '18px 20px', borderRadius: 14, border: `1px solid ${BORDER2}`, background: BG2, color: WHITE, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer', textAlign: 'left' as const }}>
+              <div>Edit Journal</div>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>Update your notes for this match.</div>
+            </button>
+          )}
+          {(state === null || state === 'journal-only') && (
+            <button onClick={() => setStep('upload')}
+              style={{ padding: '18px 20px', borderRadius: 14, border: `1px solid ${BORDER2}`, background: BG2, color: WHITE, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer', textAlign: 'left' as const }}>
+              <div>Upload Stats</div>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>SwingVision screenshots → extract & save.</div>
+            </button>
+          )}
+          {(state === 'stats-only' || state === 'complete') && (
+            <button onClick={() => setStep('upload')}
+              style={{ padding: '18px 20px', borderRadius: 14, border: `1px solid ${BORDER2}`, background: BG2, color: WHITE, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer', textAlign: 'left' as const }}>
+              <div>Re-upload Stats</div>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>Fix incomplete data by uploading more screenshots.</div>
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── JOURNAL SCREEN ───────────────────────────────────────────────────────────
+  if (step === 'journal') return (
+    <div style={{ maxWidth: 520, margin: '0 auto' }}>
+      <button onClick={() => setStep('branch')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 12, fontFamily: FONT_BODY, marginBottom: 20, padding: 0 }}>← Back</button>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>Journal</div>
+      <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 24 }}>{oppName} · {new Date(matchDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · all optional</div>
+
+      <JournalForm j={j} showResult={!existingMatch?.score?.winner} result={result} setResult={setResult} scoreStr={scoreStr} setScoreStr={setScoreStr} />
+
+      {status && <div style={{ margin: '12px 0', padding: '10px 14px', borderRadius: 8, background: '#111', border: `1px solid ${BORDER}`, fontSize: 13, color: '#aaa', textAlign: 'center' as const, fontFamily: FONT_DATA }}>{status}</div>}
+
+      <button onClick={doJournalSave} disabled={loading}
+        style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 12, border: 'none', background: loading ? BG3 : `linear-gradient(135deg,${GOLD_DIM},${GOLD})`, color: loading ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY, cursor: loading ? 'not-allowed' : 'pointer' }}>
+        {loading ? 'Saving...' : 'Save Journal'}
+      </button>
+    </div>
+  )
+
+  // ── UPLOAD SCREEN ────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 520, margin: '0 auto' }}>
-      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#e8d5b0', marginBottom: 6 }}>Upload New Match</div>
-      <div style={{ fontSize: 12, color: '#555', fontFamily: 'monospace', marginBottom: 24 }}>SwingVision "My Shots" tab — scroll to capture Serve, Return, Forehand <strong style={{ color: '#666' }}>and Backhand</strong></div>
+      <button onClick={() => setStep('branch')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 12, fontFamily: FONT_BODY, marginBottom: 20, padding: 0 }}>← Back</button>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>Upload Stats</div>
+      <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 24 }}>{oppName} · SwingVision screenshots</div>
 
-      {/* MISSING STATS ALERT */}
+      {/* Missing stats alert */}
       {hasPending && (
         <div style={{ background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, letterSpacing: 1, color: A }}>Missing Stats Detected</span>
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#555', marginLeft: 'auto', background: 'rgba(251,191,36,0.1)', padding: '2px 7px', borderRadius: 4 }}>{missingAlert.length} field{missingAlert.length > 1 ? 's' : ''}</span>
-          </div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, letterSpacing: 1, color: A, marginBottom: 12 }}>Missing Stats</div>
           {(['Serve', 'Return', 'Groundstrokes', 'Shot Stats', 'Match Stats'] as const).map(section => {
             const fields = missingAlert.filter(f => f.section === section)
             if (!fields.length) return null
             return (
               <div key={section} style={{ marginBottom: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: '8px 10px' }}>
-                <div style={{ fontSize: 9, letterSpacing: 1.5, color: '#444', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>{section}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap' as any, gap: 5 }}>
-                  {fields.map(f => (
-                    <span key={f.label} style={{ fontSize: 10, color: A, fontFamily: 'monospace', background: 'rgba(251,191,36,0.08)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(251,191,36,0.15)' }}>
-                      {f.label}
-                    </span>
-                  ))}
+                <div style={{ fontSize: 9, letterSpacing: '1.5px', color: MUTED, fontFamily: FONT_BODY, fontWeight: 700, textTransform: 'uppercase' as const, marginBottom: 6 }}>{section}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
+                  {fields.map(f => <span key={f.label} style={{ fontSize: 10, color: A, fontFamily: FONT_DATA, background: 'rgba(251,191,36,0.08)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(251,191,36,0.15)' }}>{f.label}</span>)}
                 </div>
               </div>
             )
           })}
-          <div style={{ fontSize: 11, color: '#444', fontFamily: 'monospace', lineHeight: 1.55, padding: '8px 10px', background: '#111', borderRadius: 6, marginBottom: 12 }}>
-            In SwingVision: open this match → <strong style={{ color: '#666' }}>My Shots</strong> tab → scroll down past Forehand to the <strong style={{ color: '#666' }}>Backhand</strong> section → screenshot → add below.
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <button onClick={() => setMissingAlert([])}
-              style={{ flex: 2, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.06)', color: A, fontSize: 11, fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 1.5, cursor: 'pointer' }}>
-              ADD MORE SCREENSHOTS
+              style={{ flex: 2, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.06)', color: A, fontSize: 12, fontFamily: FONT_BODY, fontWeight: 600, cursor: 'pointer' }}>
+              Add more screenshots
             </button>
-            <button onClick={async () => { setLoading(true); try { await doSave(pendingMatch) } catch (e: any) { setStatus('Error: ' + e.message) } setLoading(false) }}
-              style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid #252525', background: 'transparent', color: '#444', fontSize: 10, fontFamily: 'monospace', cursor: 'pointer' }}>
+            <button onClick={async () => { setLoading(true); try { await doSave(pendingMatch!) } catch (e: any) { setStatus('Error: ' + e.message) } setLoading(false) }}
+              style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: `1px solid ${BORDER2}`, background: 'transparent', color: MUTED, fontSize: 11, fontFamily: FONT_DATA, cursor: 'pointer' }}>
               Save anyway
             </button>
           </div>
         </div>
       )}
 
-      {/* MAIN UPLOAD FORM */}
       {!hasPending && (
         <>
           {/* Drop zone */}
           <div onClick={() => fileRef.current?.click()}
-            style={{ border: `2px dashed ${images.length ? 'rgba(74,222,128,0.4)' : '#252525'}`, borderRadius: 12, padding: '28px 20px', textAlign: 'center', cursor: 'pointer', marginBottom: 16, background: images.length ? 'rgba(74,222,128,0.03)' : 'transparent', transition: 'all 0.2s' }}>
+            style={{ border: `2px dashed ${images.length ? 'rgba(74,222,128,0.4)' : BORDER2}`, borderRadius: 14, padding: '28px 20px', textAlign: 'center' as const, cursor: 'pointer', marginBottom: 20, background: images.length ? 'rgba(74,222,128,0.03)' : 'transparent', transition: 'all 0.2s' }}>
             <input ref={fileRef} type="file" multiple accept="image/*" onChange={handleFiles} style={{ display: 'none' }} />
             {images.length ? (
               <div>
                 <div style={{ fontSize: 26, marginBottom: 8 }}>📸</div>
-                <div style={{ color: G, fontSize: 13 }}>{images.length} image{images.length > 1 ? 's' : ''} ready</div>
-                <div style={{ fontSize: 11, color: '#444', marginTop: 4 }}>{images.map(i => i.name).join(', ')}</div>
-                <button onClick={e => { e.stopPropagation(); clearImages() }} style={{ marginTop: 8, background: 'none', border: 'none', color: '#555', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>clear</button>
+                <div style={{ color: G, fontSize: 13, fontFamily: FONT_BODY }}>{images.length} image{images.length > 1 ? 's' : ''} ready</div>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 4, fontFamily: FONT_DATA }}>{images.map(i => i.name).join(', ')}</div>
+                <button onClick={e => { e.stopPropagation(); clearImages() }} style={{ marginTop: 8, background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT_BODY }}>clear</button>
               </div>
             ) : (
               <div>
                 <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>↑</div>
-                <div style={{ color: '#555', fontSize: 13 }}>Tap to select screenshots</div>
-                <div style={{ fontSize: 11, color: '#333', marginTop: 4 }}>JPEG or PNG · My Shots tab · scroll to capture all sections</div>
+                <div style={{ color: MUTED, fontSize: 13, fontFamily: FONT_BODY }}>Tap to select screenshots</div>
+                <div style={{ fontSize: 11, color: DIM, marginTop: 4, fontFamily: FONT_DATA }}>JPEG or PNG · My Shots tab · scroll to capture all sections</div>
               </div>
-            )}
-          </div>
-
-          {/* Previous opponents */}
-          {knownOpponents.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 7 }}>PREVIOUS OPPONENT</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap' as any, gap: 6 }}>
-                {knownOpponents.map(opp => {
-                  const selected = oppName.trim() === opp.name
-                  return (
-                    <button key={opp.name} onClick={() => { setOppName(opp.name); setOppUtr(opp.utr != null ? String(opp.utr) : '') }}
-                      style={{ padding: '5px 11px', borderRadius: 20, border: '1px solid', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s', borderColor: selected ? '#c4a96a' : '#252525', background: selected ? 'rgba(196,169,106,0.14)' : 'transparent', color: selected ? '#e8d5b0' : '#666', fontFamily: 'monospace' }}>
-                      {opp.name}{opp.utr != null ? ` · ${opp.utr}` : ''}
-                    </button>
-                  )
-                })}
-                {oppName && <button onClick={() => { setOppName(''); setOppUtr('') }}
-                  style={{ padding: '5px 11px', borderRadius: 20, border: '1px solid #252525', fontSize: 11, cursor: 'pointer', background: 'transparent', color: '#333', fontFamily: 'monospace' }}>
-                  clear
-                </button>}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 5 }}>OPPONENT{knownOpponents.length > 0 ? ' (or type new)' : ''}</div>
-              <input value={oppName} onChange={e => setOppName(e.target.value)} placeholder="e.g. Gonçalo" style={inp({})} />
-            </div>
-            <div>
-              <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 5 }}>UTR (OPTIONAL)</div>
-              <input value={oppUtr} onChange={e => setOppUtr(e.target.value)} placeholder="e.g. 3.75" style={inp({})} />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', letterSpacing: 1, marginBottom: 8 }}>SURFACE</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as any }}>
-              {['Clay', 'Clay (Indoor)', 'Hard', 'Hard (Indoor)', 'Grass'].map(s => (
-                <button key={s} onClick={() => setSurface(s)}
-                  style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s', borderColor: surface === s ? '#c4a96a' : '#252525', background: surface === s ? 'rgba(196,169,106,0.12)' : 'transparent', color: surface === s ? '#e8d5b0' : '#555', fontFamily: 'monospace' }}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ─── MATCH JOURNAL ─────────────────────────────────────── */}
-          <div style={{ background: '#111', borderRadius: 14, padding: '4px 16px 8px', marginBottom: 20, border: '1px solid #1a1a1a' }}>
-            {/* Journal header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0 10px' }}>
-              <div>
-                <span style={{ fontSize: 11, letterSpacing: 2, color: '#666', fontFamily: 'monospace', textTransform: 'uppercase' as const }}>Match Journal</span>
-                <span style={{ fontSize: 10, color: '#333', fontFamily: 'monospace', marginLeft: 10 }}>all optional</span>
-              </div>
-              <button onClick={() => setJournalOpen(v => !v)} style={{ background: 'none', border: 'none', color: '#333', fontSize: 11, cursor: 'pointer', fontFamily: 'monospace', padding: '4px 0' }}>
-                {journalOpen ? 'hide ▲' : 'add notes ▼'}
-              </button>
-            </div>
-
-            {journalOpen && (
-              <>
-                {/* BEFORE THE MATCH */}
-                <JSection title="Before the Match" open={beforeOpen} onToggle={() => setBeforeOpen(v => !v)} answered={beforeAnswered}>
-                  <Q label="Whoop recovery" note="0 – 100%">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <input
-                        type="number" min={0} max={100} placeholder="e.g. 74"
-                        value={recoveryPct} onChange={e => setRecoveryPct(e.target.value)}
-                        style={{ width: 90, background: '#161616', border: '1px solid #252525', borderRadius: 8, padding: '9px 12px', color: '#f0f0f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
-                      />
-                      {recoveryPct !== '' && (
-                        <span style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: Number(recoveryPct) >= 67 ? '#4ade80' : Number(recoveryPct) >= 34 ? '#fbbf24' : '#f87171', letterSpacing: 1 }}>
-                          {recoveryPct}%
-                        </span>
-                      )}
-                    </div>
-                  </Q>
-                  <Q label="Match type">
-                    <Chips options={['Practice', 'League', 'Tournament', 'Friendly']} value={matchType} onChange={setMatchType} />
-                  </Q>
-                  <Q label="Warmup">
-                    <Chips options={['Full', 'Light', 'None']} value={warmup} onChange={setWarmup} />
-                  </Q>
-                </JSection>
-
-                {/* AFTER THE MATCH */}
-                <JSection title="After the Match" open={afterOpen} onToggle={() => setAfterOpen(v => !v)} answered={afterAnswered}>
-                  <Q label="How tough was this opponent?">
-                    <Chips options={['Easier than me', 'Even', 'Tougher than me', 'Much tougher']} value={oppDifficulty} onChange={setOppDifficulty}
-                      color={oppDifficulty === 'Much tougher' ? '#c084fc' : oppDifficulty === 'Tougher than me' ? '#60a5fa' : oppDifficulty === 'Even' ? GOLD : '#4ade80'} />
-                  </Q>
-                  <Q label="Did you execute your game plan?">
-                    <Chips options={['Yes', 'Mostly', 'No']} value={planExecuted} onChange={setPlanExecuted}
-                      color={planExecuted === 'Yes' ? '#4ade80' : planExecuted === 'No' ? '#f87171' : '#fbbf24'} />
-                  </Q>
-                  <Q label="Focus during the match" note="1 = scattered  5 = locked in">
-                    <Dots value={focus} onChange={setFocus} />
-                  </Q>
-                  <Q label="Composure on big points" note="1 = shaky  5 = ice">
-                    <Dots value={composure} onChange={setComposure} />
-                  </Q>
-                  <Q label="Whoop match strain" note="0 – 21">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <input
-                        type="number" min={0} max={21} step={0.1} placeholder="e.g. 14.2"
-                        value={whoopStrain} onChange={e => setWhoopStrain(e.target.value)}
-                        style={{ width: 90, background: '#161616', border: '1px solid #252525', borderRadius: 8, padding: '9px 12px', color: '#f0f0f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
-                      />
-                      {whoopStrain !== '' && (
-                        <span style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: Number(whoopStrain) >= 14 ? '#f87171' : Number(whoopStrain) >= 10 ? '#fbbf24' : '#4ade80', letterSpacing: 1 }}>
-                          {whoopStrain}
-                        </span>
-                      )}
-                    </div>
-                  </Q>
-                  <Q label="What decided the match?" note="pick any">
-                    <Chips options={['My serve', 'My return', 'My errors', 'Their level', 'Pressure moments', 'Fitness', 'Luck']}
-                      value={decidedBy} onChange={setDecidedBy} multi />
-                  </Q>
-                  <Q label="Top priority for next match with this opponent">
-                    <Chips options={['Serve %', 'Reduce UE', 'Return depth', 'BP conversion', 'Footwork', 'Composure', 'Aggression']}
-                      value={priorityNext} onChange={setPriorityNext} color='#60a5fa' />
-                  </Q>
-                </JSection>
-
-                {/* OPPONENT */}
-                <JSection title="Opponent" open={contextOpen} onToggle={() => setContextOpen(v => !v)} answered={oppAnswered}>
-                  <Q label="Playing style">
-                    <Chips options={['Baseliner', 'Serve & Volleyer', 'All-Court', 'Pusher', 'Big Server', 'Moonballer']}
-                      value={oppStyle} onChange={setOppStyle} color='#c084fc' />
-                  </Q>
-                  <Q label="Handedness">
-                    <Chips options={['Right-handed', 'Lefty']} value={oppLefty === 'yes' ? 'Lefty' : oppLefty === 'no' ? 'Right-handed' : ''}
-                      onChange={v => setOppLefty(v === 'Lefty' ? 'yes' : v === 'Right-handed' ? 'no' : '')} color='#c084fc' />
-                  </Q>
-                  <Q label="Net game">
-                    <Chips options={['Stays back', 'Comes to net', 'Chip & charge']} value={netGame} onChange={setNetGame} color='#c084fc' />
-                  </Q>
-                  <Q label="Mental game">
-                    <Chips options={['Crumbles under pressure', 'Steady', 'Ice cold']} value={mentalGame} onChange={setMentalGame} color='#c084fc' />
-                  </Q>
-                  <Q label="Their weapon">
-                    <Chips options={['Serve', 'Forehand', 'Backhand', 'Volley', 'Movement']} value={oppWeapon} onChange={setOppWeapon} color='#c084fc' />
-                  </Q>
-                  <Q label="Their weakness">
-                    <Chips options={['Serve', 'Backhand', 'Movement', 'Second ball']} value={oppWeakness} onChange={setOppWeakness} color='#c084fc' />
-                  </Q>
-                </JSection>
-              </>
             )}
           </div>
 
           <button onClick={processMatch} disabled={loading || !images.length}
-            style={{ width: '100%', padding: 14, borderRadius: 10, border: 'none', cursor: loading || !images.length ? 'not-allowed' : 'pointer', background: loading || !images.length ? '#161616' : 'linear-gradient(135deg,#c4a96a,#e8d5b0)', color: loading || !images.length ? '#333' : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: 2, fontFamily: "'Bebas Neue',sans-serif", transition: 'all 0.2s' }}>
-            {loading ? 'PROCESSING...' : 'EXTRACT & SAVE MATCH'}
+            style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', cursor: loading || !images.length ? 'not-allowed' : 'pointer', background: loading || !images.length ? BG3 : `linear-gradient(135deg,${GOLD_DIM},${GOLD})`, color: loading || !images.length ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY, transition: 'all 0.2s' }}>
+            {loading ? 'Processing...' : 'Extract & Save'}
           </button>
         </>
       )}
 
-      {/* ADD MORE ZONE */}
+      {/* Merge zone */}
       {hasPending === false && pendingMatch && (
         <>
           <div onClick={() => fileRef.current?.click()}
-            style={{ border: '2px dashed rgba(251,191,36,0.3)', borderRadius: 12, padding: '24px 20px', textAlign: 'center', cursor: 'pointer', marginBottom: 14, background: 'rgba(251,191,36,0.02)' }}>
+            style={{ border: `2px dashed rgba(251,191,36,0.3)`, borderRadius: 14, padding: '24px 20px', textAlign: 'center' as const, cursor: 'pointer', marginBottom: 14, background: 'rgba(251,191,36,0.02)' }}>
             <input ref={fileRef} type="file" multiple accept="image/*" onChange={handleFiles} style={{ display: 'none' }} />
             {images.length ? (
               <div>
-                <div style={{ fontSize: 24, marginBottom: 6 }}>📸</div>
-                <div style={{ color: A, fontSize: 13 }}>{images.length} screenshot{images.length > 1 ? 's' : ''} — will merge with previous extraction</div>
-                <div style={{ fontSize: 10, color: '#555', marginTop: 3 }}>{images.map(i => i.name).join(', ')}</div>
-                <button onClick={e => { e.stopPropagation(); clearImages() }} style={{ marginTop: 6, background: 'none', border: 'none', color: '#555', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>clear</button>
+                <div style={{ color: A, fontSize: 13, fontFamily: FONT_BODY }}>{images.length} screenshot{images.length > 1 ? 's' : ''} — will merge</div>
+                <button onClick={e => { e.stopPropagation(); clearImages() }} style={{ marginTop: 6, background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>clear</button>
               </div>
             ) : (
               <div>
-                <div style={{ fontSize: 28, marginBottom: 6, color: A, opacity: 0.5 }}>↑</div>
-                <div style={{ color: A, fontSize: 12 }}>Add screenshots for missing sections</div>
-                <div style={{ fontSize: 10, color: '#444', marginTop: 3 }}>Scroll to Backhand in SwingVision → screenshot → add here</div>
+                <div style={{ color: A, fontSize: 12, fontFamily: FONT_BODY }}>Add screenshots for missing sections</div>
               </div>
             )}
           </div>
           <button onClick={processMatch} disabled={loading || !images.length}
-            style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', cursor: loading || !images.length ? 'not-allowed' : 'pointer', background: loading || !images.length ? '#161616' : 'linear-gradient(135deg,#fbbf24,#f59e0b)', color: loading || !images.length ? '#333' : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: 2, fontFamily: "'Bebas Neue',sans-serif" }}>
-            {loading ? 'PROCESSING...' : 'EXTRACT & MERGE'}
+            style={{ width: '100%', padding: 13, borderRadius: 12, border: 'none', cursor: loading || !images.length ? 'not-allowed' : 'pointer', background: loading || !images.length ? BG3 : 'linear-gradient(135deg,#fbbf24,#f59e0b)', color: loading || !images.length ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY }}>
+            {loading ? 'Processing...' : 'Extract & Merge'}
           </button>
         </>
       )}
 
       {status && (
-        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#111', border: '1px solid #1e1e1e', fontSize: 13, color: '#aaa', textAlign: 'center' }}>
+        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#111', border: `1px solid ${BORDER}`, fontSize: 13, color: '#aaa', textAlign: 'center' as const, fontFamily: FONT_DATA }}>
           {status}
         </div>
       )}

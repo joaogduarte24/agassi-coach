@@ -71,6 +71,38 @@ All decisions are made for JD. The architecture is kept clean enough that "JD" c
 
 ---
 
+## How JD actually uses the app
+
+Understanding these moments is the design tiebreaker for every layout, flow, and interaction decision.
+
+### Post-match — immediate (pitch / changing room)
+Tired, adrenaline still present. The match feeling fades fast.
+**What JD wants:** dump how he felt before the memory goes. Journal first — no stats needed.
+**Key constraint:** SwingVision may not have processed the match yet. The journal must be fillable without any stats being uploaded. A match can exist as journal-only.
+
+### Post-match — later (SwingVision ready)
+Calmer, curious, slightly analytical.
+**What JD wants:** upload the stats, then see a debrief — bullet-point coaching summary of what the data says about the match. Not raw numbers. Interpreted: "here's what decided it."
+**Key constraint:** debrief is only meaningful once stats are present. Journal-only matches don't trigger it.
+
+### Pre-match (day of)
+Focused, preparation mode.
+**What JD wants:** one clear game plan. Opponent tendencies. One thing to focus on. No noise.
+
+### Review session (weekly / monthly)
+Relaxed, reflective, longer attention span.
+**What JD wants:** am I improving? What are my trends? What patterns hold across matches?
+
+---
+
+## JD's mental model of the app (his words)
+
+> "Add new match / Prepare next match / Check my stats, progress and everything I should know about me / Check history and specific matches data"
+
+Four modes, not six tabs. This is the navigation model the app should reflect.
+
+---
+
 ## Design reference
 
 **Interaction model:** Whoop journal — tap-based, nothing required, feels like reflection

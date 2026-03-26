@@ -21,6 +21,20 @@ Live: https://agassi-app.vercel.app | Supabase: NEXT_PUBLIC_SUPABASE_URL in .env
 
 ---
 
+## Match States
+
+A match can exist in three states. The UI must handle all three:
+
+| State | Journal | Stats | Debrief available? |
+|---|---|---|---|
+| Journal-only | ✓ | — | No |
+| Stats-only | — | ✓ | No |
+| Complete | ✓ | ✓ | Yes |
+
+**Why this matters:** JD fills the journal immediately post-match (before SwingVision has processed). Stats are uploaded asynchronously, sometimes much later. Journal entry must never be blocked on stats upload. Debrief (bullet-point coaching summary) only surfaces when both are present.
+
+---
+
 ## Key Architecture
 - `app/page.tsx` — Home component only (~150 lines). Nav + tab routing.
 - `app/components/` — One file per UI component (MatchDetail, Strategy, JDStats, UploadMatch, FixMatchModal, RadarChart, StatBar)

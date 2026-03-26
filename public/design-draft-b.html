@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px, initial-scale=1">
+<title>Design Decisions</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0d0d0d; color: #f0ece4; font-family: 'Inter', sans-serif; max-width: 390px; margin: 0 auto; padding: 28px 20px 80px; }
+
+.decision { margin-bottom: 48px; }
+.decision-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #666; margin-bottom: 20px; }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.option-label { font-size: 10px; color: #444; font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+
+/* CHIPS A: 8px radius */
+.chip-a { display: inline-block; padding: 8px 14px; border-radius: 8px; border: 1px solid #2a2a2a; background: #141414; color: #666; font-size: 12px; font-weight: 500; }
+.chip-a.sel { border-color: #8a7348; background: rgba(196,169,106,0.08); color: #c4a96a; }
+
+/* CHIPS B: pill */
+.chip-b { display: inline-block; padding: 8px 14px; border-radius: 20px; border: 1px solid #2a2a2a; background: #141414; color: #666; font-size: 12px; font-weight: 500; }
+.chip-b.sel { border-color: #8a7348; background: rgba(196,169,106,0.08); color: #c4a96a; }
+
+.chip-group { display: flex; flex-direction: column; gap: 8px; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* SECTION HEADERS */
+.sh-inter { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #666; font-family: 'Inter', sans-serif; margin-bottom: 12px; }
+.sh-mono  { font-size: 10px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; color: #444; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+
+.stat-row { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #222; }
+.stat-label { font-size: 13px; color: #666; }
+.stat-val { font-family: 'DM Mono', monospace; font-size: 14px; color: #4ade80; }
+</style>
+</head>
+<body>
+
+<!-- DECISION 1 -->
+<div class="decision">
+  <div class="decision-title">Decision 1 — Chip style</div>
+  <div class="pair">
+    <div>
+      <div class="option-label">A · 8px rounded</div>
+      <div class="chip-group">
+        <div class="chip-row">
+          <span class="chip-a sel">Full</span>
+          <span class="chip-a">Light</span>
+          <span class="chip-a">None</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip-a sel">My serve</span>
+          <span class="chip-a sel">Their level</span>
+          <span class="chip-a">Fitness</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="option-label">B · Pill</div>
+      <div class="chip-group">
+        <div class="chip-row">
+          <span class="chip-b sel">Full</span>
+          <span class="chip-b">Light</span>
+          <span class="chip-b">None</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip-b sel">My serve</span>
+          <span class="chip-b sel">Their level</span>
+          <span class="chip-b">Fitness</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DECISION 2 -->
+<div class="decision">
+  <div class="decision-title">Decision 2 — Section headers</div>
+  <div class="pair">
+    <div>
+      <div class="option-label">A · Inter bold</div>
+      <div class="sh-inter">What decided it</div>
+      <div class="stat-row"><span class="stat-label">Ad serve %</span><span class="stat-val">71%</span></div>
+      <div class="stat-row"><span class="stat-label">Errors</span><span class="stat-val">24</span></div>
+      <div style="height:20px"></div>
+      <div class="sh-inter">Key numbers</div>
+      <div class="stat-row"><span class="stat-label">Win rate</span><span class="stat-val">60%</span></div>
+    </div>
+    <div>
+      <div class="option-label">B · DM Mono</div>
+      <div class="sh-mono">What decided it</div>
+      <div class="stat-row"><span class="stat-label">Ad serve %</span><span class="stat-val">71%</span></div>
+      <div class="stat-row"><span class="stat-label">Errors</span><span class="stat-val">24</span></div>
+      <div style="height:20px"></div>
+      <div class="sh-mono">Key numbers</div>
+      <div class="stat-row"><span class="stat-label">Win rate</span><span class="stat-val">60%</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

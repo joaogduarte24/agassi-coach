@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px, initial-scale=1">
+<title>Agassi — Design Draft B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0d0d0d;
+    --bg2:      #141414;
+    --bg3:      #1c1c1c;
+    --border:   #222;
+    --border2:  #2a2a2a;
+    --gold:     #c4a96a;
+    --gold-dim: #8a7348;
+    --white:    #f0ece4;
+    --muted:    #666;
+    --dim:      #333;
+    --green:    #4ade80;
+    --green-bg: rgba(74,222,128,0.08);
+    --amber:    #fbbf24;
+    --amber-bg: rgba(251,191,36,0.08);
+    --red:      #f87171;
+    --red-bg:   rgba(248,113,113,0.08);
+    --blue:     #60a5fa;
+    --blue-bg:  rgba(96,165,250,0.08);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 390px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 0 20px;
+  }
+  .nav-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 12px;
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--gold);
+  }
+  .nav-record {
+    display: flex;
+    gap: 6px;
+  }
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge-w { background: var(--green-bg); color: var(--green); }
+  .badge-l { background: var(--red-bg); color: var(--red); }
+  .nav-tabs {
+    display: flex;
+    gap: 0;
+    margin: 0 -20px;
+    padding: 0 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--dim);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    color: var(--white);
+    border-bottom-color: var(--gold);
+  }
+  .tab-btn.add-btn {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ── CONTENT ── */
+  .content { padding: 28px 20px 80px; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── MATCH CARD ── */
+  .match-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .match-card:hover { border-color: var(--border2); }
+  .match-card.active { border-color: var(--gold-dim); }
+  .match-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .match-vs {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  .match-meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+  .match-result {
+    text-align: right;
+  }
+  .match-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .match-score.win { color: var(--green); }
+  .match-score.loss { color: var(--red); }
+  .match-outcome {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+  .match-outcome.win { color: var(--green); }
+  .match-outcome.loss { color: var(--red); }
+  .match-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+  .pill-green { background: var(--green-bg); color: var(--green); }
+  .pill-amber { background: var(--amber-bg); color: var(--amber); }
+  .pill-red   { background: var(--red-bg);   color: var(--red);   }
+  .pill-blue  { background: var(--blue-bg);  color: var(--blue);  }
+  .pill-dim   { background: var(--bg3); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── DEBRIEF ── */
+  .debrief-header {
+    margin-bottom: 28px;
+  }
+  .debrief-opponent {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+  }
+  .debrief-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 2px;
+    color: var(--green);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .debrief-date {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .debrief-section {
+    margin-bottom: 24px;
+  }
+  .debrief-bullet {
+    display: flex;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .debrief-bullet:last-child { border-bottom: none; }
+  .bullet-icon {
+    font-size: 14px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .bullet-text {
+    font-size: 14px;
+    color: var(--white);
+    line-height: 1.5;
+  }
+  .bullet-text strong { color: var(--white); font-weight: 600; }
+  .bullet-text .num { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .bullet-highlight { color: var(--green); }
+  .bullet-warn { color: var(--amber); }
+
+  .full-stats-btn {
+    width: 100%;
+    padding: 14px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+  }
+  .full-stats-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+  /* ── JOURNAL CHIPS ── */
+  .journal-section { margin-bottom: 28px; }
+  .journal-q {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 10px;
+  }
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--bg2);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .chip.selected {
+    border-color: var(--gold-dim);
+    background: rgba(196,169,106,0.08);
+    color: var(--gold);
+  }
+
+  /* ── KEY STAT ROW ── */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .stat-value.good { color: var(--green); }
+  .stat-value.avg  { color: var(--amber); }
+  .stat-value.bad  { color: var(--red);   }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── PAGE TITLE ── */
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 2px;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  .page-sub {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 28px;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+
+  /* ── LABEL TAG ── */
+  .screen-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 24px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .spacer { height: 40px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     NAV
+════════════════════════════════════════ -->
+<div class="nav">
+  <div class="nav-top">
+    <div class="nav-logo">AGASSI</div>
+    <div class="nav-record">
+      <span class="badge badge-w">12W</span>
+      <span class="badge badge-l">8L</span>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="tab-btn active">Matches</button>
+    <button class="tab-btn">Next Match</button>
+    <button class="tab-btn">My Game</button>
+    <button class="tab-btn add-btn">+ Add</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ════════════════════════════════════════
+       SCREEN 1 — MATCHES TAB
+  ════════════════════════════════════════ -->
+  <div class="screen-tag">Screen — Matches</div>
+
+  <div class="page-title">Matches</div>
+  <div class="page-sub">12 matches · Jan → Mar 2026</div>
+
+  <!-- Complete match -->
+  <div class="match-card active">
+    <div class="match-card-top">
+      <div>
+        <div class="match-vs">vs Rui Santos</div>
+        <div class="match-meta">24 Mar · Clay · UTR 3.2</div>
+      </div>
+      <div class="match-result">
+        <div class="match-score win">6-3 7-5</div>
+        <div class="match-outcome win">Win</div>
+      </div>
+    </div>
+    <div class="match-pills">
+      <span class="pill pill-green">24 UE</span>
+      <span class="pill pill-green">71% Ad serve</span>
+      <span class="pill pill-blue">Plan: Mostly</span>
+    </div>
+  </div>
+
+  <!-- Journal only -->
+  <div class="match-card">
+    <div class="match-card-top">
+      <div>
+        <div class="match-vs">vs Pedro Matos</div>
+        <div class="match-meta">18 Mar · Hard</div>
+      </div>
+      <div class="match-result">
+        <div class="match-score loss">4-6 3-6</div>
+        <div class="match-outcome loss">Loss</div>
+      </div>
+    </div>
+    <div class="match-pills">
+      <span class="pill pill-dim">Journal only · Add stats →</span>
+    </div>
+  </div>
+
+  <!-- Stats only -->
+  <div class="match-card">
+    <div class="match-card-top">
+      <div>
+        <div class="match-vs">vs Miguel Costa</div>
+        <div class="match-meta">12 Mar · Clay · UTR 3.8</div>
+      </div>
+      <div class="match-result">
+        <div class="match-score win">7-6 6-4</div>
+        <div class="match-outcome win">Win</div>
+      </div>
+    </div>
+    <div class="match-pills">
+      <span class="pill pill-amber">Stats only · Add journal →</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 2 — DEBRIEF VIEW
+  ════════════════════════════════════════ -->
+  <div class="screen-tag">Screen — Match Debrief</div>
+
+  <div class="debrief-header">
+    <div class="debrief-opponent">vs Rui Santos · Clay</div>
+    <div class="debrief-score">6–3 7–5</div>
+    <div class="debrief-date">24 March 2026</div>
+  </div>
+
+  <div class="debrief-section">
+    <div class="section-label">What decided it</div>
+    <div class="debrief-bullet">
+      <span class="bullet-icon">✓</span>
+      <span class="bullet-text">Errors under control — <span class="num">24 UEs</span>, below your average of <span class="num">31</span></span>
+    </div>
+    <div class="debrief-bullet">
+      <span class="bullet-icon">✓</span>
+      <span class="bullet-text">Ad serve held at <span class="num">71%</span> — above your <span class="num">68%</span> win threshold</span>
+    </div>
+    <div class="debrief-bullet">
+      <span class="bullet-icon">✓</span>
+      <span class="bullet-text">Game plan mostly executed. Recovery at <span class="num">82%</span> — peak condition.</span>
+    </div>
+  </div>
+
+  <div class="debrief-section">
+    <div class="section-label">Watch next time</div>
+    <div class="debrief-bullet">
+      <span class="bullet-icon">△</span>
+      <span class="bullet-text">BP conversion at <span class="num">40%</span> — below your average. Matches with lower BP won % tend to be closer than they should be.</span>
+    </div>
+  </div>
+
+  <button class="full-stats-btn">Full stats ↓</button>
+
+  <div class="divider"></div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 3 — JOURNAL CHIPS
+  ════════════════════════════════════════ -->
+  <div class="screen-tag">Component — Journal chips</div>
+
+  <div class="journal-section">
+    <div class="journal-q">How was your warmup?</div>
+    <div class="chip-row">
+      <div class="chip selected">Full</div>
+      <div class="chip">Light</div>
+      <div class="chip">None</div>
+    </div>
+  </div>
+
+  <div class="journal-section">
+    <div class="journal-q">Game plan executed?</div>
+    <div class="chip-row">
+      <div class="chip">Yes</div>
+      <div class="chip selected">Mostly</div>
+      <div class="chip">No</div>
+    </div>
+  </div>
+
+  <div class="journal-section">
+    <div class="journal-q">What decided the match?</div>
+    <div class="chip-row">
+      <div class="chip selected">My serve</div>
+      <div class="chip">My errors</div>
+      <div class="chip selected">Their level</div>
+      <div class="chip">Pressure moments</div>
+      <div class="chip">Fitness</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 4 — MY GAME (key stats)
+  ════════════════════════════════════════ -->
+  <div class="screen-tag">Screen — My Game</div>
+
+  <div class="page-title">My Game</div>
+  <div class="page-sub">All surfaces · 20 matches</div>
+
+  <div class="card">
+    <div class="card-title">Key numbers</div>
+    <div class="stat-row">
+      <span class="stat-label">Win rate</span>
+      <span class="stat-value good">60%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Avg unforced errors</span>
+      <span class="stat-value avg">31</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Ad serve %</span>
+      <span class="stat-value avg">65%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">BP conversion</span>
+      <span class="stat-value bad">44%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Game plan executed (Yes/Mostly)</span>
+      <span class="stat-value good">82% win rate</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

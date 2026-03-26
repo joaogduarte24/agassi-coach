@@ -1,8 +1,33 @@
 'use client'
 import React, { Component } from 'react'
 
+// ─── SEMANTIC COLOURS ─────────────────────────────────────────────────────────
 export const G = '#4ade80', A = '#fbbf24', R = '#f87171', B = '#60a5fa'
-export const GD = 'rgba(74,222,128,0.12)', AD = 'rgba(251,191,36,0.12)', RD = 'rgba(248,113,113,0.12)'
+export const GD = 'rgba(74,222,128,0.08)', AD = 'rgba(251,191,36,0.08)', RD = 'rgba(248,113,113,0.08)'
+
+// ─── DESIGN LANGUAGE TOKENS ──────────────────────────────────────────────────
+export const GOLD = '#c4a96a', GOLD_DIM = '#8a7348'
+export const BG = '#0d0d0d', BG2 = '#141414', BG3 = '#1c1c1c'
+export const BORDER = '#222', BORDER2 = '#2a2a2a'
+export const WHITE = '#f0ece4', MUTED = '#666', DIM = '#333'
+export const FONT_BODY = "'Inter',system-ui,sans-serif"
+export const FONT_DATA = "'DM Mono',monospace"
+export const FONT_DISPLAY = "'Bebas Neue',sans-serif"
+
+// ─── MATCH STATE ─────────────────────────────────────────────────────────────
+export function matchState(m: any): 'complete' | 'journal-only' | 'stats-only' | 'empty' {
+  const hasJournal = m.journal != null && Object.values(m.journal as object).some(v => v != null)
+  const hasStats = m.serve != null || m.shot_stats != null
+  if (hasJournal && hasStats) return 'complete'
+  if (hasJournal) return 'journal-only'
+  if (hasStats) return 'stats-only'
+  return 'empty'
+}
+
+// ─── MATCH ID ────────────────────────────────────────────────────────────────
+export function makeMatchId(date: string, oppName: string): string {
+  return `${date}-${oppName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`
+}
 
 export function avg(arr: (number|null|undefined)[]) {
   const v = arr.filter((x): x is number => x != null && !isNaN(x as number))

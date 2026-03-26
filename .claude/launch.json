@@ -2,10 +2,11 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "agassi-dev",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /Users/joaoduarte/projects/agassi && npm run dev"],
-      "port": 3000
+      "name": "agassi",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": false
     }
   ]
 }
