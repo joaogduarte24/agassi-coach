@@ -28,15 +28,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const supabase = getSupabase()
 
     // Upsert match with computed aggregate stats + basic metadata
+    // Note: score fields (score_sets, score_sets_arr, score_winner) are NOT touched here —
+    // score comes from screenshots and must not be overwritten by the xlsx upload.
     const { error: matchErr } = await supabase.from('matches').upsert({
       id: matchId,
-      date: matchDate || matchData.score?.sets ? matchDate : new Date().toISOString().split('T')[0],
       opponent_name: oppName || matchData.oppName || 'Unknown',
       opponent_utr: oppUtr ? parseFloat(oppUtr) : null,
       surface: surface || 'Clay',
-      score_sets: matchData.score.sets,
-      score_sets_arr: matchData.score.sets_arr,
-      score_winner: matchData.score.winner,
       serve: matchData.serve,
       return: matchData.return,
       forehand: matchData.forehand,
