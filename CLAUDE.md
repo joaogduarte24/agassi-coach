@@ -40,8 +40,12 @@ A match can exist in three states. The UI must handle all three:
 - `app/components/` — One file per UI component (MatchDetail, Strategy, JDStats, UploadMatch, FixMatchModal, RadarChart, StatBar)
 - `app/lib/helpers.ts` — All shared utilities: avg(), col(), fmtDate(), deepMerge(), getMissingFields(), computeAvgs(), IMPORTANT_FIELDS, ErrorBoundary, color constants
 - `app/types.ts` — All TypeScript interfaces (Match, Avgs, OppShots, ShotStats, etc.)
-- `app/api/extract/route.ts` — POST: sends screenshots to Claude claude-sonnet-4-20250514, returns parsed Match JSON
+- `app/api/extract/route.ts` — POST: sends screenshots to Claude claude-sonnet-4-20250514, returns parsed Match JSON (legacy — kept for fallback)
 - `app/api/matches/route.ts` — GET/POST/DELETE: Supabase CRUD with toSetsArr() and toArr() normalizers for JSONB deserialization
+- `app/api/matches/[id]/upload-csv/route.ts` — POST: parses SwingVision .xlsx, upserts match, bulk-inserts shots + points
+- `app/api/matches/[id]/shots/route.ts` — GET: all shot rows for a match
+- `app/api/matches/[id]/points/route.ts` — GET: all point rows for a match
+- `app/lib/parseSwingVision.ts` — server-only xlsx parser (uses `xlsx` package). Returns matchData (maps to existing schema) + shotsRows + pointsRows
 
 ## Data Shape (Match)
 ```json
@@ -80,8 +84,19 @@ A match can exist in three states. The UI must handle all three:
 ```
 
 ## Supabase Schema
+
 Table: `matches`
-Columns: id(text PK), date, opponent_name, opponent_utr, surface, score_sets, score_sets_arr(jsonb), score_winner, serve(jsonb), return(jsonb), forehand(jsonb), backhand(jsonb), shot_stats(jsonb), opp_shots(jsonb), what_worked(jsonb), what_didnt(jsonb), key_number, journal(jsonb), created_at
+Columns: id(text PK), date, opponent_name, opponent_utr, surface, score_sets, score_sets_arr(jsonb), score_winner, serve(jsonb), return(jsonb), forehand(jsonb), backhand(jsonb), shot_stats(jsonb), opp_shots(jsonb), what_worked(jsonb), what_didnt(jsonb), key_number, journal(jsonb), has_shot_data(boolean), created_at
+
+Table: `match_shots` — one row per shot (800+ rows per match)
+Columns: id(uuid PK), match_id(text FK), player('jd'|'opponent'), shot_number, shot_type, stroke, spin, speed_kmh, point_number, game_number, set_number, bounce_depth, bounce_zone, bounce_x, bounce_y, hit_x, hit_y, hit_z, direction, result, video_time, created_at
+
+Table: `match_points` — one row per point (~160 rows per match)
+Columns: id(uuid PK), match_id(text FK), point_number, game_number, set_number, serve_state, server('jd'|'opponent'), jd_game_score, opp_game_score, point_winner('jd'|'opponent'), detail, break_point(bool), set_point(bool), duration_seconds, video_time, created_at
+
+**has_shot_data flag:** true when match was uploaded via CSV. Display layer and Debrief check this to show enriched content.
+
+**shot_stats extended fields (CSV-only):** `rally_mean`, `rally_pct_short`, `rally_pct_long`, `s1_t_pct`, `s1_wide_pct`, `s1_after_dtl_pct`, `fh_spd_std`, `fh_contact_z`, `bh_contact_z` — computed at upload time, stored in shot_stats JSONB alongside aggregate stats.
 
 **Known Supabase quirk:** JSONB arrays can deserialize as plain objects `{"0":"a","1":"b"}`. Fixed in `dbToMatch()` with `toArr()` (strings) and `toSetsArr()` (score sets [[n,n]]).
 
@@ -96,11 +111,16 @@ Drives completeness checking. Listed with `section` so the UI can group missing 
 ### Match ID generation
 `${date}-${opponent-name-slug}` — stable, collision-proof, used as Supabase PK.
 
-## SwingVision Screenshots
-Three tabs to capture per match:
-1. **JD's Shots** tab → populates serve/return/forehand/backhand
-2. **Match Stats** tab → populates shot_stats (aces, pts won %, winners, UE breakdown)
-3. **[Opponent]'s Shots** tab → populates opp_shots
+## SwingVision Data Upload
+Primary method: `.xlsx` export from SwingVision → Shot Stats tab → Export Shots to CSV.
+
+The xlsx contains 6 sheets: Settings (players, times), Shots (one row/shot with x/y coords + speed + direction), Points (one row/point with score context + duration), Games, Sets, Stats (aggregate totals by set).
+
+**Player mapping:** Settings.Host Team = JD, Settings.Guest Team = opponent. In Points sheet, server/winner encoded as 'host'/'guest'.
+
+**Parser output:** computes all existing schema fields (serve/return/forehand/backhand/shot_stats/opp_shots) from the xlsx, plus CSV-exclusive insights in shot_stats. Simultaneously inserts raw rows into match_shots and match_points.
+
+**Legacy:** screenshot upload via /api/extract still exists as code but is no longer surfaced in the UI.
 
 ## Color System
 - Green `#4ade80` (G) = good performance

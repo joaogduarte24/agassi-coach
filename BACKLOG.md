@@ -3,7 +3,7 @@
 Raw ideas captured as they come. No commitment, no priority, no gate required to add something here. When an idea is ready to become real work, it moves to `ROADMAP.md` and goes through the 6-gate process.
 
 **How to add:** one line minimum. Add context if you have it. Don't overthink it.
-**Status tags:** `[idea]` → `[considering]` → `[→ roadmap]` → `[dropped: reason]`
+**Status tags:** `[idea]` → `[considering]` → `[→ roadmap]` → `[dropped: reason]` → `[shipped]`
 
 ---
 
@@ -23,17 +23,22 @@ Raw ideas captured as they come. No commitment, no priority, no gate required to
 
 ## Stats & Analysis
 
-- [idea] Surface filter in JDStats — show stats for Clay/Hard/Grass only
-- [idea] Recovery score vs UE count correlation — show in JDStats when enough journal data exists
-- [idea] Game plan execution vs win rate — "when you rate execution Yes or Mostly, you win X%"
+- [→ roadmap] Surface filter in JDStats — show stats for Clay/Hard/Grass only — **ICE 432, NEXT #2**
+- [→ roadmap] Recovery score vs UE count correlation — show in JDStats when enough journal data exists — **ICE 343, NEXT #3**
+- [→ roadmap] Game plan execution vs win rate — "when you rate execution Yes or Mostly, you win X%" — **ICE 343, NEXT #3**
+- [→ roadmap] Win/loss correlation surfacing — **ICE 448, NEXT #1**
 - [idea] UTR trend over time — are you playing harder opponents as you improve?
 - [idea] First-set performance vs warmup — does skipping warmup hurt your first set?
 - [idea] Time-of-day performance split — are you better in the morning or afternoon?
 - [idea] Match intensity metric using total_shots — longer rallies, more shots = harder match
 
+## AI & Intelligence
+
+- [→ roadmap] **AI coaching layer** — replace rule-based debrief bullets with Claude-generated insights using full match data, journal, and historical context. Applies to: Debrief (post-match), Next Match strategy, JDStats patterns. Uses the same Claude API already wired in `/api/extract`. **ICE 315, NEXT #6**
+
 ## Strategy & Coaching
 
-- [idea] Pre-match prep mode — streamlined day-of-match view: game plan summary, opponent tendencies, key stats to hit
+- [→ roadmap] Pre-match prep mode — streamlined day-of-match view: game plan summary, opponent tendencies, key stats to hit — **ICE 336, NEXT #5**
 - [idea] Per-opponent priority history in Strategy — "last 3 times you played Gonçalo, you flagged Reduce UE as priority. Your UE was X in those matches."
 - [idea] Surface-specific tactical advice — when surface selected, show JD's actual stats on that surface, not just generic text
 - [idea] "What to watch for" based on opp_shots — auto-generate 2-3 tactical bullets from recorded opponent data
@@ -41,8 +46,8 @@ Raw ideas captured as they come. No commitment, no priority, no gate required to
 
 ## UX & Design
 
-- [idea] Full UX/UI revamp — rethink visual hierarchy, stat presentation, navigation across all tabs (in ROADMAP.NEXT)
-- [idea] Functionality review — audit every tab against product goals, cut what's not earning its place (in ROADMAP.NEXT)
+- [shipped] Full UX/UI revamp — Premium Sports Editorial design language, 4-tab navigation, match state model
+- [→ roadmap] Functionality review — audit every tab against product goals, cut what's not earning its place — **ICE 336, NEXT #4**
 - [idea] Match History tab redesign — current list view is too flat, no visual signal of win/loss trend
 - [idea] Swipe between matches in Match Detail — instead of going back to the list
 - [idea] "Last match" landing screen redesign — first thing JD sees, should feel like a debrief not a form

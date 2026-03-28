@@ -65,6 +65,45 @@ function computeBullets(m: any, avgs: Avgs, all: any[]) {
   return { good: good.slice(0, 3), watch: watch.slice(0, 3) }
 }
 
+// Shot-data bullets — only when has_shot_data = true (CSV upload)
+function computeShotBullets(m: any) {
+  const insights: ReturnType<typeof bullet>[] = []
+  const s = m.shot_stats || {}
+  if (!m.has_shot_data) return insights
+
+  // Rally length
+  if (s.rally_pct_short != null && s.rally_mean != null) {
+    if (s.rally_pct_short >= 55) {
+      insights.push(bullet('→', <span><b>{s.rally_pct_short}%</b> of points ended in ≤3 shots — serve and return decided this match</span>))
+    } else if (s.rally_pct_long != null && s.rally_pct_long >= 20) {
+      insights.push(bullet('→', <span><b>{s.rally_pct_long}%</b> of points went 7+ shots — this was a baseline battle (avg {s.rally_mean} shots/point)</span>))
+    } else {
+      insights.push(bullet('→', <span>Rally avg <b>{s.rally_mean} shots/point</b> · {s.rally_pct_short}% short (≤3) · {s.rally_pct_long}% long (7+)</span>))
+    }
+  }
+
+  // Serve direction bias
+  if (s.s1_t_pct != null && s.s1_t_pct >= 60) {
+    insights.push(bullet('△', <span>1st serve went down the T <b>{s.s1_t_pct}%</b> of the time — predictable. Mix in more wide serves.</span>))
+  } else if (s.s1_wide_pct != null && s.s1_wide_pct >= 60) {
+    insights.push(bullet('△', <span>1st serve was wide <b>{s.s1_wide_pct}%</b> — too one-dimensional. Use the T more.</span>))
+  }
+
+  // Serve+1 tendency
+  if (s.s1_after_dtl_pct != null) {
+    insights.push(bullet('→', <span>After your serve, <b>{s.s1_after_dtl_pct}%</b> of serve+1 shots went down the line — attacking the backhand side</span>))
+  }
+
+  // FH speed consistency
+  if (s.fh_spd_std != null && s.fh_spd_std >= 18) {
+    insights.push(bullet('△', <span>FH pace variance high (±<b>{s.fh_spd_std} km/h std dev</b>) — inconsistent pace, hard to predict</span>))
+  } else if (s.fh_spd_std != null) {
+    insights.push(bullet('✓', <span>FH pace consistent (±<b>{s.fh_spd_std} km/h</b>) — controlled aggression</span>))
+  }
+
+  return insights.slice(0, 3)
+}
+
 const SH = ({ children }: { children: React.ReactNode }) => (
   <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 12 }}>
     {children}
@@ -83,6 +122,7 @@ export default function Debrief({ m, avgs, allMatches }: DeBriefProps) {
   const isWin = m.score?.winner === 'JD'
   const hasStats = m.serve != null || m.shot_stats != null
   const { good, watch } = computeBullets(m, avgs, allMatches)
+  const shotInsights = computeShotBullets(m)
 
   return (
     <div>
@@ -121,6 +161,14 @@ export default function Debrief({ m, avgs, allMatches }: DeBriefProps) {
         <div style={{ marginBottom: 24 }}>
           <SH>Watch next time</SH>
           {watch.map((b, i) => <Bullet key={i} icon={b.icon} text={b.text} />)}
+        </div>
+      )}
+
+      {/* Shot-level insights (CSV data only) */}
+      {shotInsights.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SH>Shot patterns</SH>
+          {shotInsights.map((b, i) => <Bullet key={i} icon={b.icon} text={b.text} />)}
         </div>
       )}
 

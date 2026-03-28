@@ -2,74 +2,118 @@
 
 This is the single source of truth for what's being built, what's next, and what's not happening. Updated after every shipped feature or priority change.
 
-**Last updated:** 2026-03-26
+**Last updated:** 2026-03-28
 
 ---
 
 ## NOW — In progress
 
-### UX/UI revamp — full design rethink
-Starting gate 01. See NEXT #1 below for full scope.
+_Nothing in progress. Pick up NEXT #1._
 
 ---
 
 ## SHIPPED
 
+### SwingVision CSV data layer ✓
+Full shot-level data per match, replacing screenshot upload:
+- [x] `.xlsx` upload replaces screenshot capture entirely
+- [x] `match_shots` table — every shot: stroke, spin, speed, x/y coordinates, direction, result
+- [x] `match_points` table — every point: duration, serve state, score context, break/set point flags
+- [x] `parseSwingVisionXlsx` — server-side parser computing all existing aggregate stats + new insights
+- [x] `POST /api/matches/[id]/upload-csv` — parses xlsx, upserts match, bulk-inserts shots + points
+- [x] `GET /api/matches/[id]/shots` and `/points` — shot/point data endpoints
+- [x] Debrief enriched with shot-pattern bullets: rally length, serve direction bias, serve+1 tendency, pace consistency
+- [x] `has_shot_data` flag on matches — display layer knows when shot-level data is available
+- [x] Backwards compatible — all existing screenshot-based matches unaffected
+
+**Future note:** shot x/y coordinates are stored per match — this is the foundation for court heat maps and visual shot placement diagrams (LATER item).
+
+### UX/UI revamp — full design rethink ✓
+Premium Sports Editorial design language fully implemented:
+- [x] Fonts: Inter (body), DM Mono (data), Bebas Neue (display)
+- [x] Design tokens: colour, spacing, typography — all centralised in helpers.tsx
+- [x] 4-tab navigation: Matches | Next Match | My Game | + Add
+- [x] Match card with state dots, stat pills, inline Debrief on expand
+- [x] Pill chips (20px radius), Inter bold section headers
+- [x] Match state model: complete / journal-only / stats-only / empty
+
 ### Journal function (match stats + player input) ✓
-Whoop-style post-match journal, fully shipped. All 16 fields collected, stored in Supabase, and surfaced in the app:
+Whoop-style post-match journal, fully shipped:
 - [x] Supabase migration applied: `ALTER TABLE matches ADD COLUMN IF NOT EXISTS journal JSONB;`
-- [x] Question set finalised — cut physical feel (redundant with recovery %) and conditions (low-leverage). Added Whoop recovery %, Whoop strain, opponent difficulty, net game, mental game, opponent weapon, opponent weakness.
-- [x] Journal data surfaced in JDStats — Mindset section: plan execution win rate, recovery % in wins vs losses, avg focus and composure
-- [x] Journal priority notes surfaced in Strategy tab — Priority History panel per opponent (last 3 entries, date + W/L + priority chip)
-
-**Note:** Journal UI design (fonts, chip style, layout) is intentionally unpolished — will be unified with overall app design language in the UX/UI revamp.
-
----
-
-## NEXT — Queued and prioritised
-
-### 1. UX/UI revamp — full design rethink
-The current app works but the way stats are presented isn't ideal. This is a design-first initiative: rethink the visual hierarchy, stat presentation, and navigation across every tab. Goes through the full 6-gate process.
-
-Key questions to answer in the design phase:
-- Is the current tab structure (Last Match / Match History / Next Strategy / Evolution / JD Stats) the right mental model?
-- How should stats be presented to feel like coaching insight rather than raw numbers?
-- What does the "coach relationship" feel and look like at a UI level?
-- What are the most important things on each screen, and are they visually dominant?
-- **Match Journal**: the current journal UI (fonts, chip style, layout) feels disconnected from the rest of the app — it needs to be unified with the overall design language as part of this revamp.
-
-**Why it matters:** JD said the stat presentation isn't ideal. Design debt compounds — fixing it now before more features are added is the right time.
+- [x] Supabase migration applied: `ALTER TABLE matches ADD COLUMN IF NOT EXISTS opp_shots JSONB;`
+- [x] Question set finalised (16 fields)
+- [x] Journal decoupled from stats upload — fillable before SwingVision processes
+- [x] Duplicate match prevention — match ID gated on opponent+date entry
+- [x] Fix / re-upload integrated into + Add flow
+- [x] Debrief component — rule-based coaching bullets (UE, serve, BP, game plan)
+- [x] Journal data surfaced in JDStats and Strategy
 
 ---
 
-### 2. Functionality review — full audit against current context
-Review every tab, every feature, every data point against the full product context we now have. Questions to answer:
-- What's currently shown that isn't earning its place?
-- What data is collected but not surfaced anywhere useful?
-- What interactions feel wrong on mobile?
-- Does the tab structure make sense for the three goals (coach relationship, match wins, progress tracking)?
+## NEXT — Queued and prioritised (ICE order)
 
-**Why it matters:** The app has grown feature-by-feature. A top-down review ensures everything coheres into a coaching system, not a collection of features.
+### 1. Win/loss correlation surfacing — ICE 448
+The data needed to say "when X happens, you win Y% of the time" already exists. Surface it clearly in JDStats and Strategy.
 
----
-
-### 3. Win/loss correlation surfacing
-The data needed to say "when X happens, you win Y% of the time" already exists. It needs to be surfaced clearly — in JDStats, in Strategy, and potentially as a dedicated insight panel.
-
-Examples of insights to surface:
+Examples:
 - "When your 1st serve Ad is above 68%, you win 82% of matches"
 - "Your UE count is the single strongest predictor of your result"
 - "You've won 100% of matches where you rated game plan execution as Yes or Mostly"
 
+**ICE:** Impact 8 × Confidence 8 × Ease 7 = 448
+
 ---
+
+### 2. Surface filter in JDStats — ICE 432
+Filter all JDStats metrics by Clay / Hard / Grass. JD plays on different surfaces and wants to see surface-specific patterns, not just all-time averages.
+
+**ICE:** Impact 6 × Confidence 9 × Ease 8 = 432
+
+---
+
+### 3. Recovery & journal analytics — ICE 343
+Surface correlations from journal data:
+- Recovery score vs UE count — does low recovery predict more errors?
+- Game plan execution vs win rate — "when you rate execution Yes or Mostly, you win X%"
+- Time-of-day performance split — are you better morning or afternoon?
+
+**ICE:** Impact 7 × Confidence 7 × Ease 7 = 343
+
+---
+
+### 4. Functionality review — full audit — ICE 336
+Review every tab, every feature, every data point against the full product context. Questions:
+- What's currently shown that isn't earning its place?
+- What data is collected but not surfaced anywhere useful?
+- What interactions feel wrong on mobile?
+
+**ICE:** Impact 6 × Confidence 8 × Ease 7 = 336
+
+---
+
+### 5. Pre-match prep mode — ICE 336
+Streamlined day-of-match view: game plan summary, opponent tendencies, key stats to hit. Purpose-built for the 30 minutes before stepping on court.
+
+**ICE:** Impact 7 × Confidence 8 × Ease 6 = 336
+
+---
+
+### 6. AI coaching layer — ICE 315
+Replace rule-based debrief bullets with Claude-generated insights using full match data, journal, and historical context. Applies to: Debrief (post-match), Next Match strategy, JDStats patterns.
+
+Prompt includes: this match stats, JD's historical averages, journal fields, opponent history. Output: 3–5 coaching bullets in coach voice, grounded in tennis best practices. Uses Claude API already wired in `/api/extract`.
+
+**Data available when this is built:** full shot-level data from `match_shots` (stroke, spin, speed, x/y coordinates, direction, result per shot) and `match_points` (duration, context, outcome per point) — 800+ rows per match. The AI layer should exploit this, not just aggregate stats.
+
+**ICE:** Impact 9 × Confidence 7 × Ease 5 = 315
 
 ---
 
 ## LATER — Planned but unscoped
 
+- **Court visualisations** — serve heat maps, forehand/backhand direction charts, error location maps. Shot x/y coordinates are already stored per match in `match_shots`. Waiting for enough matches to make patterns meaningful.
 - **Match timeline / evolution tab** — visual progress over time (sparklines at match level, not just stat level)
 - **Opponent database** — dedicated profiles per opponent (beyond the H2H panel in Strategy)
-- **Pre-match prep mode** — a streamlined "day of match" view: game plan summary, opponent tendencies, key stats to hit
 - **Export / session summary** — PDF or text summary after upload, shareable with a real coach
 - **Architecture flexibility for other users** — when the decision is made to open this to more players, "JD" becomes a configurable variable. Not before.
 

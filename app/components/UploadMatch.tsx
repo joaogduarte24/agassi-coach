@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { G, A, R, GD, deepMerge, getMissingFields, matchState, makeMatchId,
+import { G, A, R, GD, matchState, makeMatchId,
          FONT_BODY, FONT_DATA, FONT_DISPLAY, BG2, BG3, BORDER, BORDER2, WHITE, MUTED, DIM, GOLD, GOLD_DIM } from '@/app/lib/helpers'
 
 interface UploadMatchProps {
@@ -263,9 +263,9 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   const [scoreStr, setScoreStr] = useState('')
 
   // Upload state
-  const [images, setImages] = useState<any[]>([])
+  const [xlsxFile, setXlsxFile] = useState<File | null>(null)
+  const [xlsxPreview, setXlsxPreview] = useState<{ shots: number; points: number } | null>(null)
   const [pendingMatch, setPendingMatch] = useState<any>(null)
-  const [missingAlert, setMissingAlert] = useState<{ path: string[]; label: string; section: string }[]>([])
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -309,7 +309,7 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   const resetAll = () => {
     setStep('entry'); setOppName(''); setOppUtr(''); setSurface('Clay')
     setMatchDate(new Date().toISOString().split('T')[0]); setExistingMatch(null)
-    setPendingMatch(null); setMissingAlert([]); setImages([]); setResult(''); setScoreStr('')
+    setPendingMatch(null); setXlsxFile(null); setXlsxPreview(null); setResult(''); setScoreStr('')
     j.reset()
     if (fileRef.current) fileRef.current.value = ''
   }
@@ -346,46 +346,63 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     setLoading(false)
   }
 
-  const handleFiles = (e: any) => {
-    const files = Array.from(e.target.files) as File[]
-    files.forEach(f => {
-      const reader = new FileReader()
-      reader.onload = ev => {
-        const result = ev.target?.result as string
-        setImages(prev => [...prev, { name: f.name, data: result.split(',')[1], type: f.type }])
-      }
-      reader.readAsDataURL(f)
-    })
+  const handleXlsxFile = (e: any) => {
+    const f = e.target.files?.[0] as File | null
+    if (!f) return
+    setXlsxFile(f)
+    // Quick preview: count rows without full parse (just show filename + file size hint)
+    setXlsxPreview(null) // will populate after server parse
+    setStatus('')
   }
 
-  const clearImages = () => { setImages([]); if (fileRef.current) fileRef.current.value = '' }
+  const clearXlsx = () => { setXlsxFile(null); setXlsxPreview(null); if (fileRef.current) fileRef.current.value = '' }
 
-  const processMatch = async () => {
-    if (!images.length) { setStatus('Upload at least one screenshot'); return }
+  const processXlsx = async () => {
+    if (!xlsxFile) { setStatus('Select a SwingVision .xlsx file'); return }
     setLoading(true)
-    setStatus(pendingMatch ? 'Merging screenshots...' : 'Analysing screenshots...')
+    setStatus('Parsing match data...')
     try {
-      const res = await fetch('/api/extract', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images, oppName: oppName.trim(), oppUtr, surface })
-      })
+      const matchId = makeMatchId(matchDate, oppName)
+      const form = new FormData()
+      form.append('file', xlsxFile)
+      form.append('oppName', oppName.trim())
+      form.append('oppUtr', oppUtr)
+      form.append('surface', surface)
+      form.append('matchDate', matchDate)
+
+      const res = await fetch(`/api/matches/${matchId}/upload-csv`, { method: 'POST', body: form })
       const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error || 'Extraction failed')
-      const merged = pendingMatch ? deepMerge(pendingMatch, data.match) : data.match
-      if (pendingMatch?.id) merged.id = pendingMatch.id
-      else merged.id = makeMatchId(matchDate, oppName)
-      merged.date = matchDate
-      const missing = getMissingFields(merged)
-      if (missing.length > 0) {
-        setPendingMatch(merged); setMissingAlert(missing); clearImages(); setStatus('')
-      } else {
-        await doSave(merged)
+      if (!res.ok || data.error) throw new Error(data.error || 'Upload failed')
+
+      setXlsxPreview({ shots: data.shots, points: data.points })
+      setStatus(`Saved — ${data.shots} shots · ${data.points} points`)
+
+      // Build match object for UI update
+      const md = data.matchData
+      const updatedMatch = {
+        id: matchId,
+        date: matchDate,
+        opponent: { name: oppName.trim(), utr: oppUtr ? Number(oppUtr) : null },
+        surface,
+        score: md.score,
+        serve: md.serve,
+        return: md.return,
+        forehand: md.forehand,
+        backhand: md.backhand,
+        shot_stats: md.shot_stats,
+        opp_shots: md.opp_shots,
+        has_shot_data: true,
+        journal: existingMatch?.journal ?? null,
+        what_worked: existingMatch?.what_worked ?? null,
+        what_didnt: existingMatch?.what_didnt ?? null,
+        key_number: existingMatch?.key_number ?? null,
       }
+      onMatchAdded(updatedMatch)
+      setTimeout(resetAll, 2000)
     } catch (e: any) { setStatus('Error: ' + e.message) }
     setLoading(false)
   }
 
-  const hasPending = pendingMatch && missingAlert.length > 0
   const state = existingMatch ? matchState(existingMatch) : null
 
   // ── ENTRY SCREEN ────────────────────────────────────────────────────────────
@@ -493,14 +510,14 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
             <button onClick={() => setStep('upload')}
               style={{ padding: '18px 20px', borderRadius: 14, border: `1px solid ${BORDER2}`, background: BG2, color: WHITE, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer', textAlign: 'left' as const }}>
               <div>Upload Stats</div>
-              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>SwingVision screenshots → extract & save.</div>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>SwingVision .xlsx export → full shot data.</div>
             </button>
           )}
           {(state === 'stats-only' || state === 'complete') && (
             <button onClick={() => setStep('upload')}
               style={{ padding: '18px 20px', borderRadius: 14, border: `1px solid ${BORDER2}`, background: BG2, color: WHITE, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer', textAlign: 'left' as const }}>
               <div>Re-upload Stats</div>
-              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>Fix incomplete data by uploading more screenshots.</div>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 4 }}>Replace with a new SwingVision .xlsx export.</div>
             </button>
           )}
         </div>
@@ -531,92 +548,54 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     <div style={{ maxWidth: 520, margin: '0 auto' }}>
       <button onClick={() => setStep('branch')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 12, fontFamily: FONT_BODY, marginBottom: 20, padding: 0 }}>← Back</button>
       <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>Upload Stats</div>
-      <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 24 }}>{oppName} · SwingVision screenshots</div>
+      <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 24 }}>
+        {oppName} · SwingVision .xlsx export
+      </div>
 
-      {/* Missing stats alert */}
-      {hasPending && (
-        <div style={{ background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, letterSpacing: 1, color: A, marginBottom: 12 }}>Missing Stats</div>
-          {(['Serve', 'Return', 'Groundstrokes', 'Shot Stats', 'Match Stats'] as const).map(section => {
-            const fields = missingAlert.filter(f => f.section === section)
-            if (!fields.length) return null
-            return (
-              <div key={section} style={{ marginBottom: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: '8px 10px' }}>
-                <div style={{ fontSize: 9, letterSpacing: '1.5px', color: MUTED, fontFamily: FONT_BODY, fontWeight: 700, textTransform: 'uppercase' as const, marginBottom: 6 }}>{section}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
-                  {fields.map(f => <span key={f.label} style={{ fontSize: 10, color: A, fontFamily: FONT_DATA, background: 'rgba(251,191,36,0.08)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(251,191,36,0.15)' }}>{f.label}</span>)}
-                </div>
-              </div>
-            )
-          })}
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button onClick={() => setMissingAlert([])}
-              style={{ flex: 2, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.06)', color: A, fontSize: 12, fontFamily: FONT_BODY, fontWeight: 600, cursor: 'pointer' }}>
-              Add more screenshots
-            </button>
-            <button onClick={async () => { setLoading(true); try { await doSave(pendingMatch!) } catch (e: any) { setStatus('Error: ' + e.message) } setLoading(false) }}
-              style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: `1px solid ${BORDER2}`, background: 'transparent', color: MUTED, fontSize: 11, fontFamily: FONT_DATA, cursor: 'pointer' }}>
-              Save anyway
-            </button>
-          </div>
+      {/* How to export hint */}
+      <div style={{ background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 10, padding: '10px 14px', marginBottom: 20 }}>
+        <div style={{ fontSize: 11, color: MUTED, fontFamily: FONT_BODY, lineHeight: 1.6 }}>
+          In SwingVision → Shot Stats tab → <span style={{ color: '#60a5fa' }}>Export Shots to CSV</span> → share the <span style={{ color: WHITE }}>.xlsx</span> file here.
         </div>
-      )}
+      </div>
 
-      {!hasPending && (
-        <>
-          {/* Drop zone */}
-          <div onClick={() => fileRef.current?.click()}
-            style={{ border: `2px dashed ${images.length ? 'rgba(74,222,128,0.4)' : BORDER2}`, borderRadius: 14, padding: '28px 20px', textAlign: 'center' as const, cursor: 'pointer', marginBottom: 20, background: images.length ? 'rgba(74,222,128,0.03)' : 'transparent', transition: 'all 0.2s' }}>
-            <input ref={fileRef} type="file" multiple accept="image/*" onChange={handleFiles} style={{ display: 'none' }} />
-            {images.length ? (
-              <div>
-                <div style={{ fontSize: 26, marginBottom: 8 }}>📸</div>
-                <div style={{ color: G, fontSize: 13, fontFamily: FONT_BODY }}>{images.length} image{images.length > 1 ? 's' : ''} ready</div>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 4, fontFamily: FONT_DATA }}>{images.map(i => i.name).join(', ')}</div>
-                <button onClick={e => { e.stopPropagation(); clearImages() }} style={{ marginTop: 8, background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT_BODY }}>clear</button>
-              </div>
-            ) : (
-              <div>
-                <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>↑</div>
-                <div style={{ color: MUTED, fontSize: 13, fontFamily: FONT_BODY }}>Tap to select screenshots</div>
-                <div style={{ fontSize: 11, color: DIM, marginTop: 4, fontFamily: FONT_DATA }}>JPEG or PNG · My Shots tab · scroll to capture all sections</div>
+      {/* File picker */}
+      <div onClick={() => fileRef.current?.click()}
+        style={{ border: `2px dashed ${xlsxFile ? 'rgba(74,222,128,0.4)' : BORDER2}`, borderRadius: 14, padding: '28px 20px', textAlign: 'center' as const, cursor: 'pointer', marginBottom: 20, background: xlsxFile ? 'rgba(74,222,128,0.03)' : 'transparent', transition: 'all 0.2s' }}>
+        <input ref={fileRef} type="file" accept=".xlsx" onChange={handleXlsxFile} style={{ display: 'none' }} />
+        {xlsxFile ? (
+          <div>
+            <div style={{ fontSize: 13, color: G, fontFamily: FONT_BODY, marginBottom: 4 }}>
+              {xlsxFile.name}
+            </div>
+            <div style={{ fontSize: 11, color: MUTED, fontFamily: FONT_DATA, marginBottom: 8 }}>
+              {(xlsxFile.size / 1024).toFixed(0)} KB
+            </div>
+            {xlsxPreview && (
+              <div style={{ fontSize: 11, color: G, fontFamily: FONT_DATA }}>
+                {xlsxPreview.shots} shots · {xlsxPreview.points} points imported
               </div>
             )}
+            <button onClick={e => { e.stopPropagation(); clearXlsx() }} style={{ marginTop: 8, background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT_BODY }}>
+              clear
+            </button>
           </div>
-
-          <button onClick={processMatch} disabled={loading || !images.length}
-            style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', cursor: loading || !images.length ? 'not-allowed' : 'pointer', background: loading || !images.length ? BG3 : `linear-gradient(135deg,${GOLD_DIM},${GOLD})`, color: loading || !images.length ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY, transition: 'all 0.2s' }}>
-            {loading ? 'Processing...' : 'Extract & Save'}
-          </button>
-        </>
-      )}
-
-      {/* Merge zone */}
-      {hasPending === false && pendingMatch && (
-        <>
-          <div onClick={() => fileRef.current?.click()}
-            style={{ border: `2px dashed rgba(251,191,36,0.3)`, borderRadius: 14, padding: '24px 20px', textAlign: 'center' as const, cursor: 'pointer', marginBottom: 14, background: 'rgba(251,191,36,0.02)' }}>
-            <input ref={fileRef} type="file" multiple accept="image/*" onChange={handleFiles} style={{ display: 'none' }} />
-            {images.length ? (
-              <div>
-                <div style={{ color: A, fontSize: 13, fontFamily: FONT_BODY }}>{images.length} screenshot{images.length > 1 ? 's' : ''} — will merge</div>
-                <button onClick={e => { e.stopPropagation(); clearImages() }} style={{ marginTop: 6, background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>clear</button>
-              </div>
-            ) : (
-              <div>
-                <div style={{ color: A, fontSize: 12, fontFamily: FONT_BODY }}>Add screenshots for missing sections</div>
-              </div>
-            )}
+        ) : (
+          <div>
+            <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>↑</div>
+            <div style={{ color: MUTED, fontSize: 13, fontFamily: FONT_BODY }}>Tap to select .xlsx file</div>
+            <div style={{ fontSize: 11, color: DIM, marginTop: 4, fontFamily: FONT_DATA }}>SwingVision export only</div>
           </div>
-          <button onClick={processMatch} disabled={loading || !images.length}
-            style={{ width: '100%', padding: 13, borderRadius: 12, border: 'none', cursor: loading || !images.length ? 'not-allowed' : 'pointer', background: loading || !images.length ? BG3 : 'linear-gradient(135deg,#fbbf24,#f59e0b)', color: loading || !images.length ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY }}>
-            {loading ? 'Processing...' : 'Extract & Merge'}
-          </button>
-        </>
-      )}
+        )}
+      </div>
+
+      <button onClick={processXlsx} disabled={loading || !xlsxFile}
+        style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', cursor: loading || !xlsxFile ? 'not-allowed' : 'pointer', background: loading || !xlsxFile ? BG3 : `linear-gradient(135deg,${GOLD_DIM},${GOLD})`, color: loading || !xlsxFile ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY, transition: 'all 0.2s' }}>
+        {loading ? 'Uploading...' : 'Upload & Save'}
+      </button>
 
       {status && (
-        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#111', border: `1px solid ${BORDER}`, fontSize: 13, color: '#aaa', textAlign: 'center' as const, fontFamily: FONT_DATA }}>
+        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#111', border: `1px solid ${BORDER}`, fontSize: 13, color: xlsxPreview ? G : '#aaa', textAlign: 'center' as const, fontFamily: FONT_DATA }}>
           {status}
         </div>
       )}

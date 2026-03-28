@@ -32,6 +32,7 @@ function matchToDb(m: any) {
     what_didnt: m.what_didnt,
     key_number: m.key_number,
     journal: m.journal ?? null,
+    has_shot_data: m.has_shot_data ?? false,
   }
 }
 
@@ -71,6 +72,7 @@ function dbToMatch(row: any) {
     what_didnt: toArr(row.what_didnt),
     key_number: row.key_number,
     journal: row.journal ?? null,
+    has_shot_data: row.has_shot_data ?? false,
   }
 }
 
