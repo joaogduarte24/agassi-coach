@@ -27,11 +27,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const supabase = getSupabase()
 
-    // Upsert match with computed aggregate stats + basic metadata
-    // Note: score fields (score_sets, score_sets_arr, score_winner) are NOT touched here —
-    // score comes from screenshots and must not be overwritten by the xlsx upload.
-    const { error: matchErr } = await supabase.from('matches').upsert({
-      id: matchId,
+    // Update existing match with computed aggregate stats.
+    // score fields are NOT touched — score comes from screenshots.
+    const { error: matchErr } = await supabase.from('matches').update({
       opponent_name: oppName || matchData.oppName || 'Unknown',
       opponent_utr: oppUtr ? parseFloat(oppUtr) : null,
       surface: surface || 'Clay',
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       shot_stats: matchData.shot_stats,
       opp_shots: matchData.opp_shots,
       has_shot_data: true,
-    }, { onConflict: 'id', ignoreDuplicates: false })
+    }).eq('id', matchId)
 
     if (matchErr) throw matchErr
 
