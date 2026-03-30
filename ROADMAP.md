@@ -2,7 +2,7 @@
 
 This is the single source of truth for what's being built, what's next, and what's not happening. Updated after every shipped feature or priority change.
 
-**Last updated:** 2026-03-28
+**Last updated:** 2026-03-30
 
 ---
 
@@ -14,19 +14,26 @@ _Nothing in progress. Pick up NEXT #1._
 
 ## SHIPPED
 
-### SwingVision CSV data layer ✓
-Full shot-level data per match, replacing screenshot upload:
-- [x] `.xlsx` upload replaces screenshot capture entirely
+### Upload flow redesign — screenshots + xlsx combined ✓
+**Shipped:** 2026-03-30
+- [x] "Add Data" screen: 3 screenshot slots (JD's Shots, Opp's Shots, Match Stats) + xlsx slot — any combination
+- [x] Screenshots are ground truth for all aggregated stats (via `/api/extract`)
+- [x] xlsx contributes only what screenshots can't: rally stats, serve direction, contact height, speed std dev, opp serve direction
+- [x] Overwrite warning when re-uploading screenshots on a match with existing stats
+- [x] Edit Journal pre-populates all fields from saved journal
+- [x] Journal never touched by upload paths
+
+### SwingVision data layer + parser restructure ✓
+**Shipped:** 2026-03-28 (layer) · 2026-03-30 (restructure)
 - [x] `match_shots` table — every shot: stroke, spin, speed, x/y coordinates, direction, result
 - [x] `match_points` table — every point: duration, serve state, score context, break/set point flags
-- [x] `parseSwingVisionXlsx` — server-side parser computing all existing aggregate stats + new insights
-- [x] `POST /api/matches/[id]/upload-csv` — parses xlsx, upserts match, bulk-inserts shots + points
+- [x] `parseSwingVisionXlsx` — parser outputs only xlsx-unique fields + raw rows; screenshot stats not derived from xlsx
+- [x] Parser bug fixes: coordinate-based deep %, rally-position return classification, Points-sheet serve denominators, Feed shot filtering
+- [x] `POST /api/matches/[id]/upload-csv` — merges xlsxExtras into existing match, never overwrites screenshot stats
 - [x] `GET /api/matches/[id]/shots` and `/points` — shot/point data endpoints
-- [x] Debrief enriched with shot-pattern bullets: rally length, serve direction bias, serve+1 tendency, pace consistency
 - [x] `has_shot_data` flag on matches — display layer knows when shot-level data is available
-- [x] Backwards compatible — all existing screenshot-based matches unaffected
 
-**Future note:** shot x/y coordinates are stored per match — this is the foundation for court heat maps and visual shot placement diagrams (LATER item).
+**Foundation:** shot x/y coordinates stored per match → court heat maps, scouting profiles (LATER).
 
 ### UX/UI revamp — full design rethink ✓
 Premium Sports Editorial design language fully implemented:

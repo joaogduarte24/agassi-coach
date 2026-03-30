@@ -57,7 +57,7 @@ A match can exist in three states. The UI must handle all three:
 - `app/components/` — One file per UI component (MatchDetail, Strategy, JDStats, UploadMatch, FixMatchModal, RadarChart, StatBar)
 - `app/lib/helpers.ts` — All shared utilities: avg(), col(), fmtDate(), deepMerge(), getMissingFields(), computeAvgs(), IMPORTANT_FIELDS, ErrorBoundary, color constants
 - `app/types.ts` — All TypeScript interfaces (Match, Avgs, OppShots, ShotStats, etc.)
-- `app/api/extract/route.ts` — POST: sends screenshots to Claude claude-sonnet-4-20250514, returns parsed Match JSON (legacy — kept for fallback)
+- `app/api/extract/route.ts` — POST: sends screenshots to Claude claude-sonnet-4-20250514, returns parsed Match JSON. Used by the upload flow for screenshot-based stat extraction.
 - `app/api/matches/route.ts` — GET/POST/DELETE: Supabase CRUD with toSetsArr() and toArr() normalizers for JSONB deserialization
 - `app/api/matches/[id]/upload-csv/route.ts` — POST: parses SwingVision .xlsx, upserts match, bulk-inserts shots + points
 - `app/api/matches/[id]/shots/route.ts` — GET: all shot rows for a match
@@ -129,15 +129,19 @@ Drives completeness checking. Listed with `section` so the UI can group missing 
 `${date}-${opponent-name-slug}` — stable, collision-proof, used as Supabase PK.
 
 ## SwingVision Data Upload
-Primary method: `.xlsx` export from SwingVision → Shot Stats tab → Export Shots to CSV.
 
-The xlsx contains 6 sheets: Settings (players, times), Shots (one row/shot with x/y coords + speed + direction), Points (one row/point with score context + duration), Games, Sets, Stats (aggregate totals by set).
+**Data sources — screenshots are ground truth:**
+- **3 screenshots** (JD's Shots tab, Opp's Shots tab, Match Stats tab) → sent to `/api/extract` → Claude extracts all aggregated stats (serve %, speeds, groundstroke %In + deep %, shot distribution, winners, UEs, points won %, etc.) → saved as the match record
+- **xlsx export** → `/api/matches/[id]/upload-csv` → contributes ONLY what screenshots cannot provide (see below) + raw shot/point rows
+
+**What xlsx uniquely provides (not on any screenshot):**
+`rally_mean`, `rally_pct_short`, `rally_pct_long`, `s1_t_pct`, `s1_wide_pct`, `s1_after_dtl_pct`, `fh_spd_std`, `fh_contact_z`, `bh_contact_z`, `opp_s1_t_pct`, `opp_s1_wide_pct` — merged into existing `shot_stats`/`opp_shots` JSONB without overwriting screenshot-sourced fields.
+
+**xlsx format:** 6 sheets — Settings (players, times), Shots (one row/shot with x/y coords + speed + direction), Points (one row/point with score context + duration), Games, Sets, Stats.
 
 **Player mapping:** Settings.Host Team = JD, Settings.Guest Team = opponent. In Points sheet, server/winner encoded as 'host'/'guest'.
 
-**Parser output:** computes all existing schema fields (serve/return/forehand/backhand/shot_stats/opp_shots) from the xlsx, plus CSV-exclusive insights in shot_stats. Simultaneously inserts raw rows into match_shots and match_points.
-
-**Legacy:** screenshot upload via /api/extract still exists as code but is no longer surfaced in the UI.
+**Parser output:** `xlsxExtras` (11 unique fields) + `shotsRows` + `pointsRows`. Does NOT output serve/return/forehand/backhand aggregates — those come from screenshots.
 
 ## Color System
 - Green `#4ade80` (G) = good performance
@@ -225,10 +229,16 @@ FEATURES.md entry minimum:
 - What was left out and why
 - Date shipped
 
+**Also update on every ship:**
+- `ROADMAP.md` — move NOW item to SHIPPED with bullet summary; update "Last updated" date
+- `supabase-schema.sql` — if any schema column or table changed
+- `CLAUDE.md` Known Issues — remove fixed bugs; add new confirmed bugs
+- `CLAUDE.md` Data Shape / SwingVision sections — if data model or upload behaviour changed
+
 ---
 
 ## Known Issues / Active Bugs
-- App crashes with "e is not iterable" — score sets_arr rendering, defensive fix in MatchDetail line ~99-103 handles both array and plain-object formats from deepMerge
+_None currently tracked. Add here when a bug is found; remove when fixed._
 
 ## Environment Variables
 - `ANTHROPIC_API_KEY` — Claude API
