@@ -377,27 +377,8 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
       setXlsxPreview({ shots: data.shots, points: data.points })
       setStatus(`Saved — ${data.shots} shots · ${data.points} points`)
 
-      // Build match object for UI update
-      const md = data.matchData
-      const updatedMatch = {
-        id: matchId,
-        date: matchDate,
-        opponent: { name: oppName.trim(), utr: oppUtr ? Number(oppUtr) : null },
-        surface,
-        score: md.score,
-        serve: md.serve,
-        return: md.return,
-        forehand: md.forehand,
-        backhand: md.backhand,
-        shot_stats: md.shot_stats,
-        opp_shots: md.opp_shots,
-        has_shot_data: true,
-        journal: existingMatch?.journal ?? null,
-        what_worked: existingMatch?.what_worked ?? null,
-        what_didnt: existingMatch?.what_didnt ?? null,
-        key_number: existingMatch?.key_number ?? null,
-      }
-      onMatchAdded(updatedMatch)
+      // Route returns the full updated match — use it directly
+      onMatchAdded(data.match)
       setTimeout(resetAll, 2000)
     } catch (e: any) { setStatus('Error: ' + e.message) }
     setLoading(false)

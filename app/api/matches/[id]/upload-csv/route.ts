@@ -14,7 +14,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   try {
     const formData = await req.formData()
-    const file = formData.get('file') as File | null
+    const file      = formData.get('file')      as File   | null
+    const oppName   = formData.get('oppName')   as string | null
+    const oppUtr    = formData.get('oppUtr')    as string | null
+    const surface   = formData.get('surface')   as string | null
+    const matchDate = formData.get('matchDate') as string | null
 
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
@@ -25,13 +29,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Fetch existing match — screenshots are ground truth for all aggregated stats.
     // xlsx only contributes fields that screenshots cannot provide.
+    // PGRST116 = no row found = new match, that's OK.
     const { data: existing, error: fetchErr } = await supabase
       .from('matches')
       .select('shot_stats, opp_shots')
       .eq('id', matchId)
       .single()
 
-    if (fetchErr) throw fetchErr
+    if (fetchErr && fetchErr.code !== 'PGRST116') throw fetchErr
+
+    // New match — create a minimal record so FK constraints on shots/points hold
+    if (!existing) {
+      const date = matchDate || matchId.split('-').slice(0, 3).join('-')
+      const { error: insertErr } = await supabase.from('matches').insert({
+        id:           matchId,
+        date,
+        opponent_name: oppName || 'Unknown',
+        opponent_utr:  oppUtr ? parseFloat(oppUtr) : null,
+        surface:       surface || 'Clay',
+      })
+      if (insertErr) throw insertErr
+    }
 
     // Merge xlsx-unique analytics into existing shot_stats (never overwrite screenshot-sourced fields)
     const mergedShotStats = {
@@ -53,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .from('matches')
       .update({
         shot_stats: mergedShotStats,
-        opp_shots: mergedOppShots,
+        opp_shots:  mergedOppShots,
         has_shot_data: true,
       })
       .eq('id', matchId)
@@ -87,12 +105,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
+    // Return the full updated match so the UI doesn't need to reconstruct it
+    const { data: updatedMatch } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', matchId)
+      .single()
+
     return NextResponse.json({
       ok: true,
       matchId,
-      shots: meta.totalShots,
+      shots:  meta.totalShots,
       points: meta.totalPoints,
       xlsxExtras,
+      match:  updatedMatch,
     })
   } catch (err: any) {
     console.error('upload-csv error:', err)
