@@ -4,6 +4,82 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Upload Flow Redesign — Screenshots + xlsx Combined, Journal Pre-population
+**Shipped:** 2026-03-30
+**Files:** `app/components/UploadMatch.tsx`
+
+### What it does
+- Upload step renamed "Add Data" — now shows three screenshot slots (JD's Shots, Opp's Shots, Match Stats) and one xlsx slot side by side. Any combination works.
+- Screenshots processed first via `/api/extract`, saved as ground truth for all aggregated stats. xlsx processed second, merges only unique analytics without touching screenshot stats.
+- Overwrite warning: if match already has screenshot stats and new screenshots are uploaded, an amber inline warning requires explicit confirmation before replacing.
+- Edit Journal now pre-populates every field from the saved journal — recovery %, match type, warmup, focus, composure, decided by, opponent notes, etc. Previously the form was always blank on edit.
+- Journal is never touched by screenshot or xlsx upload paths.
+
+### Design rationale
+- Screenshots are source of truth for aggregated stats (SwingVision computed them correctly). xlsx uniquely provides raw shot/point rows + 9 analytics fields that screenshots can't give (rally length, serve direction T%/wide%, serve+1 tendency, contact height, speed std dev, opp serve direction). Combining both in one screen removes the two-step upload friction.
+- Overwrite warning only triggers when re-uploading screenshots on a match with existing stats — not on first upload, not on xlsx-only upload. Avoids annoying unnecessary confirmations.
+- Journal pre-population: editing answers you already gave should show what you gave. Blank form on edit was a usability bug.
+
+### What was left out
+- No screenshot preview before extraction — file name only, no thumbnail. Adds complexity for minimal value.
+- No per-file extraction status (e.g. "JD's Shots ✓ · Opp's Shots ✓") — single status message is sufficient.
+- Overwrite warning does not diff what changed — just warns. Diffing would require re-running extraction first.
+
+---
+
+## xlsx Parser + Data Model Restructure — Screenshots as Ground Truth
+**Shipped:** 2026-03-30
+**Files:** `app/lib/parseSwingVision.ts`, `app/api/matches/[id]/upload-csv/route.ts`
+
+### What it does
+**Data model:**
+- Screenshots (via `/api/extract`) are now the sole source of truth for all aggregated stats: serve %, serve speed, return %, return speed + deep %, groundstroke %In + speed + deep %, shot distribution, spin distribution, winners, UEs, points won %, break points.
+- xlsx contributes only what screenshots cannot provide: rally mean, rally % short/long, JD serve direction (T%/wide%), serve+1 DTL tendency, FH/BH contact height, FH speed std deviation, opponent serve direction (T%/wide%). Stored by merging into existing `shot_stats` JSONB — never overwrites screenshot fields.
+- Raw `match_shots` and `match_points` rows still fully inserted from xlsx.
+
+**Parser changes:**
+- `parseSwingVisionXlsx` now returns `xlsxExtras` (9 unique JD fields + opp serve direction) instead of `matchData` (full aggregated stats). All computation still happens internally but only the unique fields are exported.
+- `Feed` shot type filtered out at normalisation time.
+- Deep % uses coordinate-based threshold (`bounce_y > 17.37 || bounce_y < 6.4`) instead of unreliable categorical label.
+- Return classification uses rally position (first non-serve shot from returner per point) instead of `shot_context === 'serve_plus_one'` which had survivor selection bias and inflated in-rate near 100%.
+- Serve % denominator uses Points sheet (actual serve attempts) instead of Shots sheet inference.
+
+**Route changes:**
+- `upload-csv`: fetches existing match first, merges `xlsxExtras` into existing `shot_stats`/`opp_shots`, writes only those two fields + `has_shot_data`. Never touches `serve`, `return`, `forehand`, `backhand`.
+- Handles new matches (PGRST116): creates minimal record before inserting shots/points so FK constraints hold.
+- Returns full updated match from Supabase so UI doesn't reconstruct from local state.
+
+### Design rationale
+Full re-audit of the parser against 4 matches with SwingVision screenshot ground truth revealed:
+- Categorical `bounce_depth` label is unreliable — 'short' shots appeared at y=23.7m (near far baseline). Coordinate threshold is always correct.
+- `ctx='serve_plus_one'` survivor bias: only returns that continued the rally got this tag. Returns that went out/net (ctx='first_serve'/'second_serve') were excluded → inflated in-rate.
+- Serve denominator: inferring from Shots sheet missed fault serves not recorded as shots → under-counted attempts → inflated %.
+- Groundstroke %In and speed were closest to screenshots (±1–4 km/h avg) but still direction-label-dependent. Screenshots are correct by definition (SwingVision computed them).
+
+### What was left out
+- Opponent aggregated stats (serve %, speeds, groundstroke stats) also moved to screenshots. Only opp serve direction (T%/wide%) kept from xlsx as it's not on any screenshot.
+- Completely removing `computeServe`, `computeReturn`, `computeGroundstroke` from parser output — they still run internally (needed for internal point-counting logic) but their output is no longer stored.
+- Legacy `/api/extract` screenshot-only flow kept as code fallback. Not surfaced in UI.
+
+---
+
+## Documentation Index + Mandatory FEATURES.md Rule
+**Shipped:** 2026-03-30
+**Files:** `CLAUDE.md`, `FEATURES.md`, `BACKLOG.md`
+
+### What it does
+- Added Documentation Index table to `CLAUDE.md` listing all project docs and their purpose — loaded at every session start so Claude never loses context about where things live.
+- Gate 06 in `CLAUDE.md` updated: FEATURES.md entry is now mandatory for every code change (feature, refactor, bug fix, data model change). Minimum entry format specified.
+- Added 8-entry backlog section "Raw Shot & Point Data" capturing what can be built with the xlsx-exclusive raw data (heatmaps, scouting profiles, rally vs outcome, pressure point analysis, etc.).
+
+### Design rationale
+Several sessions had shipped meaningful changes without FEATURES.md entries, losing decision rationale. Making the rule explicit and specifying a minimum format removes ambiguity about when it applies (always) and what's required.
+
+### What was left out
+- No automated changelog generation from git commits. Manual entries in FEATURES.md preserve the why, which git history cannot.
+
+---
+
 ## Match Journal
 **Shipped:** 2026-03-26
 **Component:** `app/components/UploadMatch.tsx`

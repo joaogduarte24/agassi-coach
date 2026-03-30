@@ -216,6 +216,15 @@ Log what was built, why it was designed that way, what was left out and why. Ful
 
 Deliverable: entry in FEATURES.md with full context + decisions. If schema changed: update Data Shape section in this file and supabase-schema.sql.
 
+**This gate is mandatory — no exceptions, no skipping, not even for small changes.**
+Every code change that ships (feature, refactor, bug fix, data model change) gets a FEATURES.md entry before the session ends. If a session ends without one, the first thing the next session does is write it.
+
+FEATURES.md entry minimum:
+- What changed and in which files
+- Why (the reasoning, not just "fixed X")
+- What was left out and why
+- Date shipped
+
 ---
 
 ## Known Issues / Active Bugs
