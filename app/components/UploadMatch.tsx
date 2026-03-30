@@ -263,12 +263,43 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   const [scoreStr, setScoreStr] = useState('')
 
   // Upload state
+  const [jdImg,   setJdImg]   = useState<File | null>(null)
+  const [oppImg,  setOppImg]  = useState<File | null>(null)
+  const [matchImg,setMatchImg]= useState<File | null>(null)
   const [xlsxFile, setXlsxFile] = useState<File | null>(null)
   const [xlsxPreview, setXlsxPreview] = useState<{ shots: number; points: number } | null>(null)
+  const [showOverwriteWarning, setShowOverwriteWarning] = useState(false)
+  const [overwriteConfirmed,  setOverwriteConfirmed]   = useState(false)
   const [pendingMatch, setPendingMatch] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState('')
-  const fileRef = useRef<HTMLInputElement>(null)
+  const fileRef    = useRef<HTMLInputElement>(null)
+  const jdRef      = useRef<HTMLInputElement>(null)
+  const oppRef     = useRef<HTMLInputElement>(null)
+  const matchRef   = useRef<HTMLInputElement>(null)
+
+  // Pre-fill journal form from existingMatch.journal when entering edit mode
+  useEffect(() => {
+    if (step !== 'journal' || !existingMatch?.journal) return
+    const jj = existingMatch.journal
+    const s = j.setters
+    if (jj.recovery     != null) s.setRecoveryPct(String(jj.recovery))
+    if (jj.match_type)           s.setMatchType(jj.match_type)
+    if (jj.warmup)               s.setWarmup(jj.warmup)
+    if (jj.opp_difficulty)       s.setOppDifficulty(jj.opp_difficulty)
+    if (jj.plan_executed)        s.setPlanExecuted(jj.plan_executed)
+    if (jj.focus)                s.setFocus(jj.focus)
+    if (jj.composure)            s.setComposure(jj.composure)
+    if (jj.whoop_strain != null) s.setWhoopStrain(String(jj.whoop_strain))
+    if (jj.decided_by?.length)   s.setDecidedBy(jj.decided_by)
+    if (jj.priority_next)        s.setPriorityNext(jj.priority_next)
+    if (jj.opp_style)            s.setOppStyle(jj.opp_style)
+    if (jj.opp_lefty   != null)  s.setOppLefty(jj.opp_lefty ? 'yes' : 'no')
+    if (jj.net_game)             s.setNetGame(jj.net_game)
+    if (jj.mental_game)          s.setMentalGame(jj.mental_game)
+    if (jj.opp_weapon)           s.setOppWeapon(jj.opp_weapon)
+    if (jj.opp_weakness)         s.setOppWeakness(jj.opp_weakness)
+  }, [step])
 
   // Pre-fill opponent context from previous matches
   useEffect(() => {
@@ -309,9 +340,12 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   const resetAll = () => {
     setStep('entry'); setOppName(''); setOppUtr(''); setSurface('Clay')
     setMatchDate(new Date().toISOString().split('T')[0]); setExistingMatch(null)
-    setPendingMatch(null); setXlsxFile(null); setXlsxPreview(null); setResult(''); setScoreStr('')
+    setPendingMatch(null); setXlsxFile(null); setXlsxPreview(null)
+    setJdImg(null); setOppImg(null); setMatchImg(null)
+    setShowOverwriteWarning(false); setOverwriteConfirmed(false)
+    setResult(''); setScoreStr('')
     j.reset()
-    if (fileRef.current) fileRef.current.value = ''
+    ;[fileRef, jdRef, oppRef, matchRef].forEach(r => { if (r.current) r.current.value = '' })
   }
 
   const doSave = async (match: any) => {
@@ -346,39 +380,102 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     setLoading(false)
   }
 
-  const handleXlsxFile = (e: any) => {
-    const f = e.target.files?.[0] as File | null
-    if (!f) return
-    setXlsxFile(f)
-    // Quick preview: count rows without full parse (just show filename + file size hint)
-    setXlsxPreview(null) // will populate after server parse
+  const handleImgFile = (setter: (f: File | null) => void) => (e: any) => {
+    setter(e.target.files?.[0] ?? null)
     setStatus('')
+    setShowOverwriteWarning(false)
   }
-
   const clearXlsx = () => { setXlsxFile(null); setXlsxPreview(null); if (fileRef.current) fileRef.current.value = '' }
 
-  const processXlsx = async () => {
-    if (!xlsxFile) { setStatus('Select a SwingVision .xlsx file'); return }
+  const processUpload = async (confirmed = false) => {
+    const hasScreenshots = jdImg || oppImg || matchImg
+    const hasXlsx = !!xlsxFile
+    if (!hasScreenshots && !hasXlsx) { setStatus('Add at least one screenshot or .xlsx file'); return }
+
+    // Warn before overwriting existing screenshot stats
+    const hasExistingStats = existingMatch && (existingMatch.serve || existingMatch.forehand || existingMatch.shot_stats)
+    if (hasExistingStats && hasScreenshots && !confirmed && !overwriteConfirmed) {
+      setShowOverwriteWarning(true)
+      return
+    }
+
     setLoading(true)
-    setStatus('Parsing match data...')
+    setShowOverwriteWarning(false)
+    const matchId = makeMatchId(matchDate, oppName)
     try {
-      const matchId = makeMatchId(matchDate, oppName)
-      const form = new FormData()
-      form.append('file', xlsxFile)
-      form.append('oppName', oppName.trim())
-      form.append('oppUtr', oppUtr)
-      form.append('surface', surface)
-      form.append('matchDate', matchDate)
+      // 1. Ensure match record exists for brand-new matches
+      if (!existingMatch) {
+        const r = await fetch('/api/matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ match: {
+            id: matchId, date: matchDate, surface,
+            opponent: { name: oppName.trim(), utr: oppUtr ? Number(oppUtr) : null },
+            score: { sets: '', sets_arr: null, winner: '' },
+          }}),
+        })
+        if (!r.ok) throw new Error('Failed to create match')
+      }
 
-      const res = await fetch(`/api/matches/${matchId}/upload-csv`, { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error || 'Upload failed')
+      let finalMatch: any = null
 
-      setXlsxPreview({ shots: data.shots, points: data.points })
-      setStatus(`Saved — ${data.shots} shots · ${data.points} points`)
+      // 2. Extract + save screenshots (ground truth for all aggregated stats)
+      if (hasScreenshots) {
+        setStatus('Extracting stats from screenshots…')
+        const toB64 = async (f: File) => {
+          const ab = await f.arrayBuffer()
+          const bytes = new Uint8Array(ab)
+          let bin = ''
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+          return { data: btoa(bin), type: f.type || 'image/jpeg' }
+        }
+        const images = await Promise.all([jdImg, oppImg, matchImg].filter(Boolean).map(f => toB64(f!)))
+        const extractRes = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images, oppName: oppName.trim(), oppUtr, surface }),
+        })
+        const extractData = await extractRes.json()
+        if (!extractRes.ok || extractData.error) throw new Error(extractData.error || 'Screenshot extraction failed')
 
-      // Route returns the full updated match — use it directly
-      onMatchAdded(data.match)
+        setStatus('Saving screenshot stats…')
+        const screenshotMatch = {
+          ...extractData.match,
+          id: matchId, date: matchDate, surface,
+          opponent: { name: oppName.trim(), utr: oppUtr ? Number(oppUtr) : null },
+          journal: existingMatch?.journal ?? null,
+          has_shot_data: existingMatch?.has_shot_data ?? false,
+        }
+        const saveRes = await fetch('/api/matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ match: screenshotMatch }),
+        })
+        if (!saveRes.ok) throw new Error('Failed to save screenshot stats')
+        finalMatch = screenshotMatch
+      }
+
+      // 3. Process xlsx (adds raw rows + unique analytics only, never overwrites screenshot stats)
+      if (hasXlsx) {
+        setStatus('Parsing .xlsx…')
+        const form = new FormData()
+        form.append('file', xlsxFile!)
+        form.append('oppName', oppName.trim())
+        form.append('oppUtr', oppUtr)
+        form.append('surface', surface)
+        form.append('matchDate', matchDate)
+        const xlsxRes = await fetch(`/api/matches/${matchId}/upload-csv`, { method: 'POST', body: form })
+        const xlsxData = await xlsxRes.json()
+        if (!xlsxRes.ok || xlsxData.error) throw new Error(xlsxData.error || 'xlsx upload failed')
+        setXlsxPreview({ shots: xlsxData.shots, points: xlsxData.points })
+        finalMatch = xlsxData.match // always has the freshest full record
+      }
+
+      if (finalMatch) onMatchAdded(finalMatch)
+      const parts = []
+      if (hasScreenshots) parts.push('stats saved')
+      if (hasXlsx) parts.push(`${xlsxPreview?.shots ?? '?'} shots imported`)
+      setStatus(`Saved — ${parts.join(' · ')}`)
       setTimeout(resetAll, 2000)
     } catch (e: any) { setStatus('Error: ' + e.message) }
     setLoading(false)
@@ -525,58 +622,94 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
   )
 
   // ── UPLOAD SCREEN ────────────────────────────────────────────────────────────
+  const hasAnything = jdImg || oppImg || matchImg || xlsxFile
+
+  // Small reusable image slot
+  const ImgSlot = ({ label, file, setFile, inputRef }: { label: string; file: File | null; setFile: (f: File | null) => void; inputRef: React.RefObject<HTMLInputElement> }) => (
+    <div
+      onClick={() => inputRef.current?.click()}
+      style={{ flex: 1, minWidth: 0, border: `1px dashed ${file ? 'rgba(74,222,128,0.5)' : BORDER2}`, borderRadius: 10, padding: '12px 8px', textAlign: 'center' as const, cursor: 'pointer', background: file ? 'rgba(74,222,128,0.04)' : 'transparent', transition: 'all 0.2s' }}>
+      <input ref={inputRef} type="file" accept="image/*" onChange={handleImgFile(setFile)} style={{ display: 'none' }} />
+      {file ? (
+        <div>
+          <div style={{ fontSize: 11, color: G, fontFamily: FONT_BODY, wordBreak: 'break-all' as const, marginBottom: 4 }}>{file.name.length > 14 ? file.name.slice(0, 12) + '…' : file.name}</div>
+          <button onClick={e => { e.stopPropagation(); setFile(null) }} style={{ background: 'none', border: 'none', color: MUTED, fontSize: 10, cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT_BODY, padding: 0 }}>clear</button>
+        </div>
+      ) : (
+        <div>
+          <div style={{ fontSize: 18, opacity: 0.25, marginBottom: 4 }}>+</div>
+          <div style={{ fontSize: 10, color: MUTED, fontFamily: FONT_BODY, lineHeight: 1.3 }}>{label}</div>
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div style={{ maxWidth: 520, margin: '0 auto' }}>
       <button onClick={() => setStep('branch')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 12, fontFamily: FONT_BODY, marginBottom: 20, padding: 0 }}>← Back</button>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>Upload Stats</div>
-      <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 24 }}>
-        {oppName} · SwingVision .xlsx export
-      </div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>Add Data</div>
+      <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 28 }}>{oppName} · any combination works</div>
 
-      {/* How to export hint */}
-      <div style={{ background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 10, padding: '10px 14px', marginBottom: 20 }}>
-        <div style={{ fontSize: 11, color: MUTED, fontFamily: FONT_BODY, lineHeight: 1.6 }}>
-          In SwingVision → Shot Stats tab → <span style={{ color: '#60a5fa' }}>Export Shots to CSV</span> → share the <span style={{ color: WHITE }}>.xlsx</span> file here.
+      {/* Screenshots section */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, fontFamily: FONT_BODY, marginBottom: 4 }}>Screenshots <span style={{ color: DIM, fontWeight: 400, letterSpacing: 0, textTransform: 'none' as const, fontSize: 10 }}>optional</span></div>
+        <div style={{ fontSize: 11, color: DIM, fontFamily: FONT_DATA, marginBottom: 12 }}>SwingVision → Shot Stats tab → each player tab + Match Stats tab</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ImgSlot label="JD's Shots"   file={jdImg}    setFile={setJdImg}    inputRef={jdRef} />
+          <ImgSlot label="Opp's Shots"  file={oppImg}   setFile={setOppImg}   inputRef={oppRef} />
+          <ImgSlot label="Match Stats"  file={matchImg} setFile={setMatchImg} inputRef={matchRef} />
         </div>
       </div>
 
-      {/* File picker */}
-      <div onClick={() => fileRef.current?.click()}
-        style={{ border: `2px dashed ${xlsxFile ? 'rgba(74,222,128,0.4)' : BORDER2}`, borderRadius: 14, padding: '28px 20px', textAlign: 'center' as const, cursor: 'pointer', marginBottom: 20, background: xlsxFile ? 'rgba(74,222,128,0.03)' : 'transparent', transition: 'all 0.2s' }}>
-        <input ref={fileRef} type="file" accept=".xlsx" onChange={handleXlsxFile} style={{ display: 'none' }} />
-        {xlsxFile ? (
-          <div>
-            <div style={{ fontSize: 13, color: G, fontFamily: FONT_BODY, marginBottom: 4 }}>
-              {xlsxFile.name}
-            </div>
-            <div style={{ fontSize: 11, color: MUTED, fontFamily: FONT_DATA, marginBottom: 8 }}>
-              {(xlsxFile.size / 1024).toFixed(0)} KB
-            </div>
-            {xlsxPreview && (
-              <div style={{ fontSize: 11, color: G, fontFamily: FONT_DATA }}>
-                {xlsxPreview.shots} shots · {xlsxPreview.points} points imported
+      {/* xlsx section */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, fontFamily: FONT_BODY, marginBottom: 4 }}>Stats File <span style={{ color: DIM, fontWeight: 400, letterSpacing: 0, textTransform: 'none' as const, fontSize: 10 }}>optional · adds raw shot data + rally analytics</span></div>
+        <div style={{ fontSize: 11, color: DIM, fontFamily: FONT_DATA, marginBottom: 12 }}>SwingVision → Shot Stats tab → <span style={{ color: '#60a5fa' }}>Export Shots to CSV</span> → .xlsx</div>
+        <div
+          onClick={() => fileRef.current?.click()}
+          style={{ border: `1px dashed ${xlsxFile ? 'rgba(74,222,128,0.5)' : BORDER2}`, borderRadius: 10, padding: '16px 14px', textAlign: 'center' as const, cursor: 'pointer', background: xlsxFile ? 'rgba(74,222,128,0.04)' : 'transparent', transition: 'all 0.2s' }}>
+          <input ref={fileRef} type="file" accept=".xlsx" onChange={e => { setXlsxFile(e.target.files?.[0] ?? null); setXlsxPreview(null); setStatus('') }} style={{ display: 'none' }} />
+          {xlsxFile ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ textAlign: 'left' as const }}>
+                <div style={{ fontSize: 13, color: G, fontFamily: FONT_BODY }}>{xlsxFile.name}</div>
+                <div style={{ fontSize: 11, color: MUTED, fontFamily: FONT_DATA }}>{(xlsxFile.size / 1024).toFixed(0)} KB{xlsxPreview ? ` · ${xlsxPreview.shots} shots · ${xlsxPreview.points} pts` : ''}</div>
               </div>
-            )}
-            <button onClick={e => { e.stopPropagation(); clearXlsx() }} style={{ marginTop: 8, background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT_BODY }}>
-              clear
-            </button>
-          </div>
-        ) : (
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>↑</div>
+              <button onClick={e => { e.stopPropagation(); clearXlsx() }} style={{ background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT_BODY }}>clear</button>
+            </div>
+          ) : (
             <div style={{ color: MUTED, fontSize: 13, fontFamily: FONT_BODY }}>Tap to select .xlsx file</div>
-            <div style={{ fontSize: 11, color: DIM, marginTop: 4, fontFamily: FONT_DATA }}>SwingVision export only</div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <button onClick={processXlsx} disabled={loading || !xlsxFile}
-        style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', cursor: loading || !xlsxFile ? 'not-allowed' : 'pointer', background: loading || !xlsxFile ? BG3 : `linear-gradient(135deg,${GOLD_DIM},${GOLD})`, color: loading || !xlsxFile ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY, transition: 'all 0.2s' }}>
-        {loading ? 'Uploading...' : 'Upload & Save'}
+      {/* Overwrite warning */}
+      {showOverwriteWarning && (
+        <div style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: A, fontFamily: FONT_BODY, fontWeight: 600, marginBottom: 6 }}>⚠ Replace existing stats?</div>
+          <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_BODY, marginBottom: 14, lineHeight: 1.5 }}>
+            This match already has stats from screenshots. Uploading new screenshots will replace them. Raw shot data (xlsx) won't be affected.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setShowOverwriteWarning(false)}
+              style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${BORDER2}`, background: 'transparent', color: MUTED, fontSize: 13, fontFamily: FONT_BODY, cursor: 'pointer' }}>
+              Cancel
+            </button>
+            <button onClick={() => { setOverwriteConfirmed(true); processUpload(true) }}
+              style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid rgba(251,191,36,0.4)`, background: 'rgba(251,191,36,0.08)', color: A, fontSize: 13, fontWeight: 600, fontFamily: FONT_BODY, cursor: 'pointer' }}>
+              Replace stats
+            </button>
+          </div>
+        </div>
+      )}
+
+      <button onClick={() => processUpload(false)} disabled={loading || !hasAnything}
+        style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', cursor: loading || !hasAnything ? 'not-allowed' : 'pointer', background: loading || !hasAnything ? BG3 : `linear-gradient(135deg,${GOLD_DIM},${GOLD})`, color: loading || !hasAnything ? MUTED : '#0a0a0a', fontSize: 14, fontWeight: 700, letterSpacing: '1px', fontFamily: FONT_BODY, transition: 'all 0.2s' }}>
+        {loading ? status || 'Uploading…' : 'Upload & Save'}
       </button>
 
-      {status && (
-        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#111', border: `1px solid ${BORDER}`, fontSize: 13, color: xlsxPreview ? G : '#aaa', textAlign: 'center' as const, fontFamily: FONT_DATA }}>
+      {status && !loading && (
+        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#111', border: `1px solid ${BORDER}`, fontSize: 13, color: status.startsWith('Error') ? R : G, textAlign: 'center' as const, fontFamily: FONT_DATA }}>
           {status}
         </div>
       )}
