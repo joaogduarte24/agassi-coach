@@ -435,6 +435,11 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
   const jdS1Plus1 = jdShots.filter(s => s.shot_context === 'serve_plus_one')
   const s1After   = jdS1Plus1.filter(s => s.direction === 'down the line' || s.direction === 'inside in').length
 
+  // Opponent serve direction
+  const oppS1In   = oppFirstServes.filter(s => s.result === 'In')
+  const oppS1T    = oppS1In.filter(s => s.direction === 'down the T').length
+  const oppS1Wide = oppS1In.filter(s => s.direction === 'out wide').length
+
   // ── 10. Shot distribution ──────────────────────────────────────────────────
   const jdTotal  = jdShots.length
   const oppTotal = oppShots.length
@@ -617,8 +622,30 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
     duration_seconds: p.duration,
   }))
 
+  // ── 16. xlsx-unique analytics ──────────────────────────────────────────────
+  // These fields cannot be derived from SwingVision screenshots.
+  // Screenshots are ground truth for all other aggregated stats
+  // (serve %, speeds, groundstroke stats, shot distribution, winners, UEs, etc.).
+  const xlsxExtras = {
+    shot_stats_extras: {
+      rally_mean:       shot_stats.rally_mean,
+      rally_pct_short:  shot_stats.rally_pct_short,
+      rally_pct_long:   shot_stats.rally_pct_long,
+      s1_t_pct:         shot_stats.s1_t_pct,
+      s1_wide_pct:      shot_stats.s1_wide_pct,
+      s1_after_dtl_pct: shot_stats.s1_after_dtl_pct,
+      fh_spd_std:       shot_stats.fh_spd_std,
+      fh_contact_z:     shot_stats.fh_contact_z,
+      bh_contact_z:     shot_stats.bh_contact_z,
+    },
+    opp_serve_direction: {
+      s1_t_pct:   pct(oppS1T, oppS1In.length),
+      s1_wide_pct: pct(oppS1Wide, oppS1In.length),
+    },
+  }
+
   return {
-    matchData: { serve, return: returnStats, forehand, backhand, shot_stats, opp_shots, oppName },
+    xlsxExtras,
     shotsRows,
     pointsRows,
     settings: { jdName: JD_NAME, oppName, jdRole },

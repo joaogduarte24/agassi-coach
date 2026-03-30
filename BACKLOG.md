@@ -7,6 +7,17 @@ Raw ideas captured as they come. No commitment, no priority, no gate required to
 
 ---
 
+## Raw Shot & Point Data (xlsx-exclusive)
+
+- [idea] **Court heatmaps** — plot `bounce_x/bounce_y` for JD's FH/BH to show where shots are landing vs where the opponent is targeting. Per-match and aggregated across matches.
+- [idea] **Opponent scouting profile** — accumulate opponent `match_shots` rows across multiple matches to build a shot tendency map: where they serve, where their BH lands, where they attack from the net. Gets richer the more matches you have vs same opponent.
+- [idea] **Rally length vs outcome** — do JD's wins come in short rallies (serve+1) or long ones? Cross-ref `rally_mean`/`rally_pct_short/long` with point winner to identify the pattern that wins matches.
+- [idea] **Pressure point shot analysis** — filter `match_shots` by points flagged as break points (`match_points.break_point = true`) to see if JD's shot selection or speed changes under pressure vs normal play.
+- [idea] **Serve direction tendency reveal** — `s1_t_pct` / `s1_wide_pct` per side already computed; surface it in Strategy tab pre-match for JD's own tendencies ("you go wide 70% on ad side — opponent will cheat") and for opponent.
+- [idea] **Contact height trend** — track `fh_contact_z` and `bh_contact_z` over time. Rising contact height = more offensive stance. Useful for tracking tactical evolution.
+- [idea] **Speed consistency** — `fh_spd_std` as a coaching signal: high std dev = erratic hitting, low = controlled. Correlate with UE rate.
+- [idea] **Serve+1 pattern** — `s1_after_dtl_pct` tells you how often JD follows a serve with a DTL shot. Opponent tendency can be inferred from their `match_shots` serve+1 data.
+
 ## Upload & Data Capture
 
 - [idea] Merge duplicate opponent entries in Supabase (e.g. two Gonçalo Oliveira records from before the opponent dropdown existed)

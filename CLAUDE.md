@@ -4,6 +4,23 @@
 Next.js 14 app for João Duarte (JD) to track tennis matches and get AI strategy coaching.
 Live: https://agassi-app.vercel.app | Supabase: NEXT_PUBLIC_SUPABASE_URL in .env
 
+## Documentation Index
+
+All docs live in `~/projects/agassi/`. Always read the relevant file before making product, design, or architecture decisions.
+
+| File | Purpose |
+|---|---|
+| `CLAUDE.md` | This file. Project context, architecture, data shapes, key patterns, bug fix + feature dev process. |
+| `PRODUCT.md` | Full product vision, user goals, design principles. Read before any feature decision. |
+| `ROADMAP.md` | Committed upcoming features, prioritised with ICE scores. |
+| `BACKLOG.md` | Raw ideas not yet committed. Add new ideas here first. |
+| `FEATURES.md` | Log of everything shipped — what was built, why, what was left out. |
+| `DESIGN.md` | Visual design system, component patterns, colour usage. |
+| `DEVELOPER.md` | Dev setup, environment variables, deploy process. |
+| `README.md` | Public-facing project overview. |
+
+---
+
 ## Product Context
 
 **User:** João Duarte (JD) — serious amateur tennis player. Single user. Every feature is built for him specifically.
