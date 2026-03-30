@@ -30,6 +30,14 @@ function isBool(v: any): boolean {
   return v === 'true' || v === 'false' || v === true || v === false
 }
 
+// Court y-axis: 0 = near baseline, 23.77 = far baseline, net ≈ 11.885
+// Service lines at ≈6.4 (near) and ≈17.37 (far)
+// "Deep" = landed within ~2m of either baseline (works for both JD and opponent shots)
+function isDeep(s: Shot): boolean {
+  if (s.bounce_y == null) return false
+  return s.bounce_y > 17.37 || s.bounce_y < 6.4
+}
+
 function toBool(v: any): boolean {
   return v === 'true' || v === true
 }
@@ -68,6 +76,7 @@ interface Shot {
 function normalizeShot(row: any[]): Shot | null {
   if (!Array.isArray(row) || typeof row[22] !== 'string') return null
   if (typeof row[6] !== 'number') return null // must have point number
+  if (row[0] === 'Feed') return null           // warm-up/feed shots — exclude
   const dir = row[15]
   return {
     player:       row[22],
@@ -210,8 +219,8 @@ function computeReturn(returns: Shot[]) {
   const ad    = returns.filter(s => s.bounce_zone === 'ad')
   const dIn   = deuce.filter(s => s.result === 'In')
   const aIn   = ad.filter(s => s.result === 'In')
-  const dDeep = dIn.filter(s => s.bounce_depth === 'deep')
-  const aDeep = aIn.filter(s => s.bounce_depth === 'deep')
+  const dDeep = dIn.filter(s => isDeep(s))
+  const aDeep = aIn.filter(s => isDeep(s))
   return {
     pct_deuce:  pct(dIn.length, deuce.length),
     pct_ad:     pct(aIn.length, ad.length),
@@ -234,8 +243,8 @@ function computeGroundstroke(shots: Shot[], stroke: 'Forehand' | 'Backhand') {
   const dtl = gs.filter(s => s.direction && DTL_DIRS.has(s.direction))
   const ccIn  = cc.filter(s => s.result === 'In')
   const dtlIn = dtl.filter(s => s.result === 'In')
-  const ccDeep  = ccIn.filter(s => s.bounce_depth === 'deep')
-  const dtlDeep = dtlIn.filter(s => s.bounce_depth === 'deep')
+  const ccDeep  = ccIn.filter(s => isDeep(s))
+  const dtlDeep = dtlIn.filter(s => isDeep(s))
 
   return {
     cc_in:    pct(ccIn.length, cc.length),
@@ -312,11 +321,58 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
   const oppFirstServes  = Array.from(oppServesByPoint.values()).map(a => a[0])
   const oppSecondServes = Array.from(oppServesByPoint.values()).flatMap(a => a.length > 1 ? [a[1]] : [])
 
-  // ── 6. Return shots (by shot_context) ─────────────────────────────────────
-  const jdFirstReturns  = jdShots.filter(s => s.shot_context === 'first_return')
-  const jdSecondReturns = jdShots.filter(s => s.shot_context === 'second_return')
-  const oppFirstReturns  = oppShots.filter(s => s.shot_context === 'first_return')
-  const oppSecondReturns = oppShots.filter(s => s.shot_context === 'second_return')
+  // ── 6. Return shots (by rally position) ───────────────────────────────────
+  // Returns are identified as the first non-serve shot from the returner in each point.
+  // ctx='first_return' on SERVE shots means "this serve was returned" — NOT the return itself.
+  // Returns that go out/net end the point and get ctx='first_serve'/'second_serve', not
+  // 'serve_plus_one', so ctx-based filtering has survivor bias (inflated in-rate).
+  // Fix: group shots by point, find the first shot from each player, use Points for serve state.
+
+  // Build point_n → serve_state map from Points sheet (reliable denominator for 1st/2nd)
+  const pointServeState = new Map<number, string>()
+  for (const p of points) {
+    if (p.serve_state) pointServeState.set(p.point_n, p.serve_state)
+  }
+
+  // Group shots by point, sorted by shot_number within each point
+  const shotsByPoint = new Map<number, Shot[]>()
+  for (const s of shots) {
+    const arr = shotsByPoint.get(s.point_n) ?? []
+    arr.push(s)
+    shotsByPoint.set(s.point_n, arr)
+  }
+  for (const arr of Array.from(shotsByPoint.values())) {
+    arr.sort((a, b) => (a.shot_number ?? 0) - (b.shot_number ?? 0))
+  }
+
+  const jdFirstReturns:   Shot[] = []
+  const jdSecondReturns:  Shot[] = []
+  const oppFirstReturns:  Shot[] = []
+  const oppSecondReturns: Shot[] = []
+
+  for (const [point_n, shotArr] of Array.from(shotsByPoint.entries())) {
+    const firstShot = shotArr[0]
+    // Only process points where first tracked shot is a serve
+    if (!firstShot || firstShot.shot_type !== 'Serve') continue
+
+    const serveState = pointServeState.get(point_n) ?? 'first'
+
+    if (firstShot.player !== JD_NAME) {
+      // Opponent serving → JD's first non-serve shot is the return
+      const jdReturn = shotArr.find(s => s.player === JD_NAME)
+      if (jdReturn) {
+        if (serveState === 'first') jdFirstReturns.push(jdReturn)
+        else jdSecondReturns.push(jdReturn)
+      }
+    } else {
+      // JD serving → opponent's first non-serve shot is the return
+      const oppReturn = shotArr.find(s => s.player !== JD_NAME)
+      if (oppReturn) {
+        if (serveState === 'first') oppFirstReturns.push(oppReturn)
+        else oppSecondReturns.push(oppReturn)
+      }
+    }
+  }
 
   // ── 7. Point-level stats ───────────────────────────────────────────────────
   const jdServing      = points.filter(p => p.server === jdRole)
@@ -400,9 +456,9 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
     bh_ue:               jdBHUE.length,
     df:                  df.length,
     s1_in_n:             jdFirstServes.filter(s => s.result === 'In').length,
-    s1_in_total:         jdFirstServes.length,
+    s1_in_total:         jdServing.length,     // every point has a 1st serve attempt (Points sheet)
     s2_in_n:             jdSecondServes.filter(s => s.result === 'In').length,
-    s2_in_total:         jdSecondServes.length,
+    s2_in_total:         s2Points.length,      // points that reached 2nd serve (Points sheet)
     serve_pts_won_n:     jdServeWon.length,
     serve_pts_won_total: jdServing.length,
     serve_pts_won_pct:   pct(jdServeWon.length, jdServing.length),
