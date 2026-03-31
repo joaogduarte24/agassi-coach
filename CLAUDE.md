@@ -16,6 +16,7 @@ All docs live in `~/projects/agassi/`. Always read the relevant file before maki
 | `ROADMAP.md` | Committed upcoming features, prioritised with ICE scores. |
 | `BACKLOG.md` | Raw ideas not yet committed. Add new ideas here first. |
 | `FEATURES.md` | Log of everything shipped — what was built, why, what was left out. |
+| `DATA-GAPS.md` | **Every data point stored but not yet surfaced in the UI. Update on every ship.** |
 | `DESIGN.md` | Visual design system, component patterns, colour usage. |
 | `DEVELOPER.md` | Dev setup, environment variables, deploy process. |
 | `README.md` | Public-facing project overview. |
@@ -243,6 +244,7 @@ FEATURES.md entry minimum:
 - `supabase-schema.sql` — if any schema column or table changed
 - `CLAUDE.md` Known Issues — remove fixed bugs; add new confirmed bugs
 - `CLAUDE.md` Data Shape / SwingVision sections — if data model or upload behaviour changed
+- `DATA-GAPS.md` — if the feature surfaces previously unused data, remove those fields. If the feature adds new stored fields that aren't yet displayed, add them. This file must always reflect the current state of "data we have but don't show."
 
 ---
 
