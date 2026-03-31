@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { G, R, A, FONT_BODY, FONT_DATA, FONT_DISPLAY, BG2, BORDER, MUTED, WHITE, BORDER2 } from '@/app/lib/helpers'
 import { Avgs } from '@/app/types'
 import MatchDetail from './MatchDetail'
+import { computeSignals } from '@/app/lib/signals/compute'
 
 interface DeBriefProps { m: any; avgs: Avgs; allMatches: any[] }
 
@@ -124,6 +125,40 @@ export default function Debrief({ m, avgs, allMatches }: DeBriefProps) {
   const { good, watch } = computeBullets(m, avgs, allMatches)
   const shotInsights = computeShotBullets(m)
 
+  // Career signals — find where this match sits in the pattern
+  const signals = useMemo(() => computeSignals(allMatches), [allMatches])
+  const careerContext: ReturnType<typeof bullet>[] = useMemo(() => {
+    const ctx: ReturnType<typeof bullet>[] = []
+    if (!hasStats || signals.correlations.length === 0) return ctx
+    // Check this match against top win driver threshold
+    const top = signals.correlations[0]
+    if (top?.threshold != null) {
+      const candidates = [
+        { key: 's1_pct_win_driver', extract: () => { const ad = m.serve?.first?.pct_ad, d = m.serve?.first?.pct_deuce; return ad != null || d != null ? Math.round(((ad ?? 0) + (d ?? 0)) / ((ad != null ? 1 : 0) + (d != null ? 1 : 0))) : null } },
+        { key: 'ue_win_driver', extract: () => m.shot_stats?.ue ?? null },
+        { key: 'winners_win_driver', extract: () => m.shot_stats?.winners ?? null },
+        { key: 'return_pts_won_win_driver', extract: () => m.shot_stats?.return_pts_won_pct ?? null },
+        { key: 'bp_won_win_driver', extract: () => m.shot_stats?.bp_won_pct ?? null },
+        { key: 'net_aggression_win_driver', extract: () => { const w = m.shot_stats?.winners, ue = m.shot_stats?.ue; return w != null && ue != null ? w - ue : null } },
+      ]
+      for (const sig of signals.correlations.slice(0, 3)) {
+        const cand = candidates.find(c => c.key === sig.key)
+        if (!cand) continue
+        const val = cand.extract()
+        if (val == null || sig.threshold == null) continue
+        const isGood = sig.winRateAbove != null && sig.winRateBelow != null && sig.winRateAbove > sig.winRateBelow
+          ? val >= sig.threshold
+          : val < sig.threshold
+        if (isGood) {
+          ctx.push(bullet('✓', <span>This match: {sig.label.toLowerCase()} was on the winning side of your <b>{Math.abs(sig.lift)}%</b> win driver</span>))
+        } else {
+          ctx.push(bullet('△', <span>This match: {sig.label.toLowerCase()} was on the losing side — {sig.insight.toLowerCase()}</span>))
+        }
+      }
+    }
+    return ctx.slice(0, 2)
+  }, [m, signals, hasStats])
+
   return (
     <div>
       {/* Header */}
@@ -169,6 +204,14 @@ export default function Debrief({ m, avgs, allMatches }: DeBriefProps) {
         <div style={{ marginBottom: 24 }}>
           <SH>Shot patterns</SH>
           {shotInsights.map((b, i) => <Bullet key={i} icon={b.icon} text={b.text} />)}
+        </div>
+      )}
+
+      {/* Career context (from signals) */}
+      {careerContext.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SH>Career context</SH>
+          {careerContext.map((b, i) => <Bullet key={i} icon={b.icon} text={b.text} />)}
         </div>
       )}
 

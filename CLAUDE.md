@@ -12,6 +12,7 @@ All docs live in `~/projects/agassi/`. Always read the relevant file before maki
 |---|---|
 | `CLAUDE.md` | This file. Project context, architecture, data shapes, key patterns, bug fix + feature dev process. |
 | `PRODUCT.md` | Full product vision, user goals, design principles. Read before any feature decision. |
+| `CLUSTERS.md` | **Strategic grouping of all roadmap + backlog work into three layers (Intelligence / Viz / AI). Read before any non-trivial feature.** |
 | `ROADMAP.md` | Committed upcoming features, prioritised with ICE scores. |
 | `BACKLOG.md` | Raw ideas not yet committed. Add new ideas here first. |
 | `FEATURES.md` | Log of everything shipped — what was built, why, what was left out. |
@@ -63,6 +64,14 @@ A match can exist in three states. The UI must handle all three:
 - `app/api/matches/[id]/shots/route.ts` — GET: all shot rows for a match
 - `app/api/matches/[id]/points/route.ts` — GET: all point rows for a match
 - `app/lib/parseSwingVision.ts` — server-only xlsx parser (uses `xlsx` package). Returns matchData (maps to existing schema) + shotsRows + pointsRows
+- `app/lib/signals/` — Intelligence Layer (Cluster A). Pure functions: `computeSignals(matches) → SignalSet`. Contains:
+  - `types.ts` — Signal, StrokeSignal, PlayerProfile, OpponentProfile, SignalSet types
+  - `compute.ts` — Orchestrator that runs all signal computations
+  - `correlations.ts` — Win/loss correlation engine (16 stats, median split, lift + Cohen's d)
+  - `tendencies.ts` — Serve direction, speed consistency, contact height, rally profile
+  - `strokes.ts` — Per-stroke effectiveness tagging (hidden_weapon/overused/reliable/liability)
+  - `journal.ts` — Journal field correlations with win/loss
+  - `profile.ts` — Auto-derived player profiles (JD + opponents): style, weapon, weakness, clutch, aggression
 
 ## Data Shape (Match)
 ```json
@@ -171,9 +180,9 @@ Every feature goes through all 6 gates — no skipping.
 ---
 
 ### 01 · Benchmark + understand
-Research how best apps solve this. What do SwingVision, Whoop, Strava, and coach apps do? What's the established user behaviour pattern?
+Read `CLUSTERS.md` first — identify which cluster(s) this feature belongs to, what it depends on, and whether the sequencing is right. Then research how best apps solve this problem. What do SwingVision, Whoop, Strava, and coach apps do? What's the established user behaviour pattern?
 
-Deliverable: reference examples + user behaviour insight
+Deliverable: cluster placement + reference examples + user behaviour insight
 
 ---
 

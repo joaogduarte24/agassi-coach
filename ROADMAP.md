@@ -2,17 +2,31 @@
 
 This is the single source of truth for what's being built, what's next, and what's not happening. Updated after every shipped feature or priority change.
 
-**Last updated:** 2026-03-30
+**Last updated:** 2026-03-31
 
 ---
 
 ## NOW — In progress
 
-_Nothing in progress. Pick up NEXT #1._
+_Nothing in progress. Pick up NEXT #2._
 
 ---
 
 ## SHIPPED
+
+### Intelligence Layer — Signals Framework (Cluster A) ✓
+**Shipped:** 2026-03-31
+- [x] `app/lib/signals/` module — typed Signal, StrokeSignal, PlayerProfile, SignalSet
+- [x] Win/loss correlations — 16 candidate stats, lift-first framing, Cohen's d ranking
+- [x] Stroke intelligence — per-stroke usage/effectiveness/tagging (hidden_weapon, overused, reliable, liability)
+- [x] Tendencies — serve direction, speed consistency, contact height, serve+1, rally profile
+- [x] Journal correlations — recovery, composure, focus, plan execution, warmup, difficulty
+- [x] JD profile — auto-derived style, weapon, weakness, clutch delta, aggression index
+- [x] Opponent profiles — auto-derived style/weapon/weakness, serve predictability, journal mismatch detection
+- [x] Integrated into Strategy (top win driver, tendencies, stroke intel, opponent profile), JDStats (identity, win drivers, strokes, journal patterns), Debrief (career context)
+
+*Covers NEXT #1 (win/loss correlations), NEXT #3 (journal analytics), and NEXT #8 (serve direction tendency).*
+
 
 ### Upload flow redesign — screenshots + xlsx combined ✓
 **Shipped:** 2026-03-30
@@ -59,69 +73,80 @@ Whoop-style post-match journal, fully shipped:
 
 ## NEXT — Queued and prioritised (ICE order)
 
-### 1. Win/loss correlation surfacing — ICE 448
-The data needed to say "when X happens, you win Y% of the time" already exists. Surface it clearly in JDStats and Strategy.
+> Cluster tags: **[A] Intelligence Layer · [B] Visualisation · [C] AI Coaching**
+> See `CLUSTERS.md` for full strategic context, dependencies, and sequencing across all three layers.
 
-Examples:
-- "When your 1st serve Ad is above 68%, you win 82% of matches"
-- "Your UE count is the single strongest predictor of your result"
-- "You've won 100% of matches where you rated game plan execution as Yes or Mostly"
-
-**ICE:** Impact 8 × Confidence 8 × Ease 7 = 448
+### ~~1. Win/loss correlation surfacing~~ → SHIPPED (Intelligence Layer)
 
 ---
 
-### 2. Surface filter in JDStats — ICE 432
+### 2. Surface filter in JDStats — ICE 360 [B]
 Filter all JDStats metrics by Clay / Hard / Grass. JD plays on different surfaces and wants to see surface-specific patterns, not just all-time averages.
 
-**ICE:** Impact 6 × Confidence 9 × Ease 8 = 432
+**ICE:** Impact 5 × Confidence 9 × Ease 8 = 360
+*Note: Impact revised — it's a filter, not an insight. Value grows as more matches per surface accumulate.*
 
 ---
 
-### 3. Recovery & journal analytics — ICE 343
-Surface correlations from journal data:
-- Recovery score vs UE count — does low recovery predict more errors?
-- Game plan execution vs win rate — "when you rate execution Yes or Mostly, you win X%"
-- Time-of-day performance split — are you better morning or afternoon?
-
-**ICE:** Impact 7 × Confidence 7 × Ease 7 = 343
+### ~~3. Recovery & journal analytics~~ → SHIPPED (Intelligence Layer)
 
 ---
 
-### 4. Functionality review — full audit — ICE 336
+### 4. Functionality review — full audit — ICE 144 [B] → move to LATER
 Review every tab, every feature, every data point against the full product context. Questions:
 - What's currently shown that isn't earning its place?
 - What data is collected but not surfaced anywhere useful?
 - What interactions feel wrong on mobile?
 
-**ICE:** Impact 6 × Confidence 8 × Ease 7 = 336
+**ICE:** Impact 3 × Confidence 8 × Ease 6 = 144
+*Note: Premature — app is 5 days old. Move to LATER, revisit after 4–6 weeks of real usage data.*
 
 ---
 
-### 5. Pre-match prep mode — ICE 336
+### 5. Pre-match prep mode — ICE 294 [C]
 Streamlined day-of-match view: game plan summary, opponent tendencies, key stats to hit. Purpose-built for the 30 minutes before stepping on court.
 
-**ICE:** Impact 7 × Confidence 8 × Ease 6 = 336
+**ICE:** Impact 7 × Confidence 7 × Ease 6 = 294
+*Note: Strategy tab already covers most of this. Ensure the delta is clear before building — what does "prep mode" add that Strategy doesn't? AI engine (Cluster C) is the likely differentiator.*
 
 ---
 
-### 6. AI coaching layer — ICE 315
+### 6. AI coaching layer — ICE 216 [C]
 Replace rule-based debrief bullets with Claude-generated insights using full match data, journal, and historical context. Applies to: Debrief (post-match), Next Match strategy, JDStats patterns.
 
 Prompt includes: this match stats, JD's historical averages, journal fields, opponent history. Output: 3–5 coaching bullets in coach voice, grounded in tennis best practices. Uses Claude API already wired in `/api/extract`.
 
 **Data available when this is built:** full shot-level data from `match_shots` (stroke, spin, speed, x/y coordinates, direction, result per shot) and `match_points` (duration, context, outcome per point) — 800+ rows per match. The AI layer should exploit this, not just aggregate stats.
 
-**ICE:** Impact 9 × Confidence 7 × Ease 5 = 315
+**ICE:** Impact 9 × Confidence 6 × Ease 4 = 216
+*Note: Highest strategic importance despite lower ICE. C revised — output quality uncertain until tested. E revised — prompt engineering, context window design, and multi-match testing is a week of work. Build after Cluster A signals are clean.*
+
+---
+
+## PROMOTED from backlog — zero-dependency quick wins
+
+These were backlog ideas with no computation dependencies. High daily payoff, low effort. Promoted to NEXT.
+
+### 7. Color-coded W/L in match list — ICE 500 [B]
+Add green/red to score display in match list. Win/loss immediately scannable without reading the score text. Used every time JD opens the app.
+
+**ICE:** Impact 5 × Confidence 10 × Ease 10 = 500
+*Zero dependencies. ~30 min. Ship before anything else.*
+
+---
+
+### ~~8. Serve direction tendency reveal in Strategy~~ → SHIPPED (Intelligence Layer)
 
 ---
 
 ## LATER — Planned but unscoped
 
-- **Court visualisations** — serve heat maps, forehand/backhand direction charts, error location maps. Shot x/y coordinates are already stored per match in `match_shots`. Waiting for enough matches to make patterns meaningful.
-- **Match timeline / evolution tab** — visual progress over time (sparklines at match level, not just stat level)
-- **Opponent database** — dedicated profiles per opponent (beyond the H2H panel in Strategy)
-- **Export / session summary** — PDF or text summary after upload, shareable with a real coach
+- **Functionality review / audit** — moved from NEXT. Wait 4–6 weeks of usage before auditing. [B]
+- **Court visualisations** — serve heat maps, forehand/backhand direction charts, error location maps. Shot x/y coordinates are already stored per match in `match_shots`. Waiting for enough matches to make patterns meaningful. [B]
+- **Match timeline / evolution tab** — visual progress over time (sparklines at match level, not just stat level). [B]
+- **Personal bests tracking** — fastest serve, highest 1st serve %, most winners. Needs a few months of data. [B]
+- **Opponent database** — dedicated profiles per opponent (beyond the H2H panel in Strategy). [C]
+- **Export / session summary** — PDF or text summary after upload, shareable with a real coach.
 - **Architecture flexibility for other users** — when the decision is made to open this to more players, "JD" becomes a configurable variable. Not before.
 
 ---

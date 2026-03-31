@@ -1,9 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { G, A, R, avg, col, computeAvgs } from '@/app/lib/helpers'
 import { Avgs } from '@/app/types'
 import { ATP_PLAYERS, ATPPlayer } from '@/lib/atp-players'
 import RadarChart from './RadarChart'
+import { computeSignals } from '@/app/lib/signals/compute'
+import type { Signal, StrokeSignal, PlayerProfile } from '@/app/lib/signals/types'
 
 // ─── SPARKLINE ───────────────────────────────────────────────────────────────
 function Sparkline({ data }: { data: (number | null)[] }) {
@@ -96,6 +98,9 @@ export default function JDStats({ matches }: JDStatsProps) {
     : matches.filter(m => m.score?.winner !== 'JD')
 
   const avgs = computeAvgs(filteredMatches)
+
+  // Intelligence signals (memoized — recomputes only when matches change)
+  const signals = useMemo(() => computeSignals(matches), [matches])
 
   // Chronological order for sparklines (last 8)
   const chrono = [...matches]
@@ -355,6 +360,122 @@ export default function JDStats({ matches }: JDStatsProps) {
                 <span>trend (last 8)</span>
               </div>
             </div>
+          )}
+
+          {/* ── INTELLIGENCE LAYER ── */}
+
+          {/* JD Profile */}
+          {signals.jdProfile && (
+            <>
+              <SectionTitle title="Your Identity" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 4 }}>
+                {[
+                  { label: 'Style', value: signals.jdProfile.style.label, sub: signals.jdProfile.style.evidence, conf: signals.jdProfile.style.confidence },
+                  { label: 'Weapon', value: signals.jdProfile.weapon.label, sub: signals.jdProfile.weapon.evidence, conf: signals.jdProfile.weapon.confidence },
+                  { label: 'Weakness', value: signals.jdProfile.weakness.label, sub: signals.jdProfile.weakness.evidence, conf: signals.jdProfile.weakness.confidence },
+                ].map(({ label, value, sub, conf }) => (
+                  <div key={label} style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: 14, textAlign: 'center' }}>
+                    <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 15, color: '#e8d5b0', fontWeight: 600, marginBottom: 4 }}>{value}</div>
+                    <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', lineHeight: 1.4 }}>{sub}</div>
+                    <div style={{ fontSize: 8, color: conf === 'strong' ? G : conf === 'moderate' ? A : '#333', fontFamily: 'monospace', marginTop: 4 }}>{conf}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Clutch</div>
+                  <div style={{ fontSize: 12, color: signals.jdProfile.clutch.delta >= 5 ? G : signals.jdProfile.clutch.delta <= -5 ? R : '#888', lineHeight: 1.5 }}>
+                    {signals.jdProfile.clutch.insight}
+                  </div>
+                </div>
+                <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Aggression</div>
+                  <div style={{ fontSize: 12, color: signals.jdProfile.aggression.index >= 3 ? G : signals.jdProfile.aggression.index <= -3 ? R : '#888', lineHeight: 1.5 }}>
+                    {signals.jdProfile.aggression.insight}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Win Drivers */}
+          {signals.correlations.length > 0 && (
+            <>
+              <SectionTitle title="Win Drivers" />
+              <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+                {signals.correlations.slice(0, 5).map((sig, i) => (
+                  <div key={sig.key} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: i < Math.min(4, signals.correlations.length - 1) ? '1px solid #1a1a1a' : 'none', alignItems: 'flex-start' }}>
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: '#1e1e1e', lineHeight: 1, width: 24, textAlign: 'center', flexShrink: 0 }}>{i + 1}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: '#ccc', lineHeight: 1.5, marginBottom: 2 }}>{sig.insight}</div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as any }}>
+                        <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#555' }}>{sig.detail}</span>
+                        <span style={{ fontSize: 8, fontFamily: 'monospace', padding: '1px 6px', borderRadius: 4,
+                          color: sig.confidence === 'strong' ? G : sig.confidence === 'moderate' ? A : '#444',
+                          background: sig.confidence === 'strong' ? 'rgba(74,222,128,0.08)' : sig.confidence === 'moderate' ? 'rgba(251,191,36,0.08)' : '#1a1a1a',
+                        }}>{sig.confidence} · {sig.matchesUsed}m</span>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: sig.lift > 0 ? G : R, flexShrink: 0 }}>
+                      {sig.lift > 0 ? '+' : ''}{sig.lift}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Your Strokes */}
+          {signals.strokes.length > 0 && (
+            <>
+              <SectionTitle title="Your Strokes" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                {signals.strokes.map(s => (
+                  <div key={s.stroke} style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, color: '#ccc', fontWeight: 600 }}>{s.label}</span>
+                      <span style={{ fontSize: 8, fontFamily: 'monospace', padding: '2px 6px', borderRadius: 4,
+                        color: s.tag === 'hidden_weapon' ? G : s.tag === 'reliable' ? '#60a5fa' : s.tag === 'overused' ? A : R,
+                        background: s.tag === 'hidden_weapon' ? 'rgba(74,222,128,0.08)' : s.tag === 'reliable' ? 'rgba(96,165,250,0.08)' : s.tag === 'overused' ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.08)',
+                      }}>
+                        {s.tag === 'hidden_weapon' ? 'WEAPON' : s.tag === 'reliable' ? 'RELIABLE' : s.tag === 'overused' ? 'OVERUSED' : 'FIX'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#e8d5b0' }}>{s.pctIn}%</div>
+                        <div style={{ fontSize: 8, color: '#333', fontFamily: 'monospace' }}>IN</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#e8d5b0' }}>~{s.usage}%</div>
+                        <div style={{ fontSize: 8, color: '#333', fontFamily: 'monospace' }}>USAGE</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#e8d5b0' }}>{s.pace ?? '—'}</div>
+                        <div style={{ fontSize: 8, color: '#333', fontFamily: 'monospace' }}>KM/H</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#666', lineHeight: 1.4 }}>{s.insight}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Journal Patterns */}
+          {signals.journal.length > 0 && (
+            <>
+              <SectionTitle title="Journal Patterns" />
+              <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+                {signals.journal.slice(0, 5).map((sig, i) => (
+                  <div key={sig.key} style={{ padding: '8px 0', borderBottom: i < Math.min(4, signals.journal.length - 1) ? '1px solid #1a1a1a' : 'none' }}>
+                    <div style={{ fontSize: 12, color: '#999', lineHeight: 1.5, marginBottom: 2 }}>{sig.insight}</div>
+                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: '#444' }}>{sig.detail}</div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
           {/* SERVE */}

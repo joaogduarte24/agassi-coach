@@ -4,6 +4,47 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Intelligence Layer — Signals Framework (Cluster A)
+**Shipped:** 2026-03-31
+**Files:** `app/lib/signals/` (new module: types.ts, compute.ts, correlations.ts, tendencies.ts, strokes.ts, journal.ts, profile.ts), `app/components/Strategy.tsx`, `app/components/JDStats.tsx`, `app/components/Debrief.tsx`
+
+### What it does
+New `app/lib/signals/` computation module that extracts meaningful patterns from raw match data. All display components and future AI prompts consume the same typed signal objects.
+
+**Win/loss correlations (16 candidate stats):** For each stat, matches are split at the median threshold. Win rate is computed per bucket, and lift (percentage point improvement) is the headline metric. Cohen's d effect size ranks signals internally. Top 5 surfaced in JDStats "Win Drivers" section. #1 signal shown as "Your #1 Edge" in Strategy tab.
+
+**Signal language:** Lift-first framing — "Keeping UE below 17 boosts your win chance by 45%" as headline. Full split ("78% win rate when below vs 33% when above") as detail. If the data contradicts the assumed direction (e.g. higher pace = more losses), the insight auto-flips.
+
+**Stroke intelligence:** Per-stroke (FH CC, FH DTL, BH CC, BH DTL) analysis: usage %, effectiveness (winner rate minus error rate), % in, pace. Each stroke tagged: hidden_weapon (high effectiveness, low usage), overused (low effectiveness, high usage), reliable, or liability. Shot-mix correlations: "Hitting more forehands boosts win chance by X%."
+
+**Tendencies (xlsx-only data):** Serve direction bias (T% / wide%), FH speed consistency (std dev), contact height trend, serve+1 pattern, rally profile. Extracted from existing `shot_stats` JSONB fields that were stored but never displayed.
+
+**Journal correlations:** Recovery, composure, focus, plan execution, warmup type, opponent difficulty, handedness — all correlated with win/loss using the same lift framework. Plus loss attribution frequency analysis.
+
+**Player profiles — JD:** Style (Baseliner/Aggressive Baseliner/Counterpuncher/Serve-dominant/All-Court) auto-derived from career stats. Weapon = highest-performing stat category. Weakness = stat with largest negative impact on win rate (from correlations). Clutch = BP win% minus overall point win%. Aggression index = winners minus UE.
+
+**Opponent profiles:** Same classification applied per opponent from `opp_shots` data. Plus serve predictability score and mismatch detection (flags when data-derived style differs from journal entry).
+
+**Debrief career context:** Each match debrief now shows whether this match's key stats were on the winning or losing side of the top career win drivers.
+
+### Design rationale
+- **Signals module as foundation for Clusters B and C.** The typed `SignalSet` output is consumed by display components (B) and will be serialized into AI prompts (C). Same computation, different framing per consumer.
+- **Lift framing over raw win rates.** Coaches say "do this, it gives you an edge" — not "here's your conditional probability." The lift number is actionable and ranking by lift surfaces the most impactful signals first.
+- **Compute-on-read, client-side.** 10-50 matches is trivially fast. No schema migrations, no stale caches, easy to iterate on signal logic.
+- **Threshold buckets (median split) over regression.** With 10-15 matches, regression is unreliable. Median split + lift is robust and produces coach-readable output. Cohen's d for internal ranking adds statistical rigor without exposing it.
+- **Auto-flipping correlation direction.** If data says "higher BH pace = more losses" (contradicting the `higherIsBetter` flag), the insight automatically flips to "Keeping BH pace below X boosts win chance." Data wins over assumptions.
+- **Stroke tagging.** "Your BH CC is 92% in but only 15% of your shots — hidden weapon" is immediately actionable. Tags computed from effectiveness quartiles relative to the player's own strokes.
+- **Profile mismatch detection.** If journal says "Baseliner" but data says "Big Server," the mismatch is surfaced. Challenges assumptions with evidence.
+
+### What was left out
+- **Shot-level signals from `match_shots` table** (pressure point analysis, fatigue curves, court zones, set progression). Needs a server API endpoint to aggregate 800+ rows × N matches — too heavy for client-side. Signal types are designed to plug in later (Phase 6 in plan).
+- **Surface-specific signals.** All correlations use all matches regardless of surface. Surface filter (Cluster B, NEXT #2) will make signals surface-aware when built.
+- **AI coaching narration of signals.** Signals produce `insight` strings in coach language, ready for Cluster C prompts — but no AI integration yet.
+- **Stroke usage estimation is approximate.** CC/DTL split estimated as 65/35 since exact per-direction shot counts would need `match_shots` aggregation. Sufficient for tagging, will be exact when Phase 6 ships.
+- **Opponent profiles need `opp_shots` data.** Opponents with only journal data (no screenshots/xlsx) don't get auto-derived profiles.
+
+---
+
 ## Upload Flow Redesign — Screenshots + xlsx Combined, Journal Pre-population
 **Shipped:** 2026-03-30
 **Files:** `app/components/UploadMatch.tsx`

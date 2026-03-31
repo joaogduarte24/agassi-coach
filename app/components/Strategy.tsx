@@ -1,6 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { G, A, R, B, AD, avg, fmtDate } from '@/app/lib/helpers'
+import { computeSignals } from '@/app/lib/signals/compute'
+import type { SignalSet, Signal, StrokeSignal, OpponentProfile } from '@/app/lib/signals/types'
 
 interface NextMatchStrategyProps {
   matches: any[]
@@ -69,6 +71,11 @@ export default function NextMatchStrategy({ matches }: NextMatchStrategyProps) {
     bpSaved: wAvg(m => m.shot_stats?.bp_saved_pct),
     bpWon:   wAvg(m => m.shot_stats?.bp_won_pct),
   }
+
+  // Signals computation (memoized — recomputes only when matches change)
+  const signals: SignalSet = useMemo(() => computeSignals(matches), [matches])
+  const topDriver = signals.correlations[0] ?? null
+  const oppProfile: OpponentProfile | null = oppName ? signals.opponentProfiles[oppName] ?? null : null
 
   // Stats in wins vs losses vs known opponent
   const vsWins  = historyMatches.filter(m => m.score?.winner === 'JD')
@@ -705,6 +712,96 @@ export default function NextMatchStrategy({ matches }: NextMatchStrategyProps) {
               </div>
             )
           })()}
+
+          {/* ── INTELLIGENCE LAYER ── */}
+
+          {/* Top Win Driver */}
+          {topDriver && (
+            <div style={{ background: '#141414', border: `1px solid rgba(74,222,128,0.15)`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: G, textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 10 }}>Your #1 Edge</div>
+              <div style={{ fontSize: 15, color: '#e8d5b0', fontWeight: 600, lineHeight: 1.5, marginBottom: 6 }}>{topDriver.insight}</div>
+              <div style={{ fontSize: 11, color: '#555', fontFamily: 'monospace' }}>{topDriver.detail}</div>
+              {topDriver.confidence !== 'low' && (
+                <div style={{ marginTop: 8, fontSize: 9, fontFamily: 'monospace', color: topDriver.confidence === 'strong' ? G : A, background: topDriver.confidence === 'strong' ? 'rgba(74,222,128,0.08)' : 'rgba(251,191,36,0.08)', padding: '2px 8px', borderRadius: 4, display: 'inline-block' }}>
+                  {topDriver.confidence} signal · {topDriver.matchesUsed} matches
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tendencies */}
+          {signals.tendencies.length > 0 && (
+            <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 12 }}>Your Tendencies</div>
+              {signals.tendencies.map(t => (
+                <div key={t.key} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: '1px solid #1a1a1a', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1, color: t.direction === 'positive' ? G : t.direction === 'negative' ? A : '#555' }}>
+                    {t.direction === 'positive' ? '✓' : t.direction === 'negative' ? '△' : '→'}
+                  </span>
+                  <div>
+                    <div style={{ fontSize: 13, color: '#999', lineHeight: 1.5 }}>{t.insight}</div>
+                    <div style={{ fontSize: 10, color: '#333', fontFamily: 'monospace', marginTop: 2 }}>{t.detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Stroke Insights (hidden weapons / overused) */}
+          {signals.strokes.filter(s => s.tag === 'hidden_weapon' || s.tag === 'overused' || s.tag === 'liability').length > 0 && (
+            <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 12 }}>Stroke Intel</div>
+              {signals.strokes.filter(s => s.tag !== 'reliable').map(s => (
+                <div key={s.stroke} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: '1px solid #1a1a1a', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 9, fontFamily: 'monospace', flexShrink: 0, padding: '2px 6px', borderRadius: 4, marginTop: 2,
+                    color: s.tag === 'hidden_weapon' ? G : s.tag === 'liability' ? R : A,
+                    background: s.tag === 'hidden_weapon' ? 'rgba(74,222,128,0.08)' : s.tag === 'liability' ? 'rgba(248,113,113,0.08)' : 'rgba(251,191,36,0.08)',
+                  }}>
+                    {s.tag === 'hidden_weapon' ? 'WEAPON' : s.tag === 'overused' ? 'OVERUSED' : 'FIX'}
+                  </span>
+                  <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>{s.insight}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Opponent Data Profile (auto-derived) */}
+          {oppProfile && (
+            <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+                <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                  {oppName} — Data Profile
+                </div>
+                <div style={{ fontSize: 9, color: '#333', fontFamily: 'monospace' }}>{oppProfile.matchCount} match{oppProfile.matchCount > 1 ? 'es' : ''}</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
+                {[
+                  { label: 'Style', value: oppProfile.style.label, sub: oppProfile.style.evidence },
+                  { label: 'Weapon', value: oppProfile.weapon.label, sub: oppProfile.weapon.evidence },
+                  { label: 'Weakness', value: oppProfile.weakness.label, sub: oppProfile.weakness.evidence },
+                ].map(({ label, value, sub }) => (
+                  <div key={label} style={{ background: '#1a1a1a', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 9, color: '#333', fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                    <div style={{ fontSize: 13, color: '#e8d5b0', fontWeight: 600 }}>{value}</div>
+                    <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', marginTop: 3, lineHeight: 1.3 }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+              {oppProfile.predictability && (
+                <div style={{ fontSize: 11, color: A, background: 'rgba(251,191,36,0.08)', padding: '6px 10px', borderRadius: 6, marginBottom: 6 }}>
+                  Serve: {oppProfile.predictability.insight}
+                </div>
+              )}
+              {oppProfile.mismatch && (
+                <div style={{ fontSize: 11, color: B, background: 'rgba(96,165,250,0.08)', padding: '6px 10px', borderRadius: 6 }}>
+                  ⚡ {oppProfile.mismatch}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10, color: '#444', fontFamily: 'monospace' }}>
+                <span>Clutch: {oppProfile.clutch.insight}</span>
+              </div>
+            </div>
+          )}
 
           {/* Focus cards */}
           {focusCards.map(c => <FocusCard key={c.n} {...c} />)}
