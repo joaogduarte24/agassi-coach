@@ -2,17 +2,37 @@
 
 This is the single source of truth for what's being built, what's next, and what's not happening. Updated after every shipped feature or priority change.
 
-**Last updated:** 2026-03-31
+**Last updated:** 2026-04-06
 
 ---
 
 ## NOW — In progress
 
-_Nothing in progress. Pick up NEXT #2._
+_Nothing in progress._
 
 ---
 
 ## SHIPPED
+
+### Data Analyst v1.1 — UTR band benchmarks + sparklines + Path to next UTR ✓
+**Shipped:** 2026-04-06
+- [x] Synthetic UTR-band benchmark table (12 stats, bands 2.0–6.0)
+- [x] BarCard/CountCard with band median + next-band median markers (3-way comparison)
+- [x] Sparkline + trend arrow inside every Career Averages card
+- [x] "Path to {next-band}" callout with 2 biggest gaps + drill prescriptions
+- [x] Pressure Delta elevated as lead "How You Compete" stat
+- [x] Drill prescriptions in Coach's Read liabilities
+
+### Data Analyst v1 — My Game tab redesign + analyst pipeline ✓
+**Shipped:** 2026-04-06
+- [x] DATA-ANALYST-PLAN.md as gates 01–04 artifact
+- [x] My Game tab rebuilt as a sibling of MatchDetailScreen (Score → Diagnosis → Career Avgs → Coach's Read → Patterns → How You Compete → Opponents → See All Stats)
+- [x] New `analyst_runs` Supabase table (full history) + `/api/analyst/run` server-side compute
+- [x] New `user_profile` table + `/api/profile` for manually-entered UTR (multi-player ready)
+- [x] tennis-data-analyst skill extended with 5 Strategic Principles + Analyst Pipeline section
+- [x] "How you compete" psychologist section (composure, focus, plan execution %, recovery delta) — only net-new section beyond MatchDetail re-skin
+- [x] Court visualization PatternCard tried and cut — didn't earn its space at career level
+- [x] v2/v3/v4 deferrals saved to BACKLOG.md under "Data Analyst — deferred from v1"
 
 ### Match Detail Screen Redesign + Loss Diagnosis ✓
 **Shipped:** 2026-04-05

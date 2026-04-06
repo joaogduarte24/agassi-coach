@@ -84,6 +84,45 @@ create table if not exists match_points (
 alter table match_points enable row level security;
 create policy "Allow all" on match_points for all using (true) with check (true);
 
+-- ─── analyst_runs ─────────────────────────────────────────────────────────────
+-- Cached output of the Data Analyst (server-side compute). One row per run,
+-- newest flagged with is_latest = true. App reads `where is_latest = true`.
+-- Full history kept for audit + future "evolution" features.
+create table if not exists analyst_runs (
+  id              uuid primary key default gen_random_uuid(),
+  generated_at    timestamptz default now(),
+  schema_version  integer default 1,
+  match_count     integer,
+  shot_data_match_count integer,
+  payload         jsonb not null,
+  is_latest       boolean default false
+);
+
+create index if not exists analyst_runs_latest_idx on analyst_runs(is_latest) where is_latest = true;
+create index if not exists analyst_runs_generated_idx on analyst_runs(generated_at desc);
+
+alter table analyst_runs enable row level security;
+create policy "Allow all" on analyst_runs for all using (true) with check (true);
+
+-- ─── user_profile ─────────────────────────────────────────────────────────────
+-- Single-row config for JD (multi-player ready: id is the player slug). Holds
+-- manually-entered UTR with a last-updated timestamp.
+create table if not exists user_profile (
+  id              text primary key,           -- 'jd' for now
+  display_name    text,
+  utr             numeric,
+  utr_updated_at  date,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+
+alter table user_profile enable row level security;
+create policy "Allow all" on user_profile for all using (true) with check (true);
+
+insert into user_profile (id, display_name, utr, utr_updated_at)
+  values ('jd', 'JD', 3.2, current_date)
+  on conflict (id) do nothing;
+
 -- ─── Migrations (run if upgrading from an earlier schema) ─────────────────────
 alter table matches add column if not exists opp_shots jsonb;
 alter table matches add column if not exists journal jsonb;

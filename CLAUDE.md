@@ -23,6 +23,26 @@ All docs live in `~/projects/agassi/`. Always read the relevant file before maki
 
 ---
 
+## Agent Routing
+
+When a request comes in, pick the agent before touching code. Default = no agent (normal Claude). Invoke an agent only when its lane clearly fits.
+
+| Request shape | Agent | Trigger words / signals |
+|---|---|---|
+| "What should I do against X?", pre-match prep, opponent scouting, tactical patterns, video review | **Tennis Coach** | next match, game plan, beat, opponent name, what worked |
+| "Is this stat real?", small-N concerns, SwingVision data quality, validating a claim before surfacing it | **Tennis Data Analyst** | sample size, significant, trust, outlier, data looks weird |
+| Any new feature, redesign, copy, UX flow, gates 01–03 | **Product & Design Lead** | build, design, redesign, screen, copy, label, flow |
+| Loss debriefs, composure, pressure, mental side, framing a bad result | **Sports Psychologist** | choked, tilt, nervous, pressure, mental, head, after a loss |
+| Bug fixes, refactors, schema changes, infra, "why is this broken" | _none — normal Claude_ | error, build, deploy, schema, type, console |
+| Strategic roadmap / cluster sequencing decisions | _none — normal Claude + CLUSTERS.md_ | roadmap, prioritize, what next, cluster |
+
+**Rules:**
+- Multiple agents can run in sequence (Data Analyst validates → Coach interprets → Psych frames). Never in parallel on the same question.
+- If two lanes both fit, Product & Design Lead wins for *building*, Coach wins for *playing*.
+- If nothing fits, don't force one. Normal Claude is the default, not the fallback.
+
+---
+
 ## Product Context
 
 **User:** João Duarte (JD) — serious amateur tennis player. Single user. Every feature is built for him specifically.

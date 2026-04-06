@@ -6,7 +6,7 @@ import { Avgs } from '@/app/types'
 import UploadMatch from '@/app/components/UploadMatch'
 import MatchDetailScreen from '@/app/components/MatchDetailScreen'
 import FixMatchModal from '@/app/components/FixMatchModal'
-import JDStats from '@/app/components/JDStats'
+import MyGame from '@/app/components/MyGame'
 import NextMatchStrategy from '@/app/components/Strategy'
 
 // ─── SPARKLINE (Evolution) ────────────────────────────────────────────────────
@@ -268,40 +268,8 @@ export default function Home() {
         {tab === 'mygame' && (
           <div>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 36, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>My Game</div>
-            <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 28 }}>{matches.length} matches tracked</div>
-
-            {/* JD Stats component */}
-            <JDStats matches={matches} avgs={avgs} />
-
-            {/* Evolution sparklines */}
-            {matches.length >= 2 && (
-              <div style={{ marginTop: 32 }}>
-                <div style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: MUTED, marginBottom: 20 }}>Trends</div>
-                {[
-                  { title: 'Unforced Errors', data: sorted.map(m => m.shot_stats?.ue), color: R, note: 'Lower is better' },
-                  { title: 'Forehand CC %', data: sorted.map(m => m.forehand?.cc_in), color: '#60a5fa', note: 'Target 80%+' },
-                  { title: '1st Serve Ad %', data: sorted.map(m => m.serve?.first?.pct_ad), color: A, note: 'Target 70%+' },
-                  { title: 'Return Depth Ad', data: sorted.map(m => m.return?.first?.deep_ad), color: '#c084fc', note: 'Target 55%+' },
-                  { title: 'Winners', data: sorted.map(m => m.shot_stats?.winners), color: G, note: 'Higher is better' },
-                  { title: 'BH CC Depth %', data: sorted.map(m => m.backhand?.depth_cc), color: '#fb7185', note: 'Target 55%+' },
-                ].map(({ title, data, color, note }) => (
-                  <div key={title} style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20, marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <div style={{ fontSize: 12, fontFamily: FONT_BODY, fontWeight: 600, color: WHITE }}>{title}</div>
-                      <div style={{ fontSize: 10, color: DIM, fontFamily: FONT_DATA }}>{note}</div>
-                    </div>
-                    <MiniChart data={data} color={color} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                      {sorted.map((m, i) => (
-                        <div key={i} style={{ fontSize: 8, color: DIM, fontFamily: FONT_DATA, textAlign: 'center', flex: 1 }}>
-                          {new Date(m.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 20 }}>{matches.length} matches tracked</div>
+            <MyGame matches={matches} avgs={avgs} />
           </div>
         )}
 

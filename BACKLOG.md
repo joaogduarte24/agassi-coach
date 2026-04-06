@@ -8,6 +8,21 @@ Raw ideas captured as they come. No commitment, no priority, no gate required to
 
 ---
 
+## Data Analyst — deferred from v1 (see DATA-ANALYST-PLAN.md)
+
+- [shipped] ~~UTR ladder bars in stroke cards (v2)~~ — synthetic version shipped 2026-04-06 in Career Averages cards. Real Tennis Abstract scrape becomes a quality upgrade, see next item.
+- [considering] **Tennis Abstract benchmark scrape** — replace synthetic `app/lib/analyst/benchmarks.ts` numbers with real medians from charted matches mapped to UTR bands. Schema already supports the swap; just need the data pipeline.
+- [considering] **Pressure-point signals** (v2) — re-run all signals filtered to BP/SP only; clutch profile becomes data
+- [considering] **First-strike + serve+1 patterns** (v2) — what JD does in shots 1–3 vs shots 4+, serve location → next shot → outcome
+- [considering] **Trend sparklines inside stroke cards** (v2) — small per-stat time series with auto-flagged regressions/breakthroughs
+- [considering] **Full opponent dossiers** (v2) — patterns_to_run, patterns_to_avoid, rally plan, serve targets, key number per opponent
+- [considering] **Pre-match brief flow** (v3) — "Prep next match" button on My Game tab → opponent + date → creates future match record → lands on MatchDetail in pre-match mode
+- [considering] **Counterfactual moments** (v3) — identify the 3 highest-leverage points in a loss, show "win prob would have been X if you'd held"
+- [considering] **Practice prescriptions** (v3) — drills tied to gap-to-next-band stats
+- [considering] **Court heatmaps + zone grids** (v3) — escalate from plain SVG to visx for kernel density estimation
+- [considering] **In-app analyst chat** (v4) — conversational surface across all tabs, draws from analyst_state.json + signals
+- [considering] **Animated rally replays** (v4) — visx-powered dot replay of decisive points using match_shots + match_points
+
 ## Raw Shot & Point Data (xlsx-exclusive)
 
 - [idea] **Court heatmaps** — plot `bounce_x/bounce_y` for JD's FH/BH to show where shots are landing vs where the opponent is targeting. Per-match and aggregated across matches.

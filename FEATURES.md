@@ -4,6 +4,86 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Data Analyst v1.1 — UTR band benchmarks + sparklines + Path to next UTR
+**Shipped:** 2026-04-06
+**Files:** `app/lib/analyst/benchmarks.ts` (new), `app/components/MyGame.tsx` (updated)
+
+**What changed**
+- New `benchmarks.ts` module: hardcoded synthetic per-band medians for 12 amateur tennis stats across UTR bands 2.0–6.0. Source-tagged `synthetic` so the UI can disclose data quality. Replaces the v1 plan deferral — Tennis Abstract scrape becomes a v2 quality upgrade, not a blocker.
+- `BarCard` and `CountCard` extended with `bench` prop — render the same `avg tick (white)` + `opp diamond (blue)` markers used in MatchDetailScreen, but repurposed: white = your band median, blue = next band median.
+- New inline `Sparkline` component (80×16 SVG) — appears under every Career Averages card showing match-by-match evolution + ↑/↓/→ trend arrow (last third vs first third).
+- New "Path to {next-band}" callout section between Diagnosis and Career Averages: ranks the 2 biggest gaps to next band and pairs each with a one-line drill prescription.
+- "How You Compete" gains **Pressure Delta** (BP-won % minus total-pts-won %) as the lead stat — JD's mental signature in one number.
+- "Coach's Read" liabilities now carry a "Drill: …" follow-up line.
+
+**Why**
+- Career averages without a comparison were just numbers. JD asked for benchmarks against his UTR band — same design tools as MatchDetail (3-way comparison). The synthetic table earns a real ladder bar today; Tennis Abstract scrape is a quality upgrade, not a feature gap.
+- Sparklines fold "evolution" inside the existing cards instead of giving trends their own section — preserves MatchDetail's editorial pacing and avoids feature-page bloat.
+- "Path to 3.5" answers JD's "how do I go from X to Y" directly, with named gaps and named drills, in coach voice.
+
+**4-agent review applied**
+- 🎾 Coach: drill prescriptions tied to every liability + every gap.
+- 📊 Data Analyst: source disclosure footer (`Benchmarks · synthetic v1 · band 3.0-3.5`), sparkline trend computed from real data only, no interpolation.
+- 🧠 Psychologist: Pressure Delta elevated as the lead "How You Compete" stat.
+- 🎨 Designer: reused MatchDetail's exact tick/diamond markers, sparklines tiny enough to live inside cards, "Path" as a single callout not a feature page.
+
+**Deliberately left out**
+- Real Tennis Abstract scrape (still v2) — synthetic numbers are good enough to ship today and the schema supports a clean swap
+- More than 6 stats in Career Averages — restraint > coverage
+- Sparklines on benchmarks themselves (no per-band evolution data)
+
+---
+
+## Data Analyst v1 — My Game tab redesign + analyst pipeline
+**Shipped:** 2026-04-06
+**Files:** `app/components/MyGame.tsx` (new), `app/lib/analyst/types.ts` (new), `app/lib/analyst/patterns.ts` (new), `app/lib/analyst/run.ts` (new), `app/api/analyst/run/route.ts` (new), `app/api/profile/route.ts` (new), `app/page.tsx` (updated — JDStats import → MyGame), `supabase-schema.sql` (added `analyst_runs` + `user_profile` tables), `DATA-ANALYST-PLAN.md` (new — gates 01–04 doc), `BACKLOG.md` (new "Data Analyst — deferred from v1" section), `~/.claude/plugins/agassi-agents/skills/tennis-data-analyst/SKILL.md` (added Strategic Principles + Analyst Pipeline sections)
+
+**What changed**
+- New "My Game" tab built as a sibling of MatchDetailScreen — same visual anatomy (Score → Diagnosis → Career Averages → Coach's Read → Patterns → How You Compete → Opponents → See All Stats), same `SH`/`CountCard`/`BarCard`/section-rhythm components.
+- New analyst pipeline: server-side `/api/analyst/run` route computes a structured `AnalystState` JSON (via `app/lib/analyst/run.ts` orchestrator) and caches it in the new `analyst_runs` Supabase table with full history (audit trail + future evolution view).
+- New `/api/profile` for manually-entered UTR (with `last_updated` field, multi-player ready via slug PK).
+- Tennis-data-analyst skill extended with 5 Strategic Principles (visual > verbal · behavior change is the only metric · diagnose the why · confidence over completeness · one job per screen) and an Analyst Pipeline section documenting the JSON contract.
+
+**Why it was designed this way**
+- JD's request: "use MatchDetail as the model — keep its philosophy, let the agents add what's useful." Court visualizations were tried first and cut as a failed experiment — they didn't earn their space at the career level.
+- Mirroring MatchDetail's anatomy means zero learning curve. JD already knows the visual language: same diagnosis card with SH + headline + bullets + "biggest lever" cue, same key-stats grid, same Coach's Read with ✓/△ rows, same patterns bullet list, same See All Stats footer.
+- 4-agent review surfaced one new section worth adding beyond a re-skin: **"How you compete"** — composure, focus, plan execution rate, recovery delta (wins vs losses). This is the sports psychologist's contribution and the only thing in My Game that doesn't exist in MatchDetail.
+- The skill writes JSON, the app reads JSON — clean separation enables future surfaces (chat, evolution view) to consume the same brain.
+- UTR is manually entered (not synced from a league) for multi-player scalability and to avoid coupling to one specific league's site.
+
+**v1 scope (shipped)**
+- Score: career win % + record + UTR pill (tap to edit)
+- Diagnosis card: style label + weapon/weakness/clutch/aggression bullets + biggest correlation lever as cue
+- Career averages: 4-6 grid of CountCard/BarCard (UE, Winners, 1st Serve %, Return Pts Won, BP Won, Total Pts Won)
+- Coach's Read: hidden weapons (✓) and liabilities (△) from existing stroke signals
+- Patterns: top 3 win-rate correlations
+- How You Compete: composure, focus, plan execution %, recovery delta (NEW — psychologist contribution)
+- Opponents: list with style tag, weapon, H2H
+- See All Stats: existing JDStats component as drill-down
+- Server-side analyst run with full-history `analyst_runs` table
+
+**Deliberately left out (deferred — see BACKLOG.md "Data Analyst — deferred from v1")**
+- UTR ladder bars (v2) — needs Tennis Abstract benchmark scrape
+- Pressure-point signals (v2) — re-run signals filtered to BP/SP only
+- First-strike + serve+1 patterns (v2)
+- Trend sparklines inside cards (v2)
+- Full opponent dossiers with patterns_to_run/avoid (v2)
+- Pre-match brief flow (v3) — "Prep next match" button
+- Counterfactual moments (v3)
+- Practice prescriptions (v3)
+- Court heatmaps (v3 — escalate from SVG to visx)
+- In-app analyst chat (v4)
+- Animated rally replays (v4)
+- **Court visualizations / `PatternCard`** — built then cut. The court diagrams worked technically but didn't earn their space at the career level. Lesson preserved in `feedback` memory: visualization must serve the level it lives at, and a premium rendering of low-information data is worse than no rendering at all.
+
+**Decisions made (locked in DATA-ANALYST-PLAN.md)**
+1. Server-side compute (Vercel API route + Supabase cache), not client-side — pattern mining gets slow as data grows
+2. Full history of `analyst_runs` (not latest-only) — audit trail + future evolution view
+3. Pre-match brief trigger = "Prep next match" button on My Game tab → creates future match record (deferred to v3)
+4. UTR is manually entered + manually refreshed (multi-player ready)
+
+---
+
 ## Match Detail Screen Redesign + Loss Diagnosis
 **Shipped:** 2026-04-05
 **Files:** `app/components/MatchDetailScreen.tsx` (new), `app/lib/signals/diagnosis.ts` (new), `app/lib/signals/keyStats.ts` (new), `app/components/StatBar.tsx` (updated), `app/page.tsx` (updated)
