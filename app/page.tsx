@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { G, R, A, GD, RD, avg, fmtDate, col, getMissingFields, ErrorBoundary, matchState,
-         FONT_BODY, FONT_DATA, FONT_DISPLAY, BG, BG2, BG3, BORDER, BORDER2, WHITE, MUTED, DIM, GOLD, GOLD_DIM } from '@/app/lib/helpers'
+import { G, R, A, avg, fmtDate, col, getMissingFields, matchState,
+         FONT_BODY, FONT_DATA, FONT_DISPLAY, BG, BG2, BG3, BORDER, WHITE, MUTED, DIM, GOLD } from '@/app/lib/helpers'
 import { Avgs } from '@/app/types'
-import Debrief from '@/app/components/Debrief'
 import UploadMatch from '@/app/components/UploadMatch'
+import MatchDetailScreen from '@/app/components/MatchDetailScreen'
 import FixMatchModal from '@/app/components/FixMatchModal'
 import JDStats from '@/app/components/JDStats'
 import NextMatchStrategy from '@/app/components/Strategy'
@@ -27,86 +27,81 @@ function MiniChart({ data, color }: any) {
 }
 
 // ─── MATCH CARD ───────────────────────────────────────────────────────────────
-function MatchCard({ m, expanded, onToggle, onFix, onDelete, avgs, allMatches }: any) {
+function MatchCard({ m, onSelect, onFix }: { m: any; onSelect: () => void; onFix: () => void }) {
   const isWin = m.score?.winner === 'JD'
   const state = matchState(m)
   const s = m.shot_stats || {}
   const s1a = m.serve?.first ? Math.round(((m.serve.first.pct_ad || 0) + (m.serve.first.pct_deuce || 0)) / 2) : null
+  const accentColor = isWin ? G : (m.score?.winner ? R : DIM)
 
-  const pills = state === 'complete' || state === 'stats-only' ? [
-    s.ue != null && { label: `${s.ue} UE`, color: s.ue < 30 ? G : s.ue < 42 ? A : R, bg: s.ue < 30 ? GD : s.ue < 42 ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.08)' },
-    s1a != null && { label: `${s1a}% serve`, color: col(s1a, 70, 58), bg: s1a >= 70 ? GD : s1a >= 58 ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.08)' },
-    s.bp_won_pct != null && { label: `${s.bp_won_pct}% BP`, color: col(s.bp_won_pct, 50, 35), bg: s.bp_won_pct >= 50 ? GD : s.bp_won_pct >= 35 ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.08)' },
-  ].filter(Boolean) : []
+  // Smart stat line: lead with most relevant stat
+  const statLine: { label: string; color: string }[] = []
+  if (state === 'complete' || state === 'stats-only') {
+    if (s.ue != null) statLine.push({ label: `${s.ue} UE`, color: s.ue < 30 ? G : s.ue < 42 ? A : R })
+    if (s1a != null) statLine.push({ label: `${s1a}% srv`, color: col(s1a, 70, 58) })
+    if (s.bp_won_pct != null) statLine.push({ label: `${s.bp_won_pct}% BP`, color: col(s.bp_won_pct, 50, 35) })
+  }
 
-  const partialPill = state === 'journal-only'
-    ? { label: 'Journal only · Add stats →', color: MUTED, bg: BG3, border: BORDER }
-    : state === 'stats-only'
-    ? { label: 'Stats only · Add journal →', color: A, bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.2)' }
+  const cta = state === 'journal-only' ? 'Upload stats →'
+    : state === 'stats-only' ? 'Add journal →'
     : null
 
   return (
-    <div style={{ position: 'relative', marginBottom: 10 }}>
-      {/* State dot */}
-      <div style={{ position: 'absolute', left: -20, top: 22, width: 10, height: 10, borderRadius: '50%', border: `2px solid ${isWin ? G : R}`, background: state === 'complete' ? (isWin ? GD : RD) : 'transparent' }} />
-
-      <div onClick={onToggle} style={{ background: BG2, border: `1px solid ${expanded ? GOLD_DIM : BORDER}`, borderRadius: 16, padding: 20, cursor: 'pointer', transition: 'border-color 0.15s' }}>
-        {/* Top row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: pills.length || partialPill ? 14 : 0 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 600, fontFamily: FONT_BODY, color: WHITE, marginBottom: 4 }}>
-              vs {m.opponent?.name}
-            </div>
-            <div style={{ fontSize: 11, color: MUTED, fontFamily: FONT_DATA }}>
-              {fmtDate(m.date)}{m.surface ? ` · ${m.surface}` : ''}{m.opponent?.utr ? ` · UTR ${m.opponent.utr}` : ''}
-            </div>
+    <div style={{ position: 'relative', marginBottom: 8 }}>
+      <div onClick={onSelect} style={{
+        background: BG2, border: `1px solid ${BORDER}`, borderRadius: 16,
+        borderLeft: `3px solid ${accentColor}`,
+        padding: '14px 18px', cursor: 'pointer', transition: 'border-color 0.15s',
+      }}>
+        {/* Row 1: Opponent + Score */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: accentColor, flexShrink: 0 }} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: WHITE }}>
+              {m.opponent?.name || 'Unknown'}
+            </span>
+            {m.opponent?.utr && <span style={{ fontSize: 10, fontFamily: FONT_DATA, color: MUTED }}>UTR {m.opponent.utr}</span>}
           </div>
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 6 }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, letterSpacing: '1px', color: isWin ? G : (m.score?.winner ? R : MUTED), lineHeight: 1 }}>
-              {m.score?.sets || '—'}
-            </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {m.score?.winner && (
-                <span style={{ fontSize: 10, fontFamily: FONT_DATA, fontWeight: 500, color: isWin ? G : R }}>
-                  {isWin ? 'Win' : 'Loss'}
-                </span>
-              )}
-              {getMissingFields(m).length > 0 && (
-                <button onClick={e => { e.stopPropagation(); onFix() }}
-                  style={{ fontSize: 10, fontFamily: FONT_DATA, color: A, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}>
-                  Fix
-                </button>
-              )}
-              <button onClick={e => { e.stopPropagation(); onDelete() }}
-                style={{ background: 'none', border: 'none', color: DIM, cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '2px 4px', borderRadius: 4 }}
-                onMouseEnter={e => (e.target as any).style.color = R}
-                onMouseLeave={e => (e.target as any).style.color = DIM}>×</button>
-            </div>
-          </div>
+          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: accentColor, letterSpacing: '1px' }}>
+            {m.score?.sets || '—'}
+          </span>
         </div>
 
-        {/* Pills */}
-        {(pills.length > 0 || partialPill) && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
-            {(pills as any[]).map((p: any, i: number) => (
-              <span key={i} style={{ fontSize: 10, fontFamily: FONT_DATA, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: p.bg, color: p.color }}>
-                {p.label}
+        {/* Row 2: Date + W/L */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
+          <span style={{ fontSize: 11, fontFamily: FONT_DATA, color: MUTED }}>
+            {fmtDate(m.date)}{m.surface ? ` · ${m.surface}` : ''}{m.journal?.match_type ? ` · ${m.journal.match_type}` : ''}
+          </span>
+          {m.score?.winner && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: accentColor, textTransform: 'uppercase' }}>
+              {isWin ? 'WIN' : 'LOSS'}
+            </span>
+          )}
+        </div>
+
+        {/* Row 3: Stat line */}
+        {statLine.length > 0 && (
+          <div style={{ fontSize: 11, fontFamily: FONT_DATA, color: '#999', marginTop: 8 }}>
+            {statLine.map((s, i) => (
+              <span key={i}>
+                {i > 0 && <span style={{ color: '#444' }}> ▪ </span>}
+                <span style={{ color: s.color }}>{s.label}</span>
               </span>
             ))}
-            {partialPill && (
-              <span style={{ fontSize: 10, fontFamily: FONT_DATA, padding: '4px 10px', borderRadius: 20, background: partialPill.bg, color: partialPill.color, border: `1px solid ${partialPill.border}` }}>
-                {partialPill.label}
-              </span>
-            )}
           </div>
         )}
 
-        {/* Debrief (expanded) */}
-        {expanded && (
-          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 24, marginTop: 20 }}>
-            <ErrorBoundary>
-              <Debrief m={m} avgs={avgs} allMatches={allMatches} />
-            </ErrorBoundary>
+        {/* Row 4: CTA or Fix */}
+        {(cta || getMissingFields(m).length > 0) && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            {cta && <span style={{ fontSize: 11, color: GOLD, fontWeight: 500 }}>{cta}</span>}
+            {!cta && <span />}
+            {getMissingFields(m).length > 0 && (
+              <button onClick={e => { e.stopPropagation(); onFix() }}
+                style={{ fontSize: 10, fontFamily: FONT_DATA, color: DIM, background: 'none', border: 'none', cursor: 'pointer' }}>
+                Fix
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -119,7 +114,7 @@ export default function Home() {
   const [tab, setTab] = useState('matches')
   const [matches, setMatches] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [selectedMatch, setSelectedMatch] = useState<string | null>(null)
   const [fixingMatch, setFixingMatch] = useState<any>(null)
 
   useEffect(() => {
@@ -135,7 +130,7 @@ export default function Home() {
       return [...filtered, m].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     })
     setTab('matches')
-    setExpanded(m.id)
+    setSelectedMatch(m.id)
   }, [])
 
   const deleteMatch = useCallback(async (id: string) => {
@@ -252,19 +247,14 @@ export default function Home() {
               <div style={{ color: DIM, fontFamily: FONT_DATA, textAlign: 'center', padding: 60 }}>No matches yet. Tap + Add to log your first match.</div>
             )}
 
-            {/* Timeline */}
-            <div style={{ position: 'relative', paddingLeft: 20 }}>
-              <div style={{ position: 'absolute', left: 6, top: 0, bottom: 0, width: 1, background: BORDER }} />
+            {/* Match list */}
+            <div>
               {[...sorted].reverse().map(m => (
                 <MatchCard
                   key={m.id}
                   m={m}
-                  expanded={expanded === m.id}
-                  onToggle={() => setExpanded(expanded === m.id ? null : m.id)}
+                  onSelect={() => setSelectedMatch(m.id)}
                   onFix={() => setFixingMatch(m)}
-                  onDelete={() => deleteMatch(m.id)}
-                  avgs={avgs}
-                  allMatches={matches}
                 />
               ))}
             </div>
@@ -318,6 +308,22 @@ export default function Home() {
         {/* ── ADD ── */}
         {tab === 'add' && <UploadMatch onMatchAdded={addMatch} matches={matches} />}
       </div>
+
+      {/* Match Detail Screen (full-screen overlay) */}
+      {selectedMatch && (() => {
+        const m = matches.find(x => x.id === selectedMatch)
+        if (!m) return null
+        return (
+          <MatchDetailScreen
+            match={m}
+            avgs={avgs}
+            allMatches={matches}
+            onBack={() => setSelectedMatch(null)}
+            onFix={() => { setSelectedMatch(null); setFixingMatch(m) }}
+            onDelete={() => { deleteMatch(m.id); setSelectedMatch(null) }}
+          />
+        )
+      })()}
 
       {fixingMatch && (
         <FixMatchModal match={fixingMatch} onPatched={patchMatch} onClose={() => setFixingMatch(null)} />

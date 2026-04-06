@@ -1,6 +1,92 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 
+// ─── EXTRACTION VALIDATION ──────────────────────────────────────────────────
+// Null out any extracted value outside expected ranges.
+// Screenshots are Tier 2 ground truth — bad values here poison everything downstream.
+function validateExtraction(data: any): any {
+  const clampPct = (v: any) => typeof v === 'number' && v >= 0 && v <= 100 ? v : null
+  const clampSpeed = (v: any) => typeof v === 'number' && v >= 30 && v <= 250 ? v : null
+  const clampCount = (v: any) => typeof v === 'number' && v >= 0 && v <= 500 ? Math.round(v) : null
+  const clampGameScore = (v: any) => typeof v === 'number' && v >= 0 && v <= 7 ? v : null
+
+  // Validate serve/return/forehand/backhand slot structures
+  const validateSlot = (slot: any, hasDeep = false) => {
+    if (!slot || typeof slot !== 'object') return slot
+    return {
+      ...slot,
+      pct_ad: clampPct(slot.pct_ad),
+      pct_deuce: clampPct(slot.pct_deuce),
+      spd_ad: clampSpeed(slot.spd_ad),
+      spd_deuce: clampSpeed(slot.spd_deuce),
+      ...(hasDeep ? { deep_ad: clampPct(slot.deep_ad), deep_deuce: clampPct(slot.deep_deuce) } : {}),
+    }
+  }
+
+  const validateGroundstroke = (gs: any) => {
+    if (!gs || typeof gs !== 'object') return gs
+    return {
+      ...gs,
+      cc_in: clampPct(gs.cc_in),
+      dtl_in: clampPct(gs.dtl_in),
+      spd_cc: clampSpeed(gs.spd_cc),
+      spd_dtl: clampSpeed(gs.spd_dtl),
+      depth_cc: clampPct(gs.depth_cc),
+      depth_dtl: clampPct(gs.depth_dtl),
+    }
+  }
+
+  const validateShotStats = (ss: any) => {
+    if (!ss || typeof ss !== 'object') return ss
+    const result = { ...ss }
+    // Percentage fields
+    for (const k of ['serve_pts_won_pct', 's1_pts_won_pct', 's2_pts_won_pct', 'return_pts_won_pct',
+      'ret1_pts_won_pct', 'ret2_pts_won_pct', 'total_pts_won_pct', 'bp_saved_pct', 'bp_won_pct',
+      'fh_pct', 'bh_pct', 'volley_pct', 'flat_pct', 'topspin_pct', 'slice_pct']) {
+      result[k] = clampPct(result[k])
+    }
+    // Count fields
+    for (const k of ['aces', 'service_winners', 'winners', 'fh_winners', 'bh_winners',
+      'ue', 'fh_ue', 'bh_ue', 'df', 's1_in_n', 's1_in_total', 's2_in_n', 's2_in_total',
+      'bp_saved_n', 'bp_saved_total', 'bp_won_n', 'bp_won_total', 'total_shots']) {
+      result[k] = clampCount(result[k])
+    }
+    // Speed fields
+    result.max_ball_spd = clampSpeed(result.max_ball_spd)
+    return result
+  }
+
+  // Validate score sets_arr
+  if (data.score?.sets_arr && Array.isArray(data.score.sets_arr)) {
+    data.score.sets_arr = data.score.sets_arr.map((set: any) => {
+      if (!Array.isArray(set) || set.length !== 2) return set
+      return [clampGameScore(set[0]) ?? set[0], clampGameScore(set[1]) ?? set[1]]
+    })
+  }
+
+  // JD stats
+  if (data.serve?.first) data.serve.first = validateSlot(data.serve.first)
+  if (data.serve?.second) data.serve.second = validateSlot(data.serve.second)
+  if (data.return?.first) data.return.first = validateSlot(data.return.first, true)
+  if (data.return?.second) data.return.second = validateSlot(data.return.second, true)
+  if (data.forehand) data.forehand = validateGroundstroke(data.forehand)
+  if (data.backhand) data.backhand = validateGroundstroke(data.backhand)
+  if (data.shot_stats) data.shot_stats = validateShotStats(data.shot_stats)
+
+  // Opponent stats (same structure)
+  if (data.opp_shots) {
+    if (data.opp_shots.serve?.first) data.opp_shots.serve.first = validateSlot(data.opp_shots.serve.first)
+    if (data.opp_shots.serve?.second) data.opp_shots.serve.second = validateSlot(data.opp_shots.serve.second)
+    if (data.opp_shots.return?.first) data.opp_shots.return.first = validateSlot(data.opp_shots.return.first, true)
+    if (data.opp_shots.return?.second) data.opp_shots.return.second = validateSlot(data.opp_shots.return.second, true)
+    if (data.opp_shots.forehand) data.opp_shots.forehand = validateGroundstroke(data.opp_shots.forehand)
+    if (data.opp_shots.backhand) data.opp_shots.backhand = validateGroundstroke(data.opp_shots.backhand)
+    if (data.opp_shots.stats) data.opp_shots.stats = validateShotStats(data.opp_shots.stats)
+  }
+
+  return data
+}
+
 export async function POST(req: NextRequest) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   try {
@@ -138,7 +224,8 @@ EXTRACTION RULES:
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON found in response')
 
-    const parsed = JSON.parse(jsonMatch[0])
+    const raw = JSON.parse(jsonMatch[0])
+    const parsed = validateExtraction(raw)
 
     // Override with user-provided values
     if (oppName) parsed.opponent.name = oppName

@@ -7,7 +7,7 @@ const JD_NAME = 'João Duarte'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function avg(arr: number[]): number | null {
-  const v = arr.filter(x => typeof x === 'number' && !isNaN(x) && x > 0)
+  const v = arr.filter(x => typeof x === 'number' && !isNaN(x) && x >= 0)
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
 }
 
@@ -20,7 +20,7 @@ function round1(n: number | null): number | null {
 }
 
 function std(arr: number[]): number | null {
-  const v = arr.filter(x => typeof x === 'number' && !isNaN(x) && x > 0)
+  const v = arr.filter(x => typeof x === 'number' && !isNaN(x) && x >= 0)
   if (v.length < 2) return null
   const mean = v.reduce((a, b) => a + b, 0) / v.length
   return Math.round(Math.sqrt(v.reduce((acc, x) => acc + (x - mean) ** 2, 0) / v.length))
@@ -78,12 +78,19 @@ function normalizeShot(row: any[]): Shot | null {
   if (typeof row[6] !== 'number') return null // must have point number
   if (row[0] === 'Feed') return null           // warm-up/feed shots — exclude
   const dir = row[15]
+  // Speed clamping: SwingVision video-based speed can produce outliers.
+  // Null out groundstrokes > 160 km/h and serves > 220 km/h (amateur range).
+  const rawSpeed = typeof row[5] === 'number' ? row[5] : null
+  const shotType = row[0] ?? null
+  const isServe = shotType === 'Serve' || shotType === 'Second Serve'
+  const maxSpeed = isServe ? 220 : 160
+  const speed = rawSpeed != null && rawSpeed > 0 && rawSpeed <= maxSpeed ? rawSpeed : (rawSpeed != null && rawSpeed > maxSpeed ? null : rawSpeed)
   return {
     player:       row[22],
-    shot_type:    row[0]  ?? null,
+    shot_type:    shotType,
     shot_number:  typeof row[1]  === 'number' ? row[1]  : null,
     spin:         row[2]  ?? null,
-    speed:        typeof row[5]  === 'number' ? row[5]  : null,
+    speed,
     point_n:      row[6],
     game_n:       row[7]  ?? null,
     set_n:        row[8]  ?? null,
@@ -417,9 +424,10 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
   const oppFHUE         = oppUEPts.filter(p => p.detail?.startsWith('Forehand'))
   const oppBHUE         = oppUEPts.filter(p => p.detail?.startsWith('Backhand'))
 
-  // ── 8. Rally length ────────────────────────────────────────────────────────
+  // ── 8. Rally length (excluding serves — standard tennis definition) ───────
   const rallyMap = new Map<string, number>()
   for (const s of shots) {
+    if (s.shot_type === 'Serve' || s.shot_type === 'Second Serve') continue
     const key = `${s.set_n}-${s.game_n}-${s.point_n}`
     rallyMap.set(key, (rallyMap.get(key) ?? 0) + 1)
   }
@@ -448,6 +456,16 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
 
   const jdFH  = jdShots.filter(s => s.shot_type === 'Forehand'  && s.result === 'In')
   const jdBH  = jdShots.filter(s => s.shot_type === 'Backhand'  && s.result === 'In')
+
+  // ── 10a. Actual CC/DTL stroke counts (replaces hardcoded 65/35 split) ───
+  const jdGroundstrokes = jdShots.filter(s => s.shot_type === 'Forehand' || s.shot_type === 'Backhand')
+  const jdFHAll = jdGroundstrokes.filter(s => s.shot_type === 'Forehand')
+  const jdBHAll = jdGroundstrokes.filter(s => s.shot_type === 'Backhand')
+  const jdFHCC  = jdFHAll.filter(s => s.direction === 'crosscourt' || s.direction === 'inside out')
+  const jdFHDTL = jdFHAll.filter(s => s.direction === 'down the line' || s.direction === 'inside in')
+  const jdBHCC  = jdBHAll.filter(s => s.direction === 'crosscourt')
+  const jdBHDTL = jdBHAll.filter(s => s.direction === 'down the line')
+  const gsTotal = jdGroundstrokes.length
 
   // ── 11. Aggregate shot_stats (JD) ─────────────────────────────────────────
   const shot_stats = {
@@ -637,6 +655,11 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
       fh_spd_std:       shot_stats.fh_spd_std,
       fh_contact_z:     shot_stats.fh_contact_z,
       bh_contact_z:     shot_stats.bh_contact_z,
+      // Actual stroke direction counts (replaces hardcoded 65/35 split in signals)
+      fh_cc_pct:        gsTotal > 0 ? pct(jdFHCC.length, gsTotal) : null,
+      fh_dtl_pct:       gsTotal > 0 ? pct(jdFHDTL.length, gsTotal) : null,
+      bh_cc_pct:        gsTotal > 0 ? pct(jdBHCC.length, gsTotal) : null,
+      bh_dtl_pct:       gsTotal > 0 ? pct(jdBHDTL.length, gsTotal) : null,
     },
     opp_serve_direction: {
       s1_t_pct:   pct(oppS1T, oppS1In.length),

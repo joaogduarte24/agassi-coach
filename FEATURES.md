@@ -4,6 +4,103 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Match Detail Screen Redesign + Loss Diagnosis
+**Shipped:** 2026-04-05
+**Files:** `app/components/MatchDetailScreen.tsx` (new), `app/lib/signals/diagnosis.ts` (new), `app/lib/signals/keyStats.ts` (new), `app/components/StatBar.tsx` (updated), `app/page.tsx` (updated)
+
+### What it does
+Complete redesign of the match review experience. Tapping a match card now opens a full-screen detail view (replaces the old inline expand + Debrief). Introduces loss diagnosis, key stat selection with explanatory tags, and 3-way stat comparison.
+
+**Loss Diagnosis** (`diagnosis.ts`): Every match gets classified. Losses: Mental (UE spike + composure ≤ 2) / Execution (UE high, composure fine, plan not executed) / Fitness (low recovery + fitness attribution) / Tactical (opponent dominated) / Outclassed (much tougher opponent, JD held composure). Wins: strongest winning factor identified (Error Control / Serve Dominance / Aggressive Tennis / Clutch Performance). Data drives classification, journal confirms.
+
+**Key Stat Selection** (`keyStats.ts`): Algorithm picks the 4 most relevant stats per match. Scoring: deviation from average (50%) + outcome alignment (30%) + correlation strength (20%). Each stat gets an explanatory tag ("Cost you the match", "Won it here", "Your win predictor", "Bright spot", "Watch out"). Diversity enforced — max 2 per category.
+
+**3-Way Stat Comparison**: Every stat shows JD's match value (semantic color), JD's career average (white tick marker), and opponent's match value (blue diamond marker). Color roles fixed: JD = green/amber/red, opponent = blue, average = grey.
+
+**Match Detail Screen** (`MatchDetailScreen.tsx`): Full-screen overlay with sticky shrinking header (score collapses into nav on scroll). Scroll order (stress-tested by Coach + Psychologist agents): Score → Diagnosis → Key Stats → Coach's Read → Patterns → Opponent → Journal → See All Stats.
+
+**Redesigned Match Cards**: Left border accent (green/red), smart stat line (3 most relevant stats, dynamically colored), "Add journal →" CTA in gold. Delete button removed from card (moved to detail screen overflow menu).
+
+**StatBar upgraded**: Added `oppVal` and `lowerIsBetter` props. Opponent shown as blue diamond on the bar track. For stats where lower is better (UE, DF), bar fills from right.
+
+### Design decisions
+- **Diagnosis before stats** — both Coach and Psychologist agents independently recommended this: "Stats without framing feel like an autopsy." The diagnosis frames how JD reads the numbers.
+- **Wins and losses get different treatment** — loss diagnosis (red tint, "Next time" cue in gold) vs win highlight (green tint, "Keep doing" in green). Same structure, different emotional tone.
+- **Count stats (UE, Winners) use head-to-head cards, not bars** — bars don't work for absolute counts. JD's number is the hero (big, centered), opponent + average are equal minimal references below.
+- **Bar stats won over ticker and Apple Health** — the bar with average marker gives spatial sense of distance that pure numbers don't. Iterated through 3 options in preview before selecting.
+- **Journal at the bottom** — Psychologist recommendation: journal becomes a perception check after seeing the evidence. If JD said "backhand was off" but stats show it was fine, the contrast is more powerful when evidence came first.
+- **Every design change previewed first** — built disposable prototype at `/preview` with dummy data, iterated 4 versions with JD, then implemented production version.
+
+### What was left out and why
+- **Perception-vs-reality conflicts** — when what_worked/what_didnt contradicts stats. Designed but not implemented yet (needs text matching against stat fields).
+- **Tab consolidation (4 → 3)** — Product Lead recommended merging "Next Match" + "My Game" into "Coach". Deferred — separate change.
+- **Progressive match_points analysis** — composure cascade, momentum tracking, score-state filtering. Needs point-level API endpoint first.
+- **Dominance Ratio and Sackmann metrics** — planned for Cluster A integration, not part of this UI redesign.
+
+---
+
+## Data Quality Fixes — Agent Review Findings
+**Shipped:** 2026-04-05
+**Files:** `app/lib/parseSwingVision.ts`, `app/lib/signals/strokes.ts`, `app/api/extract/route.ts`
+
+### What it does
+Five data quality fixes identified by the specialized agent review (all four agents independently converged on data quality as the #1 priority).
+
+**1. Stroke usage from actual shot data** (`strokes.ts`): Replaced the hardcoded 65/35 CC/DTL usage split with actual stroke direction counts computed from match_shots data. For xlsx-uploaded matches, the parser now computes `fh_cc_pct`, `fh_dtl_pct`, `bh_cc_pct`, `bh_dtl_pct` from actual shot direction data and stores them in shot_stats JSONB. The signals module reads these when available, falling back to a conservative 60/40 estimate for screenshot-only matches. This fixes all stroke tags (hidden_weapon/overused/reliable/liability) which were previously unreliable.
+
+**2. Speed clamping** (`parseSwingVision.ts`): SwingVision's video-based speed measurement can produce phantom readings (300+ km/h). Now nulls out groundstrokes > 160 km/h and serves > 220 km/h in `normalizeShot()`. Prevents outliers from corrupting speed averages, `fh_spd_std`, and speed-based correlation signals.
+
+**3. Rally length excludes serves** (`parseSwingVision.ts`): Rally length computation now filters out serve shots before counting. Previously included serves in the count, inflating `rally_mean` and making `rally_pct_short` (<=3 shots) meaningless (a point with serve + return + one groundstroke was "short" when it's actually a normal rally). Now matches standard tennis rally length definition.
+
+**4. avg() zero exclusion fix** (`parseSwingVision.ts`): Changed `x > 0` filter to `x >= 0` in both `avg()` and `std()` helpers. Previously excluded legitimate zero values (e.g., ground-level contact height), creating systematic upward bias in `fh_contact_z` and `bh_contact_z` averages.
+
+**5. Extraction validation** (`/api/extract/route.ts`): Added `validateExtraction()` function that range-checks every value returned by Claude from screenshot parsing. Nulls out: percentages outside 0-100, speeds outside 30-250 km/h, negative counts, game scores > 7. Runs on both JD's stats and opponent stats. Screenshots are Tier 2 ground truth — bad values here poison everything downstream.
+
+### Why these fixes matter
+All four specialized agents (Data Analyst, Coach, Psychologist, Product Lead) independently identified that the coaching layer was "built on sand." The stroke intelligence shown in Strategy and JDStats was based on fabricated data. Speed outliers could corrupt multiple signals. The extraction pipeline had no validation — Claude could return nonsense and it would be stored as ground truth.
+
+### What was left out and why
+- **Clutch metric redesign** — the break point conflation issue (biased sample) is a known limitation but needs more thought. Left for a targeted fix later.
+- **Time decay on signals** — all matches weighted equally regardless of recency. Not a problem at ~20 matches but will matter at 50+.
+- **Confidence visibility in UI** — low-confidence signals still display the same as strong ones. Needs a design decision (Product Lead flagged this).
+
+---
+
+## Specialized Agent Skills (Plugin)
+**Shipped:** 2026-04-05
+**Files:** `~/.claude/plugins/agassi-agents/` (new plugin: plugin.json + 4 SKILL.md files)
+
+### What it does
+Four specialized expert agents, each a Claude Code skill file with domain-specific training, calibration examples, and cross-agent protocols.
+
+**Tennis Data Analyst** — data integrity guardian. Validates every stat before it reaches other agents. Embeds a 4-tier data trust hierarchy (ground truth → verify first), small-N statistics rules (Cohen's d interpretation, minimum sample thresholds), and SwingVision measurement quality flags. Training sources: Jeff Sackmann, Craig O'Shannessy, StatsBomb methodology.
+
+**Tennis Coach** — translates data into on-court action. Loss taxonomy (tactical/execution/mental/fitness — data-driven). 5-section pre-match brief structure: tactical pattern, carry-forward (fix + keep + notes), danger zone, serve/return/tight, opponent scouting. Training sources: Ferrero, Toni Nadal, Mourinho's dossier approach, Agassi's Open.
+
+**Sports Psychologist** — identifies mental performance patterns from match data + journal. Composure cascade analysis, pressure response patterns, "decided by" detection. Frameworks are invisible to JD (inform advice, never named). Always ends with a concrete mental cue. Training sources: Kobe's Mamba Mentality, CR7, Dr. Jim Loehr, Amorim's leadership philosophy.
+
+**Product & Design Lead** — PM + UX + UI. Owns what to build, how it works, how it looks. Embeds full design system tokens from DESIGN.md, user moment framework, scope discipline rules, 6-gate process. Training sources: App Store Award winners, Whoop, Strava, Linear, Arc, Edward Tufte.
+
+### Design decisions
+- **Data over feelings** — match stats take precedence over journal across all agents
+- **Loss taxonomy is data-first** — classified by stats (UE spike, shot selection shift), journal confirms
+- **Pre-match brief has 5 sections** — tactical pattern, carry-forward (fix/keep/notes), danger zone, serve/return/tight, opponent scouting
+- **Opponent data thresholds** — 1-2 matches = anecdotal, 3-4 = early pattern, 5+ = game plan ready
+- **Psych frameworks invisible** — agent uses Yerkes-Dodson, process-vs-outcome etc. but never names them
+- **Shared directives** across all agents: coach voice, visual > verbal, doubt the data, diagnose WHY not WHAT
+- **Copywriter absorbed** — not a standalone agent. Voice directive embedded in all four.
+- **9 candidates scored, 4 built** — evaluation criteria: frequency, mistake cost, specialization gap, trainability, distinctness, JD-cares
+
+### What was left out and why
+- **Opponent Scout** as standalone (score 21) — absorbed into Tennis Coach. Not distinct enough.
+- **Statistical Rigor** as standalone (score 21) — absorbed into Data Analyst. Same domain.
+- **Product Strategist** (score 14) — Claude already decent, handled in normal conversation.
+- **Data Modeller** (score 16) — Claude strong here, JD doesn't care about schema details.
+- **Copywriter** (score 17) — a directive, not an expert. Embedded as shared voice rule.
+- Real-time agent invocation (agent calling another mid-task) — not supported in skill architecture. Cross-agent protocol is advisory ("hand to Coach for tactical solution").
+
+---
+
 ## Intelligence Layer — Signals Framework (Cluster A)
 **Shipped:** 2026-03-31
 **Files:** `app/lib/signals/` (new module: types.ts, compute.ts, correlations.ts, tendencies.ts, strokes.ts, journal.ts, profile.ts), `app/components/Strategy.tsx`, `app/components/JDStats.tsx`, `app/components/Debrief.tsx`

@@ -34,33 +34,49 @@ export function computeStrokes(matches: Match[]): StrokeSignal[] {
   const strokes: StrokeSignal[] = []
 
   // Compute per-stroke metrics
+  // Usage: prefer actual CC/DTL counts from xlsx (stored in shot_stats as fh_cc_pct etc.)
+  // Fall back to conservative estimate for screenshot-only matches
   const strokeDefs: { key: StrokeKey; pctIn: (m: Match) => number | null; speed: (m: Match) => number | null; usageFn: (m: Match) => number | null }[] = [
     {
       key: 'fh_cc',
       pctIn: m => m.forehand?.cc_in ?? null,
       speed: m => m.forehand?.spd_cc ?? null,
-      // Estimate usage: fh_pct * (cc_in proportion of total fh shots)
-      // cc_in and dtl_in are % in, not usage %. Use a rough split: fh_cc ≈ fh_pct * 0.65, fh_dtl ≈ fh_pct * 0.35
-      // This is approximate — exact split needs match_shots data (Phase 6)
-      usageFn: m => m.shot_stats?.fh_pct != null ? Math.round((m.shot_stats.fh_pct) * 0.65) : null,
+      usageFn: m => {
+        const actual = (m.shot_stats as any)?.fh_cc_pct
+        if (actual != null) return actual
+        // Fallback: conservative 60/40 estimate for screenshot-only matches
+        return m.shot_stats?.fh_pct != null ? Math.round(m.shot_stats.fh_pct * 0.60) : null
+      },
     },
     {
       key: 'fh_dtl',
       pctIn: m => m.forehand?.dtl_in ?? null,
       speed: m => m.forehand?.spd_dtl ?? null,
-      usageFn: m => m.shot_stats?.fh_pct != null ? Math.round((m.shot_stats.fh_pct) * 0.35) : null,
+      usageFn: m => {
+        const actual = (m.shot_stats as any)?.fh_dtl_pct
+        if (actual != null) return actual
+        return m.shot_stats?.fh_pct != null ? Math.round(m.shot_stats.fh_pct * 0.40) : null
+      },
     },
     {
       key: 'bh_cc',
       pctIn: m => m.backhand?.cc_in ?? null,
       speed: m => m.backhand?.spd_cc ?? null,
-      usageFn: m => m.shot_stats?.bh_pct != null ? Math.round((m.shot_stats.bh_pct) * 0.65) : null,
+      usageFn: m => {
+        const actual = (m.shot_stats as any)?.bh_cc_pct
+        if (actual != null) return actual
+        return m.shot_stats?.bh_pct != null ? Math.round(m.shot_stats.bh_pct * 0.60) : null
+      },
     },
     {
       key: 'bh_dtl',
       pctIn: m => m.backhand?.dtl_in ?? null,
       speed: m => m.backhand?.spd_dtl ?? null,
-      usageFn: m => m.shot_stats?.bh_pct != null ? Math.round((m.shot_stats.bh_pct) * 0.35) : null,
+      usageFn: m => {
+        const actual = (m.shot_stats as any)?.bh_dtl_pct
+        if (actual != null) return actual
+        return m.shot_stats?.bh_pct != null ? Math.round(m.shot_stats.bh_pct * 0.40) : null
+      },
     },
   ]
 

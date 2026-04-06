@@ -123,7 +123,7 @@ Columns: id(uuid PK), match_id(text FK), point_number, game_number, set_number, 
 
 **has_shot_data flag:** true when match was uploaded via CSV. Display layer and Debrief check this to show enriched content.
 
-**shot_stats extended fields (CSV-only):** `rally_mean`, `rally_pct_short`, `rally_pct_long`, `s1_t_pct`, `s1_wide_pct`, `s1_after_dtl_pct`, `fh_spd_std`, `fh_contact_z`, `bh_contact_z` — computed at upload time, stored in shot_stats JSONB alongside aggregate stats.
+**shot_stats extended fields (CSV-only):** `rally_mean`, `rally_pct_short`, `rally_pct_long`, `s1_t_pct`, `s1_wide_pct`, `s1_after_dtl_pct`, `fh_spd_std`, `fh_contact_z`, `bh_contact_z`, `fh_cc_pct`, `fh_dtl_pct`, `bh_cc_pct`, `bh_dtl_pct` — computed at upload time, stored in shot_stats JSONB alongside aggregate stats. Rally length excludes serves (standard definition). Stroke direction percentages (fh_cc_pct etc.) are actual CC/DTL counts from match_shots, used by signals module instead of hardcoded estimates.
 
 **Known Supabase quirk:** JSONB arrays can deserialize as plain objects `{"0":"a","1":"b"}`. Fixed in `dbToMatch()` with `toArr()` (strings) and `toSetsArr()` (score sets [[n,n]]).
 
@@ -169,6 +169,20 @@ Drives completeness checking. Listed with `section` so the UI can group missing 
 6. **Ship** — commit + push
 
 **Rules:** no permission needed · one fix per commit · if root cause is bigger, flag it · if stuck in a loop, stop and flag it — never retry the same failing approach
+
+---
+
+## Working Principles
+
+**Simplicity first** — make every change as simple as possible. Touch only what's necessary. No side effects, no collateral "improvements," no speculative abstractions. Three similar lines > a premature helper.
+
+**Root causes, not band-aids** — find the actual bug, not a workaround. If a fix feels hacky, pause and ask: "knowing everything I know now, what's the clean solution?" Skip this check for trivially obvious fixes.
+
+**Re-plan when it breaks** — if implementation diverges from the agreed spec or something unexpected surfaces, stop coding and re-plan before continuing. Don't push through a broken approach.
+
+**Prove it works** — never call something done without evidence. Build passes, preview screenshot, console clean, happy path + empty state tested. Ask: "would a staff engineer approve this?"
+
+**Read before writing** — never propose changes to code you haven't read. Understand existing patterns before modifying them.
 
 ---
 

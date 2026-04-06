@@ -14,6 +14,30 @@ _Nothing in progress. Pick up NEXT #2._
 
 ## SHIPPED
 
+### Match Detail Screen Redesign + Loss Diagnosis ✓
+**Shipped:** 2026-04-05
+- [x] Full-screen match detail view replacing inline expand
+- [x] Loss diagnosis: Mental / Execution / Fitness / Tactical / Outclassed classification
+- [x] Win highlight: Error Control / Serve Dominance / Aggressive Tennis / Clutch
+- [x] Key stat selection algorithm with explanatory tags
+- [x] 3-way stat comparison: JD match vs JD avg vs opponent (bar + tick + diamond)
+- [x] Sticky shrinking header with score collapse on scroll
+- [x] Redesigned match cards with left border accent + smart stat line
+- [x] StatBar upgraded with opponent + lowerIsBetter support
+
+### Data Quality Fixes — Agent Review ✓
+**Shipped:** 2026-04-05
+- [x] Stroke usage from actual shot data (replaced hardcoded 65/35 split)
+- [x] Speed clamping in parser (groundstrokes >160, serves >220 nulled)
+- [x] Rally length excludes serves (standard definition)
+- [x] avg() zero exclusion bias fixed
+- [x] Extraction validation (range checks on all Claude-extracted values)
+
+### Specialized Agent Skills ✓
+**Shipped:** 2026-04-05
+- [x] Tennis Data Analyst, Tennis Coach, Sports Psychologist, Product & Design Lead
+- [x] Full training sources, calibration examples, cross-agent protocols
+
 ### Intelligence Layer — Signals Framework (Cluster A) ✓
 **Shipped:** 2026-03-31
 - [x] `app/lib/signals/` module — typed Signal, StrokeSignal, PlayerProfile, SignalSet
