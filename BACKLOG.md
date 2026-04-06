@@ -105,6 +105,24 @@ Inspired by Jeff Sackmann's [Tennis Abstract](https://www.tennisabstract.com) me
 - [idea] Post-match summary export — PDF or text, shareable with a real coach
 - [idea] Share a single match stat card — image format, for WhatsApp / social
 
+## Crowdsource Layer (future — but prep now)
+
+> **Full vision in `CROWDSOURCE.md`. Marketing strategy in `~/Downloads/agassi-coach-marketing-strategy.html`. Read both before committing any item below to the roadmap.**
+
+The benchmark IS the product. Long-term vision: opt-in "contribute to benchmark" toggle, anonymous stat upload, UTR self-report, users become the dataset that replaces synthetic UTR-band benchmarks in `app/lib/analyst/benchmarks.ts`. This is the GTM moat — the *Amateur Tennis Intelligence Report*, the personal report cards (Wrapped moment), the founding-member hook.
+
+**The accelerator: every match JD uploads already captures the opponent's full stat line via `opp_shots` + `opponent_utr`.** That's a crowdsource dataset of N=1 contributor producing 2 data points per match. Build the schema and pipeline against JD's own data now; the multi-user toggle becomes a flip of a switch later. The single-user version is the multi-user version with a hardcoded `user_id`.
+
+- [idea] 🎾 **Opponents as first-class records** — promote opponent from a string on `matches` to an `opponents` table (id, name, utr, handedness, style, created_at). Every match links by `opponent_id`. Unlocks aggregation across matches and dedupe (already a known issue above).
+- [idea] 🎾 **Opponent stat ledger** — new table `opponent_observations`: one row per (opponent_id, match_id) with the full `opp_shots` payload + UTR at time of match + surface. Same shape a future external contributor would submit. Build the schema once; JD fills it today, others fill it tomorrow.
+- [idea] 🎾 **Aggregate-by-UTR-band view** — query `opponent_observations` grouped by UTR band → real medians for serve %, UE%, winner%, rally length, etc. Drop into `benchmarks.ts` behind a feature flag: synthetic until N≥10 per band, real numbers after. Zero UI change, immediate quality upgrade.
+- [idea] 🎾 **Contribution-readiness audit** — pass every field in `opp_shots` and `journal` through a "would I be comfortable if a stranger uploaded this anonymously?" filter. Anything PII-adjacent (free-text notes, names) gets flagged for stripping at the aggregation layer.
+- [idea] **Opponent profile page** — once `opponents` table exists, dedicated page per opponent with all observed stats, H2H, trend. Doubles as the "what a contributor sees about themselves" view for the future multi-user version.
+- [idea] **Anonymous export endpoint** — `/api/contribute` that takes a stripped match payload (no names, no journal free-text, opponent UTR + surface + shot_stats only). Build it now, point it at JD's own data, validate the shape. When the toggle ships, it's already battle-tested.
+- [idea] **Self-UTR vs observed-UTR drift** — once N grows, compare a player's self-reported UTR to the stat profile of opponents at that band. Flag inflation/deflation. Quality signal for the dataset.
+
+**Why prep now:** the schema and aggregation pipeline are the hard part. JD's own match history is the perfect single-user test bed. Every match already produces opponent data — we're just not storing it in a shape that scales. Fix the shape first, the toggle is a 1-day feature later.
+
 ## Infrastructure
 
 - [idea] Auth / login — needed when opening to more users, not before

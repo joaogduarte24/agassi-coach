@@ -17,6 +17,7 @@ All docs live in `~/projects/agassi/`. Always read the relevant file before maki
 | `BACKLOG.md` | Raw ideas not yet committed. Add new ideas here first. |
 | `FEATURES.md` | Log of everything shipped — what was built, why, what was left out. |
 | `DATA-GAPS.md` | **Every data point stored but not yet surfaced in the UI. Update on every ship.** |
+| `CROWDSOURCE.md` | **Crowdsource benchmark vision — current (N=1) + future (multi-user). The benchmark IS the product. Read before any work touching opponents, `opp_shots`, `benchmarks.ts`, or the contribution pipeline.** |
 | `DESIGN.md` | Visual design system, component patterns, colour usage. |
 | `DEVELOPER.md` | Dev setup, environment variables, deploy process. |
 | `README.md` | Public-facing project overview. |
