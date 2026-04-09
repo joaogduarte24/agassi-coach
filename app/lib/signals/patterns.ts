@@ -68,11 +68,10 @@ function shotKey(row: ShotRow): string {
 function isWinner(row: ShotRow): boolean {
   if (row.player !== 'jd') return false
   const r = (row.result || '').toLowerCase()
-  return r === 'winner' || r === 'in' && row.shot_context === 'winner'
-  // Note: SwingVision exports vary. Some mark 'In' for the last in-bounds
-  // shot of the point. The caller may need to also cross-reference
-  // match_points.point_winner === 'jd' for the same point. v1 leaves that
-  // join to the caller for simplicity.
+  return r === 'winner'
+  // The caller is responsible for marking winner shots. The backfill route
+  // and upload-csv route join match_points to find JD-won points and mark
+  // the last JD 'In' shot as 'winner' before calling this function.
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────

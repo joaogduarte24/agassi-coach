@@ -45,6 +45,23 @@ export async function POST() {
 
     if (shotsErr || !shots || shots.length === 0) continue
 
+    // Fetch points to know which points JD won
+    const { data: points } = await supabase
+      .from('match_points')
+      .select('point_number, set_number, game_number, point_winner')
+      .eq('match_id', match.id)
+
+    // Build a set of (set,game,point) keys where JD won
+    const jdWonPoints = new Set<string>()
+    if (points) {
+      for (const p of points) {
+        if (p.point_winner === 'jd') {
+          jdWonPoints.add(`${p.set_number}|${p.game_number}|${p.point_number}`)
+        }
+      }
+    }
+
+    // Mark the last JD 'In' shot on JD-won points as a winner
     const rows: ShotRow[] = shots.map((s: any) => ({
       match_id: s.match_id,
       player: s.player,
@@ -59,6 +76,24 @@ export async function POST() {
       result: s.result,
       shot_context: null,
     }))
+
+    // For each JD-won point, find the last JD shot with result='In' and mark it as winner
+    const pointGroups = new Map<string, ShotRow[]>()
+    for (const r of rows) {
+      const key = `${r.set_number}|${r.game_number}|${r.point_number}`
+      if (!pointGroups.has(key)) pointGroups.set(key, [])
+      pointGroups.get(key)!.push(r)
+    }
+    for (const [key, shotList] of Array.from(pointGroups.entries())) {
+      if (!jdWonPoints.has(key)) continue
+      // Find last JD shot with result 'In'
+      for (let i = shotList.length - 1; i >= 0; i--) {
+        if (shotList[i].player === 'jd' && shotList[i].result === 'In') {
+          shotList[i].result = 'winner'
+          break
+        }
+      }
+    }
 
     const { patterns, totalWinners } = computeShotPatterns(rows, 2, 5)
 

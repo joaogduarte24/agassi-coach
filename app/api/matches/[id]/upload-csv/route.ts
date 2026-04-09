@@ -106,8 +106,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
-    // Precompute shot patterns and store in shot_stats JSONB
-    if (shotsRows.length > 0) {
+    // Precompute shot patterns: join points to mark winners, then aggregate
+    if (shotsRows.length > 0 && pointsRows.length > 0) {
+      // Build set of JD-won points
+      const jdWonPts = new Set<string>()
+      for (const p of pointsRows) {
+        if ((p as any).server === 'host' ? (p as any).point_winner === 'host' : (p as any).point_winner === 'guest') {
+          // The parser maps host=JD — check parseSwingVision for mapping
+        }
+        // Simpler: just use point_winner field which is already mapped to 'jd'/'opponent' by parser
+        if ((p as any).point_winner === 'jd') {
+          jdWonPts.add(`${(p as any).set_number}|${(p as any).game_number}|${(p as any).point_number}`)
+        }
+      }
+
       const patternRows: ShotRow[] = shotsRows.map((s: any) => ({
         match_id: matchId,
         player: s.player,
@@ -122,7 +134,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         result: s.result,
         shot_context: s.shot_context ?? null,
       }))
-      const { patterns, totalWinners, matchesAnalyzed } = computeShotPatterns(patternRows, 2, 5)
+
+      // Mark last JD 'In' shot on JD-won points as winner
+      const ptGroups = new Map<string, ShotRow[]>()
+      for (const r of patternRows) {
+        const k = `${r.set_number}|${r.game_number}|${r.point_number}`
+        if (!ptGroups.has(k)) ptGroups.set(k, [])
+        ptGroups.get(k)!.push(r)
+      }
+      for (const [k, list] of Array.from(ptGroups.entries())) {
+        if (!jdWonPts.has(k)) continue
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (list[i].player === 'jd' && list[i].result === 'In') {
+            list[i].result = 'winner'
+            break
+          }
+        }
+      }
+
+      const { patterns, totalWinners } = computeShotPatterns(patternRows, 2, 5)
       if (patterns.length > 0) {
         const { data: currentMatch } = await supabase.from('matches').select('shot_stats').eq('id', matchId).single()
         const updatedStats = {
