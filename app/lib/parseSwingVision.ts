@@ -461,9 +461,9 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
   const jdGroundstrokes = jdShots.filter(s => s.shot_type === 'Forehand' || s.shot_type === 'Backhand')
   const jdFHAll = jdGroundstrokes.filter(s => s.shot_type === 'Forehand')
   const jdBHAll = jdGroundstrokes.filter(s => s.shot_type === 'Backhand')
-  const jdFHCC  = jdFHAll.filter(s => s.direction === 'crosscourt' || s.direction === 'inside out')
+  const jdFHCC  = jdFHAll.filter(s => s.direction === 'cross court' || s.direction === 'inside out')
   const jdFHDTL = jdFHAll.filter(s => s.direction === 'down the line' || s.direction === 'inside in')
-  const jdBHCC  = jdBHAll.filter(s => s.direction === 'crosscourt')
+  const jdBHCC  = jdBHAll.filter(s => s.direction === 'cross court')
   const jdBHDTL = jdBHAll.filter(s => s.direction === 'down the line')
   const gsTotal = jdGroundstrokes.length
 
@@ -655,6 +655,9 @@ export function parseSwingVisionXlsx(buffer: ArrayBuffer) {
       fh_spd_std:       shot_stats.fh_spd_std,
       fh_contact_z:     shot_stats.fh_contact_z,
       bh_contact_z:     shot_stats.bh_contact_z,
+      // Wing usage percentages (total shots basis)
+      fh_pct:           shot_stats.fh_pct,
+      bh_pct:           shot_stats.bh_pct,
       // Actual stroke direction counts (replaces hardcoded 65/35 split in signals)
       fh_cc_pct:        gsTotal > 0 ? pct(jdFHCC.length, gsTotal) : null,
       fh_dtl_pct:       gsTotal > 0 ? pct(jdFHDTL.length, gsTotal) : null,

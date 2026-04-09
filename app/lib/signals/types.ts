@@ -24,7 +24,7 @@ export type StrokeTag = 'hidden_weapon' | 'overused' | 'reliable' | 'liability'
 export type StrokeSignal = {
   stroke: StrokeKey
   label: string                        // "Forehand Cross-Court"
-  usage: number                        // % of total shots (estimated)
+  usage: number | null                  // % of total shots (null when no real data)
   effectiveness: number                // winner_rate - error_rate (higher = better)
   pctIn: number                        // % in
   pace: number | null                  // avg speed km/h

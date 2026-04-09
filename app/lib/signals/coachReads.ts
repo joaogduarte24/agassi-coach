@@ -18,10 +18,12 @@ export function strokesCoachRead(strokes: StrokeSignal[]): string {
 
   if (topWeapon) {
     const usage = topWeapon.usage
-    if (usage < 20) {
+    if (usage != null && usage < 20) {
       parts.push(`Your ${topWeapon.label.toLowerCase()} is your best shot and you barely use it — ${topWeapon.pctIn}% in at only ${usage}% usage. Trust it more.`)
-    } else {
+    } else if (usage != null) {
       parts.push(`Your ${topWeapon.label.toLowerCase()} is carrying you — ${topWeapon.pctIn}% in, ${usage}% of your shots.`)
+    } else {
+      parts.push(`Your ${topWeapon.label.toLowerCase()} is carrying you — ${topWeapon.pctIn}% in.`)
     }
   }
 

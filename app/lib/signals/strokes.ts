@@ -96,7 +96,8 @@ export function computeStrokes(matches: Match[]): StrokeSignal[] {
 
     const avgPctIn = avgNonNull(pctInVals)!
     const avgSpeed = avgNonNull(speedVals)
-    const avgUsage = avgNonNull(usageVals) ?? 25 // fallback: assume even distribution
+    const avgUsage = avgNonNull(usageVals) // null when no real data available
+    const hasRealUsage = avgUsage != null
 
     // Effectiveness: approximate from wing-level winner/UE rates
     // CC gets ~65% of wing winners/UE, DTL gets ~35% (proportional to usage)
@@ -105,10 +106,11 @@ export function computeStrokes(matches: Match[]): StrokeSignal[] {
     const wingWinners = isFh ? avgFhWinners : avgBhWinners
     const wingUE = isFh ? avgFhUE : avgBhUE
     const shareOfWing = isCC ? 0.65 : 0.35
+    const usageForCalc = avgUsage ?? 25 // only for effectiveness math, not displayed
 
     let effectiveness = 0
     if (wingWinners != null && wingUE != null && avgTotalShots != null && avgTotalShots > 0) {
-      const estShotCount = (avgTotalShots * (avgUsage / 100))
+      const estShotCount = (avgTotalShots * (usageForCalc / 100))
       if (estShotCount > 0) {
         const winnerRate = (wingWinners * shareOfWing) / estShotCount
         const ueRate = (wingUE * shareOfWing) / estShotCount
@@ -116,26 +118,37 @@ export function computeStrokes(matches: Match[]): StrokeSignal[] {
       }
     }
 
-    // Tagging
+    // Tagging — usage-aware when real data available, pctIn-only otherwise
     let tag: StrokeTag
-    if (avgPctIn >= 75 && effectiveness > 0 && avgUsage < 25) {
-      tag = 'hidden_weapon'
-    } else if (avgPctIn < 65 && avgUsage >= 25) {
-      tag = 'overused'
-    } else if (avgPctIn < 60) {
-      tag = 'liability'
+    if (hasRealUsage) {
+      if (avgPctIn >= 75 && effectiveness > 0 && avgUsage! < 25) {
+        tag = 'hidden_weapon'
+      } else if (avgPctIn < 65 && avgUsage! >= 25) {
+        tag = 'overused'
+      } else if (avgPctIn < 60) {
+        tag = 'liability'
+      } else {
+        tag = 'reliable'
+      }
     } else {
-      tag = 'reliable'
+      // No usage data — tag purely on accuracy
+      if (avgPctIn < 60) {
+        tag = 'liability'
+      } else if (avgPctIn >= 75) {
+        tag = 'reliable' // could be weapon but can't tell without usage
+      } else {
+        tag = 'reliable'
+      }
     }
 
     // Insight generation
     let insight: string
     switch (tag) {
       case 'hidden_weapon':
-        insight = `${STROKE_LABELS[def.key]} is ${Math.round(avgPctIn)}% in with positive winner production — but only ~${Math.round(avgUsage)}% of your shots. Use it more.`
+        insight = `${STROKE_LABELS[def.key]} is ${Math.round(avgPctIn)}% in with positive winner production — but only ~${Math.round(avgUsage!)}% of your shots. Use it more.`
         break
       case 'overused':
-        insight = `${STROKE_LABELS[def.key]} is only ${Math.round(avgPctIn)}% in but ~${Math.round(avgUsage)}% of your shots — you're leaking points here.`
+        insight = `${STROKE_LABELS[def.key]} is only ${Math.round(avgPctIn)}% in but ~${Math.round(avgUsage!)}% of your shots — you're leaking points here.`
         break
       case 'liability':
         insight = `${STROKE_LABELS[def.key]} at ${Math.round(avgPctIn)}% in — this shot is costing you.`
@@ -147,7 +160,7 @@ export function computeStrokes(matches: Match[]): StrokeSignal[] {
     strokes.push({
       stroke: def.key,
       label: STROKE_LABELS[def.key],
-      usage: Math.round(avgUsage),
+      usage: hasRealUsage ? Math.round(avgUsage!) : null,
       effectiveness,
       pctIn: Math.round(avgPctIn),
       pace: avgSpeed != null ? Math.round(avgSpeed) : null,

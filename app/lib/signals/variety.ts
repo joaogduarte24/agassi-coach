@@ -34,7 +34,7 @@ export function computeVariety(strokes: StrokeSignal[]): VarietyResult {
     }
   }
 
-  const viable = strokes.filter(s => s.usage >= USAGE_FLOOR && s.pctIn >= ACCURACY_FLOOR)
+  const viable = strokes.filter(s => (s.usage == null || s.usage >= USAGE_FLOOR) && s.pctIn >= ACCURACY_FLOOR)
   const labels = viable.map(s => s.label)
 
   let label: VarietyResult['label']

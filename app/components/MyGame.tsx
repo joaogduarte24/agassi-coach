@@ -218,7 +218,7 @@ export default function MyGame({ matches, avgs }: MyGameProps) {
         pctInDelta,
         weRatio,
         weColor,
-        usage: Math.round(s.usage),
+        usage: s.usage != null ? Math.round(s.usage) : null,
         usageDelta: null, // no usage benchmark
         pace: s.pace != null ? Math.round(s.pace) : null,
         paceDelta,
