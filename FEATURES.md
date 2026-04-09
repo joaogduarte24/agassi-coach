@@ -4,6 +4,56 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## My Game v1.2 — full redesign
+**Shipped:** 2026-04-09
+**Files:** `app/components/MyGame.tsx` (rewrite), `app/lib/signals/closestAtp.ts` `stamina.ts` `tempo.ts` `variety.ts` `outliers.ts` `verdict.ts` `patterns.ts` `coachReads.ts` (all new), `app/api/matches/[id]/upload-csv/route.ts` (pattern precompute), `lib/atp-players.ts` (extended to top 20), `CLUSTERS.md` `ROADMAP.md` `DATA-GAPS.md` (updated)
+
+**What changed**
+Top-to-bottom redesign of the My Game tab. 10 sections, each designed iteratively in a standalone preview route (`/my-game-preview`) and reviewed section-by-section with JD before porting to production.
+
+New section lineup:
+1. **Hero** — Win % + UTR side-by-side at 72px Bebas, radial gradient card, style sub-label, Mourinho-voice verdict auto-generated from signals
+2. **Profile** — Weapon (green tint) + Weak spot (red tint) hero cards + 6 chips: Closest ATP, Engine, Tempo, Stamina, Clutch, Variety. All data-derived from new helper functions
+3. **The numbers that define you** — 4 dynamic outlier cards picked by |delta vs UTR band median|. Dual encoding: white number + coloured delta (state vs band) + coloured arrow + sparkline (trend). Frame line + dual legend
+4. **Your strokes** — Per-stroke cards (FH CC/DTL, BH CC/DTL, 1st/2nd Serve) with IN%, USE, PACE, DEEP + W/E ratio + band deltas. Coach read at bottom
+5. **Your moves** — Tactical playbook (gated on has_shot_data). Precomputed shot patterns at xlsx upload. Freq + conversion + context tags + pressure play badge
+6. **What swings matches** — Minimal table of win-rate multipliers. Merged stat + journal + context correlations. N× impact as hero number
+7. **The big moments** — Pressure table: break points, deciding sets, tiebreaks, tight matches. Coach read
+8. **How you get to {next band}** — Verb-led gap headlines, tightened copy
+9. **Matchups** — 2-col style cards (grouped by data-derived opponent style, not journal) + clickable rivals linking to most recent match
+10. **See all stats** — JDStats toggle preserved
+
+8 new pure-function helpers in `app/lib/signals/`:
+- `closestAtp.ts` — euclidean distance over 8 weighted normalized traits vs ATP top 20
+- `stamina.ts` — 3-set record, set 1/3 win rates
+- `tempo.ts` — serve + rally pace vs synthetic band baseline
+- `variety.ts` — count of stroke combos with usage ≥8% and pctIn ≥65%
+- `outliers.ts` — top N stats by |delta vs band median| with trend
+- `verdict.ts` — Mourinho one-liner from 9 template variants
+- `patterns.ts` — N-shot winner sequence aggregation from match_shots
+- `coachReads.ts` — template coach reads for strokes, swings, big moments sections
+
+**Why**
+v1.1 was a stat dashboard. v1.2 reads like a coach — every section frames before it shows data, every number carries context (vs band, vs trend, vs multiplier), and coach reads synthesize across sections. The Mourinho voice tone was JD's explicit request. Preview-first iteration (build dummy → screenshot → review section-by-section → sign off → port) became the working method.
+
+**Key design decisions**
+- Win % as bar instead of hero number → vetoed by JD, reverted to 72px side-by-side with UTR
+- Verdict: sandwich (strength/leak/lever) → vetoed, switched to single Mourinho one-liner
+- Career averages: static 6 → dynamic 4 outliers by |delta|. Dual encoding (state + trend) with dedicated colour channels after UX/UI audit
+- Strokes: 3 layout alternatives tested (hero+row, full-width rows, compact cards). Alt A (hero IN% + rows) won
+- W/E ratio replaced raw W%/E% after tennis data analyst flagged denominator confusion
+- Swings: Cleveland dot plot → twin bars → labelled numbers → minimal table. Table won on clarity
+- Matchups grouped by data-derived opponent style from opp_shots, not journal field
+- Template coach reads for v1.2; AI-generated reads flagged as v1.3 (documented in CLUSTERS.md)
+
+**What was left out and why**
+- JDStats ATP→UTR refactor (D14) — separate PR, large file, independent scope
+- AI-generated coach reads — template for now, v1.3 upgrade path documented in CLUSTERS.md "AI Voice Layer"
+- Court heatmaps from match_shots coordinates — needs viz infra (Cluster B)
+- Per-match shot pattern fetch for "Your Moves" — precompute at upload built, but existing matches need re-upload to populate
+
+---
+
 ## Data Analyst v1.1 — UTR band benchmarks + sparklines + Path to next UTR
 **Shipped:** 2026-04-06
 **Files:** `app/lib/analyst/benchmarks.ts` (new), `app/components/MyGame.tsx` (updated)

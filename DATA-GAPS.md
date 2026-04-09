@@ -2,7 +2,36 @@
 
 Tracks every data point that exists in the database but is **not yet shown, analyzed, or used** in any UI component or signal computation. This is the backlog for Cluster B (Visualisation) and future intelligence work.
 
-**Last updated:** 2026-03-31
+**Last updated:** 2026-04-07 (My Game v1.2 helpers built — see below)
+
+---
+
+## 2026-04-07 update — My Game v1.2 helper kit
+
+Six pure-function helpers were built offline for the v1.2 redesign and are wired only into `app/my-game-preview/page.tsx?debug=1` for smoke tests. Real ship pending JD review of §4–§10 tomorrow.
+
+| Helper | File | Surfaces |
+|---|---|---|
+| `closestAtp(matches)` | `app/lib/signals/closestAtp.ts` | Closest ATP top-10 player by 8-trait stat-shape similarity (serve %, serve pace, FH/BH cc/dtl in %, FH-BH pace bias). Uses `ATP_PLAYERS`. |
+| `computeStamina(matches)` | `app/lib/signals/stamina.ts` | 3-set match record, set 1 W%, set 3 W%. From `score.sets_arr`. |
+| `computeTempo(matches, utr)` | `app/lib/signals/tempo.ts` | Avg serve speed + avg rally speed vs synthetic per-band rally pace baseline. Uses `serve.first.spd_*` + `forehand/backhand.spd_*`. |
+| `computeVariety(strokes)` | `app/lib/signals/variety.ts` | Count of stroke combos with usage ≥8% and pctIn ≥65%. Reads `signals.strokes`. |
+| `pickTopOutliers(matches, utr, n)` | `app/lib/signals/outliers.ts` | Top N stats by abs(delta vs band median) + chronological series + trend direction. Uses `getBandMedians()` over 12 BenchmarkStat keys. |
+| `generateVerdict(signals)` | `app/lib/signals/verdict.ts` | Mourinho one-liner from 9 templates picked by profile state. |
+| `computeShotPatterns(rows, n)` | `app/lib/signals/patterns.ts` | Top N-shot sequences ending in JD winners, walked from raw `match_shots`. Caller must fetch shots. |
+
+**Once shipped these will surface previously unused fields:**
+- `score.sets_arr` (set-by-set scores) — currently only used as a string, never analyzed → stamina
+- `forehand.spd_cc/dtl` + `backhand.spd_cc/dtl` (groundstroke pace fields) → tempo
+- `BenchmarkStat['fh_cc_in', 'fh_dtl_in', 'bh_cc_in', 'bh_dtl_in']` (groundstroke direction band data) → outliers (these were defined but never read)
+- `match_shots.shot_context` (when caller provides shot rows) → patterns
+
+**Still gated / future:**
+- `match_shots` raw rows in production — patterns helper exists but no UI fetches the rows yet (deferred to shot-pattern UI in §5).
+- `journal.whoop_strain`, `journal.net_game`, `journal.mental_game` — still untouched.
+- Opponent style matchup aggregation — planned for §8 tomorrow.
+
+---
 
 **Rule:** Every time a feature ships that surfaces previously unused data, remove it from this file. Every time new data fields are added (new journal questions, new parser fields, new tables), add the unsurfaced ones here immediately.
 

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { parseSwingVisionXlsx } from '@/app/lib/parseSwingVision'
+import { computeShotPatterns, type ShotRow } from '@/app/lib/signals/patterns'
 
 function getSupabase() {
   return createClient(
@@ -102,6 +103,34 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const batch = pointsRows.slice(i, i + BATCH).map(p => ({ ...p, match_id: matchId }))
         const { error } = await supabase.from('match_points').insert(batch)
         if (error) throw error
+      }
+    }
+
+    // Precompute shot patterns and store in shot_stats JSONB
+    if (shotsRows.length > 0) {
+      const patternRows: ShotRow[] = shotsRows.map((s: any) => ({
+        match_id: matchId,
+        player: s.player,
+        shot_number: s.shot_number,
+        shot_type: s.shot_type,
+        stroke: s.stroke,
+        speed_kmh: s.speed_kmh,
+        point_number: s.point_number,
+        game_number: s.game_number,
+        set_number: s.set_number,
+        direction: s.direction,
+        result: s.result,
+        shot_context: s.shot_context ?? null,
+      }))
+      const { patterns, totalWinners, matchesAnalyzed } = computeShotPatterns(patternRows, 2, 5)
+      if (patterns.length > 0) {
+        const { data: currentMatch } = await supabase.from('matches').select('shot_stats').eq('id', matchId).single()
+        const updatedStats = {
+          ...(currentMatch?.shot_stats ?? {}),
+          top_patterns: patterns,
+          total_winners_from_patterns: totalWinners,
+        }
+        await supabase.from('matches').update({ shot_stats: updatedStats }).eq('id', matchId)
       }
     }
 

@@ -159,6 +159,38 @@ AI debrief is the highest-leverage item in this cluster — it directly replaces
 
 ---
 
+## Cross-cluster: AI Voice Layer (v1.3 priority)
+
+**Mission: replace every template-generated text in the app with AI-generated, context-aware coach voice.**
+
+This is the single highest-leverage upgrade across all three clusters. Template text makes the app feel robotic. AI-generated text makes it feel like a coach who knows you. Same data, different soul.
+
+**Currently template-driven (shipped v1.2 with templates, flagged for AI upgrade):**
+
+| Location | What it says | Template file | Priority |
+|---|---|---|---|
+| §1 Hero verdict | Mourinho one-liner describing the player | `verdict.ts` (9 templates) | **P0** — first thing users see |
+| §4 Coach read (strokes) | "Your forehand is the engine..." summary | hardcoded in preview | **P0** — directly changes practice behavior |
+| §6 Coach read (swings) | "Your serve is the master switch..." | hardcoded in preview | **P1** — less actionable than §4 |
+| §5 Pattern descriptions | "Set up wide, finish open court" | hardcoded per pattern | **P2** — mechanical, templates may be sufficient |
+| §7 Coach read (big moments) | "You rise on BPs but tiebreaks expose you" | hardcoded in preview | **P1** |
+
+**Why this matters:**
+- Templates repeat after ~10 matches. AI doesn't.
+- Templates can't reference specific numbers naturally. AI cites "your 58% first serve" in the flow.
+- Templates can't connect across sections. AI can say "your serve is slipping (§3) which explains why pushers beat you (§9) — fix the toss and the pusher problem disappears."
+- The difference between a dashboard and a coach is the voice. This IS the product.
+
+**Implementation approach:**
+- Single endpoint: `POST /api/coaching-read` — takes section name + relevant signals subset → returns 1–3 sentences.
+- Cached per match-set hash — regenerate only when new match data arrives.
+- Fallback to template if API fails or is slow (progressive enhancement, not hard dependency).
+- Same Claude API already wired for `/api/extract` — no new infra.
+
+**Sequencing:** Ship v1.2 with templates. Measure where users re-read vs skip (if analytics exist). Upgrade P0 locations first, P2 last. Target: v1.3, 1–2 weeks after v1.2 ships.
+
+---
+
 ## Recommended sequencing across clusters
 
 | Phase | Work | Why now |

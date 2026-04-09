@@ -2,13 +2,34 @@
 
 This is the single source of truth for what's being built, what's next, and what's not happening. Updated after every shipped feature or priority change.
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-04-09
 
 ---
 
 ## NOW — In progress
 
-_Nothing in progress._
+### My Game v1.2 — full redesign
+**Status:** Preview signed off §1–§9. Porting to production next.
+- [x] §1 Hero — Win% + UTR side-by-side, Mourinho verdict
+- [x] §2 Profile — Weapon/Weak Spot heroes + 6 chips (Closest ATP, Engine, Tempo, Stamina, Clutch, Variety)
+- [x] §3 The numbers that define you — 4 dynamic outlier cards, dual encoding
+- [x] §4 Your strokes — 4 stats + depth + W/E ratio + serves + coach read
+- [x] §5 Your moves — tactical playbook with freq/conversion/context/pressure
+- [x] §6 What swings matches — minimal table with N× multiplier + journal/context correlations
+- [x] §7 The big moments — pressure table (BP, deciding sets, tiebreaks, tight matches)
+- [x] §8 How you get to next band — tightened path
+- [x] §9 Matchups — 2-col style cards + clickable rivals
+- [ ] §10 See all stats — refactor JDStats: ATP→UTR band, deduplicate vs §1–§9
+- [ ] Port preview to real MyGame.tsx
+- [ ] Wire 7 new helpers to real data
+- [ ] Ship
+
+### NEXT — AI Voice Layer (v1.3)
+**Target:** 1–2 weeks after v1.2 ships. See CLUSTERS.md "Cross-cluster: AI Voice Layer" for full spec.
+- [ ] Replace template verdict (§1) with AI-generated
+- [ ] Replace template coach reads (§4, §6, §7) with AI-generated
+- [ ] `POST /api/coaching-read` endpoint with caching
+- [ ] Template fallback for API failures
 
 ---
 
