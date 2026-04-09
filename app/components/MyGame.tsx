@@ -770,23 +770,74 @@ export default function MyGame({ matches, avgs }: MyGameProps) {
       {/* ══════════════════════════════════════════════════════════════════
           S5 . YOUR MOVES -- gated on has_shot_data
           ══════════════════════════════════════════════════════════════════ */}
-      {!hasShotData ? (
-        <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 28 }}>
-          <SH>Your moves</SH>
-          <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
-            Log matches with SwingVision xlsx to unlock your tactical playbook.
-          </div>
-        </div>
-      ) : (
-        <div style={{ marginBottom: 28 }}>
-          <SH sub={<>your tactical playbook · N={matches.filter(m => (m as any).has_shot_data).length} matches with shot data</>}>Your moves</SH>
-          <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16 }}>
+      {(() => {
+        // Aggregate top_patterns from all matches with shot data
+        const allPatterns: { label: string; count: number; pctOfWinners: number; star: boolean }[] = []
+        const patternCounts: Record<string, number> = {}
+        let totalWinners = 0
+        const shotMatches = matches.filter(m => (m as any).has_shot_data)
+        for (const m of shotMatches) {
+          const pats = (m.shot_stats as any)?.top_patterns
+          const tw = (m.shot_stats as any)?.total_winners_from_patterns ?? 0
+          totalWinners += tw
+          if (Array.isArray(pats)) {
+            for (const p of pats) {
+              patternCounts[p.label] = (patternCounts[p.label] || 0) + p.count
+            }
+          }
+        }
+        const sorted = Object.entries(patternCounts)
+          .map(([label, count]) => ({ label, count, pctOfWinners: totalWinners > 0 ? Math.round((count / totalWinners) * 100) : 0, star: false }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+        if (sorted.length > 0) sorted[0].star = true
+
+        if (!hasShotData) return (
+          <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 28 }}>
+            <SH>Your moves</SH>
             <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
-              Pattern detection coming in v1.3 — needs D1 precompute. Shot data logged for {matches.filter(m => (m as any).has_shot_data).length} matches.
+              Log matches with SwingVision xlsx to unlock your tactical playbook.
             </div>
           </div>
-        </div>
-      )}
+        )
+
+        if (sorted.length === 0) return (
+          <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 28 }}>
+            <SH>Your moves</SH>
+            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
+              Shot data logged for {shotMatches.length} matches but no winner patterns detected yet.
+            </div>
+          </div>
+        )
+
+        return (
+          <div style={{ marginBottom: 28 }}>
+            <SH sub={<>your tactical playbook · N={shotMatches.length} matches</>}>Your moves</SH>
+            <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '4px 0' }}>
+              {sorted.map((m, i) => (
+                <div key={i} style={{ padding: '14px 14px', borderTop: i > 0 ? `1px solid ${BORDER}` : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    {m.star && <span style={{ color: GOLD, fontSize: 12 }}>★</span>}
+                    <span style={{ fontSize: 13, color: WHITE, fontWeight: 700, flex: 1 }}>{m.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 4 }}>
+                    <div>
+                      <span style={{ fontSize: 18, fontFamily: FD, fontWeight: 700, color: m.star ? GOLD : WHITE }}>{m.pctOfWinners}%</span>
+                      <span style={{ fontSize: 8, fontFamily: FD, color: '#555', marginLeft: 3 }}>of winners</span>
+                    </div>
+                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                      <span style={{ fontSize: 18, fontFamily: FD, fontWeight: 700, color: '#777' }}>×{m.count}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 10, fontSize: 9, fontFamily: FD, color: '#555' }}>
+              <span>% of winners = frequency across {shotMatches.length} matches</span>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ══════════════════════════════════════════════════════════════════
           S6 . WHAT SWINGS MATCHES -- minimal table
