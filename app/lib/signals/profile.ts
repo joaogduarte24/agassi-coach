@@ -311,17 +311,10 @@ export function computeOpponentProfiles(
       }
     }
 
-    // Mismatch detection: compare data-derived style with journal
-    let mismatch: string | undefined
-    const journalStyles = opMatches.map(m => m.journal?.opp_style).filter(Boolean)
-    if (journalStyles.length > 0 && style.label !== 'Unknown') {
-      const mostCommonJournal = journalStyles.sort((a, b) =>
-        journalStyles.filter(v => v === b).length - journalStyles.filter(v => v === a).length
-      )[0]
-      if (mostCommonJournal && !style.label.toLowerCase().includes(mostCommonJournal!.toLowerCase().split(' ')[0])) {
-        mismatch = `You logged "${mostCommonJournal}" but the data suggests "${style.label}"`
-      }
-    }
+    // Mismatch detection: journal v2 moved opp_style into the `opponents` table.
+    // This check is now done client-side where the opponents record is available.
+    // Disabled in profile compute until a server-side opponents lookup lands.
+    const mismatch: string | undefined = undefined
 
     profiles[name] = {
       name,

@@ -111,25 +111,49 @@ A match can exist in three states. The UI must handle all three:
   "opp_shots": {serve, return, forehand, backhand (same structure as JD), stats (same as shot_stats), distribution},
   "what_worked": ["string"], "what_didnt": ["string"], "key_number": "string",
   "journal": {
+    // Quick core (6 fields)
     "recovery": 0-100|null,
+    "days_since_last_play": 0-30|null,
+    "opp_difficulty": "Easier than me|Even|Tougher than me|Much tougher|null",
+    "match_vibe": "In flow|Confident|Grinding|Frustrated|Flat|Anxious|null",
+    "decided_by": ["My serve"|"My return"|"My errors"|"Their level"|"Pressure moments"|"Fitness"|"Close margin"|"Their moment"]|null,
+    // Deep · Before
     "match_type": "Practice|League|Tournament|Friendly|null",
     "warmup": "Full|Light|None|null",
-    "opp_difficulty": "Easier than me|Even|Tougher than me|Much tougher|null",
-    "plan_executed": "Yes|Mostly|No|null",
+    "racket": "Wilson Ultra V5 100|...|null",
+    "tension_kg": 15-35|null,
+    "conditions": ["Indoor"|"Outdoor"|"Windy"|"Hot"|"Cold"|"Fast court"|"Slow court"]|null,
+    "pre_confidence": 1-5|null,
+    "expectation": "Expected win|Toss-up|Expected loss|null",
+    "game_plan_text": "string|null",
+    // Deep · After
+    "whoop_strain": 0-21|null,
     "focus": 1-5|null,
     "composure": 1-5|null,
-    "whoop_strain": 0-21|null,
-    "decided_by": ["My serve"|"My return"|"My errors"|"Their level"|"Pressure moments"|"Fitness"|"Luck"]|null,
+    "plan_executed": "Yes|Mostly|No|null",
+    "match_arc_start": "Strong start|Slow start|Even start|null",
+    "match_arc_finish": "Strong finish|Faded|Even finish|null",
+    "momentum": "Came from behind|Let lead slip|Neither|null",
+    "body_state": "Fresh|Tired|Sore|Cramped|Injured|null",
+    "worst_moment": "Frustration|Fear|Complacency|Rage|None|null",
     "priority_next": "Serve %|Reduce UE|Return depth|BP conversion|Footwork|Composure|Aggression|null",
-    "opp_style": "Baseliner|Serve & Volleyer|All-Court|Pusher|Big Server|Moonballer|null",
-    "opp_lefty": true|false|null,
-    "net_game": "Stays back|Comes to net|Chip & charge|null",
-    "mental_game": "Crumbles under pressure|Steady|Ice cold|null",
-    "opp_weapon": "Serve|Forehand|Backhand|Volley|Movement|null",
-    "opp_weakness": "Serve|Backhand|Movement|Second ball|null"
+    "reflection_text": "string|null"
   }
 }
 ```
+
+**Opponent scouting (separate `opponents` table keyed by name):**
+```json
+{
+  "name": "Gonçalo Oliveira",
+  "style": "Baseliner-grinder|Baseliner-aggressive|Serve-volleyer|All-court|Pusher|Big server|Moonballer|null",
+  "weapon": "Serve|Forehand|Backhand|Volley|Movement|Return|null",
+  "weakness": "Serve|Backhand|Movement|Second ball|Mental|null",
+  "notes": "one-line reminder, surfaces in pre-match brief|null",
+  "updated_at": "ISO"
+}
+```
+Pre-fills in the journal form on opponent select. Saved via PUT `/api/opponents`. Journal v2 (2026-04-16) moved opp_style/opp_weapon/opp_weakness/opp_lefty/net_game/mental_game OUT of `matches.journal` into this table. One-off migration available at POST `/api/opponents/migrate`.
 
 ## Supabase Schema
 
@@ -141,6 +165,9 @@ Columns: id(uuid PK), match_id(text FK), player('jd'|'opponent'), shot_number, s
 
 Table: `match_points` — one row per point (~160 rows per match)
 Columns: id(uuid PK), match_id(text FK), point_number, game_number, set_number, serve_state, server('jd'|'opponent'), jd_game_score, opp_game_score, point_winner('jd'|'opponent'), detail, break_point(bool), set_point(bool), duration_seconds, video_time, created_at
+
+Table: `opponents` — one row per opponent (scouting profile)
+Columns: name(text PK), style, weapon, weakness, notes, updated_at. Pre-fills in the journal form via GET `/api/opponents?name=`. Upserted via PUT `/api/opponents`.
 
 **has_shot_data flag:** true when match was uploaded via CSV. Display layer and Debrief check this to show enriched content.
 

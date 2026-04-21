@@ -2,7 +2,7 @@
 
 This is the single source of truth for what's being built, what's next, and what's not happening. Updated after every shipped feature or priority change.
 
-**Last updated:** 2026-04-09
+**Last updated:** 2026-04-16
 
 ---
 
@@ -34,6 +34,20 @@ This is the single source of truth for what's being built, what's next, and what
 ---
 
 ## SHIPPED
+
+### Journal v2 — Quick Core + Deep layer + Opponent profile table ✓
+**Shipped:** 2026-04-16
+- [x] Rebuilt journal form: 6-field Quick Core + collapsible Deep (Before/After) + separate Opponent section
+- [x] New fields: days_since_last_play, match_vibe (6 chips), conditions (multi), pre_confidence, expectation, game_plan_text, match_arc_start/finish, momentum, body_state, worst_moment, reflection_text, racket, tension_kg
+- [x] Racket chip list seeded with "Wilson Ultra V5 100"; pre-fills from last match; `+ add new` grows library
+- [x] Tension pre-fills from last match
+- [x] Opponent scouting moved into new `opponents` table (style/weapon/weakness/notes), pre-filled on opp select
+- [x] "Luck" → "Close margin" in decided_by (auto-rewritten on read, + new "Their moment" chip)
+- [x] `getTiebreakRecord()` helper derived from `score.sets_arr` (no journal field)
+- [x] 6 new correlations in signals/journal.ts (days_since_last_play, tension, pre_confidence, match_vibe, expectation, racket, match_arc_start, body_state)
+- [x] MatchDetailScreen opponent section reads from `/api/opponents` instead of journal JSONB
+- [x] One-off `/api/opponents/migrate` to carry forward historical opp_* values
+- [ ] Follow-up: run `/api/opponents/migrate` on prod once; surface opponent.notes in Next Match pre-match brief
 
 ### Data Analyst v1.1 — UTR band benchmarks + sparklines + Path to next UTR ✓
 **Shipped:** 2026-04-06

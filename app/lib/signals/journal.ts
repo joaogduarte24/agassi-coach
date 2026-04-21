@@ -110,61 +110,77 @@ export function computeJournalCorrelations(matches: Match[]): Signal[] {
 
   const signals: Signal[] = []
 
-  // Recovery score
-  const recovery = numericCorrelation(
-    withJournal, 'recovery', 'Recovery',
-    m => m.journal?.recovery ?? null, true,
-  )
+  // ── NUMERIC CORRELATIONS (median split, "higher is better") ──────────────
+  const recovery = numericCorrelation(withJournal, 'recovery', 'Recovery',
+    m => m.journal?.recovery ?? null, true)
   if (recovery) signals.push(recovery)
 
-  // Composure
-  const composure = numericCorrelation(
-    withJournal, 'composure', 'Composure',
-    m => m.journal?.composure ?? null, true,
-  )
+  const composure = numericCorrelation(withJournal, 'composure', 'Composure',
+    m => m.journal?.composure ?? null, true)
   if (composure) signals.push(composure)
 
-  // Focus
-  const focus = numericCorrelation(
-    withJournal, 'focus', 'Focus',
-    m => m.journal?.focus ?? null, true,
-  )
+  const focus = numericCorrelation(withJournal, 'focus', 'Focus',
+    m => m.journal?.focus ?? null, true)
   if (focus) signals.push(focus)
 
-  // Plan execution (categorical: Yes/Mostly vs No)
-  const planExec = categoricalCorrelation(
-    withJournal, 'plan_executed', 'Game Plan Execution',
+  // Pre-match confidence (journal v2)
+  const preConf = numericCorrelation(withJournal, 'pre_confidence', 'Pre-match Confidence',
+    m => m.journal?.pre_confidence ?? null, true)
+  if (preConf) signals.push(preConf)
+
+  // Days since last play — lower isn't strictly better; we still split on median
+  // and report which side wins. Direction is computed by numericCorrelation
+  // based on the higherIsBetter flag; we flip it for rust vs rhythm.
+  const daysOff = numericCorrelation(withJournal, 'days_since_last_play', 'Days Since Last Play',
+    m => m.journal?.days_since_last_play ?? null, false)
+  if (daysOff) signals.push(daysOff)
+
+  // Tension — numeric; only signal if enough matches carry a value
+  const tension = numericCorrelation(withJournal, 'tension_kg', 'String Tension (kg)',
+    m => m.journal?.tension_kg ?? null, true)
+  if (tension) signals.push(tension)
+
+  // ── CATEGORICAL CORRELATIONS ─────────────────────────────────────────────
+  const planExec = categoricalCorrelation(withJournal, 'plan_executed', 'Game Plan Execution',
     m => {
       const v = m.journal?.plan_executed
       if (!v) return null
       return v === 'Yes' || v === 'Mostly' ? 'Yes/Mostly' : 'No'
-    },
-  )
+    })
   if (planExec) signals.push(planExec)
 
-  // Warmup type
-  const warmup = categoricalCorrelation(
-    withJournal, 'warmup', 'Warmup',
-    m => m.journal?.warmup ?? null,
-  )
+  const warmup = categoricalCorrelation(withJournal, 'warmup', 'Warmup',
+    m => m.journal?.warmup ?? null)
   if (warmup) signals.push(warmup)
 
-  // Opp difficulty
-  const oppDiff = categoricalCorrelation(
-    withJournal, 'opp_difficulty', 'Opponent Difficulty',
-    m => m.journal?.opp_difficulty ?? null,
-  )
+  const oppDiff = categoricalCorrelation(withJournal, 'opp_difficulty', 'Opponent Difficulty',
+    m => m.journal?.opp_difficulty ?? null)
   if (oppDiff) signals.push(oppDiff)
 
-  // Lefty/righty
-  const leftyMatches = withJournal.filter(m => m.journal?.opp_lefty != null)
-  if (leftyMatches.length >= 4) {
-    const lefty = categoricalCorrelation(
-      leftyMatches, 'opp_lefty', 'Opponent Handedness',
-      m => m.journal?.opp_lefty ? 'Lefty' : 'Righty',
-    )
-    if (lefty) signals.push(lefty)
-  }
+  // Match vibe (journal v2) — how JD felt during the match
+  const vibe = categoricalCorrelation(withJournal, 'match_vibe', 'Match Vibe',
+    m => m.journal?.match_vibe ?? null)
+  if (vibe) signals.push(vibe)
+
+  // Expectation (journal v2) — pressure vs skill gap
+  const expect = categoricalCorrelation(withJournal, 'expectation', 'Expectation',
+    m => m.journal?.expectation ?? null)
+  if (expect) signals.push(expect)
+
+  // Racket (journal v2) — per-racket win rate
+  const racket = categoricalCorrelation(withJournal, 'racket', 'Racket',
+    m => m.journal?.racket ?? null)
+  if (racket) signals.push(racket)
+
+  // Match arc — start tendency
+  const arcStart = categoricalCorrelation(withJournal, 'match_arc_start', 'Match Start',
+    m => m.journal?.match_arc_start ?? null)
+  if (arcStart) signals.push(arcStart)
+
+  // Body state
+  const body = categoricalCorrelation(withJournal, 'body_state', 'Body State',
+    m => m.journal?.body_state ?? null)
+  if (body) signals.push(body)
 
   // Decided-by frequency (not a correlation — a frequency analysis)
   const decidedCounts: Record<string, number> = {}

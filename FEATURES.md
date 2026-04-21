@@ -4,6 +4,122 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Journal v2 — Quick Core + Deep + Opponent profile
+**Shipped:** 2026-04-16
+**Files:**
+- `app/types.ts` — new Journal shape + new `Opponent` type
+- `app/components/UploadMatch.tsx` — rebuilt `useJournalFields` hook + `JournalForm` + `RacketField`, pre-fill effects
+- `app/api/matches/route.ts` — auto-rewrite legacy `decided_by: "Luck"` → `"Close margin"` on read
+- `app/api/opponents/route.ts` — NEW: GET list + GET by name + PUT upsert
+- `app/api/opponents/migrate/route.ts` — NEW: one-off migration of per-match opp_* fields into the opponents table
+- `app/lib/signals/journal.ts` — 6 new correlations (days since last play, tension, pre-match confidence, match vibe, expectation, racket, match arc start, body state)
+- `app/lib/helpers.tsx` — new `getTiebreakRecord(sets_arr)` derived from score, removes need for a journal field
+- `app/components/MatchDetailScreen.tsx` — opponent section now fetches from `/api/opponents` instead of journal
+- `app/lib/signals/profile.ts` — mismatch check disabled (needs server-side opponents lookup to return)
+- `supabase-schema.sql` — new `opponents` table, migration notes
+
+**Why it was broken**
+The old journal had 16 fields across 3 sections (Before / After / Opponent). Only 8 of those fields ever drove a win/loss correlation; the 6 per-match Opponent fields (style, weapon, weakness, handedness, net game, mental) never produced lift at N≈30 because they duplicated every match and had 4–6 categories each. Meanwhile the journal was missing every emotional signal (mood, confidence, expectation), physical context (conditions, racket, tension, rest days), and tactical arc (start/finish, momentum, body state). "Plan executed: Yes/Mostly/No" was answered in a vacuum without a recorded plan. "Decided by: Luck" was a self-pitying cop-out polluting loss attribution.
+
+**What changed**
+1. **Two-tier structure.** Quick core = 6 required-feel fields covering ~20 sec; Deep = collapsible optional Before/After with ~19 more fields. Focus + Composure moved into Deep — they overlap with the new Match Vibe chip.
+2. **Match Vibe = the one in-match emotional field.** Six chips (In flow / Confident / Grinding / Frustrated / Flat / Anxious). JD rejected pre-match mood in favour of this because the during-match feel is what you actually carry off the court — pre-match is speculation-prone.
+3. **Racket + tension** pre-fill from the most recent journaled match. Racket is a chip list that starts seeded with "Wilson Ultra V5 100" and grows via a "+ add new" button. JD picked racket + tension (skipped strings and restring-date per v2.0 review).
+4. **Opponent profile table.** 3 scouting fields + notes moved out of journal JSONB into new `opponents` table, keyed by name, pre-filled when JD selects the opponent at match creation. Surfaces in pre-match brief (Next Match tab) — that UI integration is a follow-up ship, the storage lands first.
+5. **Game plan text field** (one line) unlocks the "Did you stick to the plan?" chip. Without a declared plan, the "plan executed" question is hidden because it's meaningless.
+6. **Decided-by** drops "Luck", adds "Close margin" + "Their moment". Existing "Luck" values are rewritten to "Close margin" on read in `dbToMatch`.
+7. **Tiebreak record** computed from `score.sets_arr` in `getTiebreakRecord()` — any 7-6 set is a JD win, any 6-7 is a loss. No journal field needed.
+
+**What was cut**
+- `opp_lefty`, `net_game`, `mental_game` — low signal at N=30, handedness rarely changes, net_game correlates with style, mental_game is too 3-valued to discriminate
+- Tiebreak journal field (derivable)
+- "Luck" chip
+- String type, restring-date tracking (JD explicitly chose racket + tension only — revisit once racket/tension correlations prove out)
+
+**What was left out of v1 on purpose**
+- Pre-match brief UI integration (the opponent `notes` field is stored but not yet surfaced on the Next Match screen — separate ship)
+- Automatic weather-based conditions detection
+- Signal cards on My Game for the new correlations (engine computes them; surfacing them follows the usual cluster gate)
+- Match-length auto-fill from xlsx `match_points.duration_seconds` sum (journal still captures implicitly via body state)
+
+**Migration**
+Existing data survives in full. On read, `"Luck"` is auto-rewritten. The opp_* fields in old journals are ignored by the new form but remain in the JSONB. A one-off POST to `/api/opponents/migrate` moves each opponent's most-recent non-null `opp_style/opp_weapon/opp_weakness` into the `opponents` table. Idempotent — safe to re-run.
+
+**Left for a follow-up**
+- Call `/api/opponents/migrate` once on prod after next deploy
+- Surface `opponent.notes` and `opponent.weapon/weakness` on Next Match tab
+- Re-enable profile `mismatch` check with a server-side opponents read in `computeSignals`
+
+---
+
+## Spin data correction — screenshot is now the only source of truth
+**Shipped:** 2026-04-16
+**Files:** `app/lib/parseSwingVision.ts` (removed spin from xlsx-extras), `app/api/extract/route.ts` (explicit instruction for Shot Spin Distribution section), `app/api/backfill-spin/route.ts` (one-off Claude-OCR route, ran once, deleted), DB rows patched directly
+
+**Why it was broken**
+The earlier "Shot Mix restored" fix (same day) used the xlsx `Spin` column to populate `flat_pct / topspin_pct / slice_pct` in `shot_stats`. JD flagged 24% career slice as implausibly high. Stress-test against the SwingVision app's own summary for Mar 27 Gonçalo proved the xlsx Spin column is not what SwingVision displays:
+
+| Spin | Our xlsx-derived | SwingVision app | Gap |
+|---|---|---|---|
+| Flat | 40.6% | 41.9% | ≈ |
+| Topspin | 20.8% | 46.0% | 2.2× under |
+| Slice | 33.6% | 12.1% | **2.8× over** |
+
+Speed/contact-height distributions of xlsx-labeled "slice" vs "topspin" overlap completely. A real slice is slower than a drive; our "slices" had median 60 km/h vs flat 52 km/h — backwards. No threshold separates real from mislabeled. Verdict: the raw xlsx `Spin` column is roughly noise at ~30% signal; SwingVision runs a different (correct) classifier for its app summary that isn't exported.
+
+**What changed**
+1. **Removed `topspin_pct / flat_pct / slice_pct` from `shot_stats_extras`** in `parseSwingVision.ts`. xlsx no longer contributes these fields on any upload. Only source of truth is the "Shot Spin Distribution" section on the JD Shots screenshot.
+2. **Extract prompt strengthened** in `/api/extract/route.ts` with an explicit callout for the Shot Spin Distribution section ("horizontal stacked bar near bottom … YOU MUST capture all three").
+3. **Nulled the wrong values** for all 5 matches in DB (JD + opp spin).
+4. **Claude OCR backfill for the 4 available screenshots**, then manual correction because OCR hallucinated on 2 of 4 (returned Mar 27's values for Mar 29, partially wrong on Mar 15). Manually verified and patched:
+   - Mar 15 → Flat 53.4 / Topspin 35.3 / Slice 11.3
+   - Mar 23 → Flat 46.8 / Topspin 42.5 / Slice 10.8 *(first screenshot was "Loading…", JD re-uploaded)*
+   - Mar 27 → Flat 41.9 / Topspin 46.0 / Slice 12.1
+   - Mar 29 → Flat 55.2 / Topspin 32.1 / Slice 12.7
+   - Apr 2 Karim → null (no screenshot on disk)
+5. **Shot Mix card in My Game** now shows career Topspin **39%** / Flat **49%** / Slice **12%** — matches JD's gut.
+
+**What was left out**
+- Per-stroke slice % (FH slice %, BH slice %) — SwingVision shows it somewhere but not on the summary screenshot. Overall slice % only for now.
+- `match_shots.spin` per-row data kept as-is despite being noisy. Downstream signals (pattern detection, coach reads) that consume it weren't audited here — deferred to a separate pass.
+- Apr 2 Karim spin stays null pending screenshot upload.
+- Backfill-OCR route not kept in repo — Claude's OCR proved unreliable on same-template images (hallucinated 2/4). For future one-offs, read the screenshot in a review tool and enter the values by hand. Going-forward pipeline (extract/route.ts on new uploads) has a stronger prompt, but accuracy should still be spot-checked.
+
+**Retractions from earlier in the session**
+- The "flat-slice baseliner" racket-profile framing was based on bad data. True profile is a ~40% topspin / ~49% flat / ~12% slice baseliner — closer to a modern-ish classical baseliner than a slice-heavy player. Blade 98 18x20 recommendation should be demoted in favour of 16x19 patterns (Blade 98 16x19 v9, Pure Strike 98 16x19) that match real topspin usage. Racket rec is not a shipped feature — just flagging the reversal.
+
+---
+
+## Shot Mix restored in My Game · CSV merge bug fixed · legacy rows backfilled
+**Shipped:** 2026-04-16
+**Files:** `app/lib/parseSwingVision.ts` (wider public API), `app/api/matches/[id]/upload-csv/route.ts` (merge opp stats+distribution + fill-null semantics), `app/components/MyGame.tsx` (new Shot Mix section between Your Strokes and Your Moves), `app/api/backfill-stats/route.ts` (one-off, ran once, deleted)
+
+**Why it was broken**
+JD asked where his topspin % lives in the app. Investigation found three compounding issues:
+1. `shot_stats.topspin_pct / flat_pct / slice_pct / volley_pct / total_shots / max_ball_spd` were **null in every match** (5/5) — plus the entire `opp_shots.stats` and `opp_shots.distribution` objects.
+2. Root cause: `upload-csv/route.ts:55-69` only merged `xlsxExtras.shot_stats_extras` + `opp_serve_direction` back into the DB. The full `shot_stats` and `opp_shots.stats/distribution` that `parseSwingVision.ts` already computes (lines 513-596) were **thrown away**. Screenshots were supposed to be ground truth for these fields, but the Match Stats screenshot doesn't actually display spin % — so nothing ever wrote them.
+3. My Game v1.2 dropped the old "Shot Mix" section that existed in JDStats. Even if the data had been populated, there was no surface in the live tab to see it.
+
+**What changed**
+- `parseSwingVision.ts`: added `volley_pct / flat_pct / topspin_pct / slice_pct / total_shots / max_ball_spd` to `xlsxExtras.shot_stats_extras`, and a new `xlsxExtras.opp_shots_full` key exposing `opp_shots.stats` + `opp_shots.distribution`. Previously these computed values were discarded at the return boundary.
+- `upload-csv/route.ts`: `opp_shots_full` now flows into `mergedOppShots` with a `fillNulls` helper — keeps non-null screenshot values, fills only nulls/missing from xlsx. Plain spread was insufficient because existing rows had explicit `null` keys that a normal spread preserves.
+- `MyGame.tsx`: added S4.5 "Shot Mix" section between Your Strokes and Your Moves. Two SegBars (Shot Types: FH/BH/Volley, Spin: Topspin/Flat/Slice) weighted by `total_shots` across matches with `has_shot_data`. Sub-label shows tracked-match count. Inline `SegBar` (not imported from JDStats) so the section is self-contained.
+- One-off `app/api/backfill-stats/route.ts` ran once against all 5 legacy matches, derived all missing fields from the raw `match_shots` + `match_points` rows using the same formulas as `parseSwingVision`, deep-merged without overwriting non-null values, then was deleted.
+
+**Result** — JD's career Topspin 27% · Flat 44% · Slice 24% now visible in My Game. Per-match Topspin % bar also renders in MatchDetailScreen Distribution card for all 5 matches. Future CSV uploads won't recreate the null problem.
+
+**Left out**
+- `first_serve_pct_dist` / `second_serve_pct_dist` — these are visual distribution categories the Match Stats screenshot extraction prompt defines but that SwingVision doesn't actually show in an extractable way. Not derivable from raw shots. Skipped.
+- `set_pts_saved_n/total` — requires inferring which side faces each `set_point` from score context. Parser doesn't compute it; kept null for now.
+- Didn't iterate on Shot Mix design beyond the first pass — JD's feedback memory says preview first, but this was a restore of an existing concept rather than new design. Can iterate on visual treatment if needed.
+
+**Validation**
+- `npm run build` clean
+- Screenshot proof: My Game tab shows Shot Mix card with 5 tracked matches; Topspin 27% / Flat 44% / Slice 24%
+- DB verified post-backfill: all 5 matches have non-null spin/distribution/opp-stats
+
+---
+
 ## My Game v1.2 — full redesign
 **Shipped:** 2026-04-09
 **Files:** `app/components/MyGame.tsx` (rewrite), `app/lib/signals/closestAtp.ts` `stamina.ts` `tempo.ts` `variety.ts` `outliers.ts` `verdict.ts` `patterns.ts` `coachReads.ts` (all new), `app/api/matches/[id]/upload-csv/route.ts` (pattern precompute), `lib/atp-players.ts` (extended to top 20), `CLUSTERS.md` `ROADMAP.md` `DATA-GAPS.md` (updated)

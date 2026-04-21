@@ -123,7 +123,28 @@ insert into user_profile (id, display_name, utr, utr_updated_at)
   values ('jd', 'JD', 3.2, current_date)
   on conflict (id) do nothing;
 
+-- ─── opponents ────────────────────────────────────────────────────────────────
+-- One row per opponent. Stores scouting fields that don't change match-to-match
+-- (style, weapon, weakness, freeform notes). Pre-fills in the journal form the
+-- next time JD plays that opponent. Surfaces in the pre-match brief.
+-- Keyed by opponent_name (trimmed). Updated via PUT /api/opponents.
+create table if not exists opponents (
+  name         text primary key,
+  style        text,
+  weapon       text,
+  weakness     text,
+  notes        text,
+  updated_at   timestamptz default now()
+);
+
+alter table opponents enable row level security;
+create policy "Allow all" on opponents for all using (true) with check (true);
+
 -- ─── Migrations (run if upgrading from an earlier schema) ─────────────────────
 alter table matches add column if not exists opp_shots jsonb;
 alter table matches add column if not exists journal jsonb;
 alter table matches add column if not exists has_shot_data boolean default false;
+
+-- Journal v2 (2026-04-16): opp_* keys moved out of matches.journal into opponents
+-- table. Migration is one-off via POST /api/opponents/migrate. "Luck" values in
+-- decided_by arrays auto-rewritten to "Close margin" on read (see dbToMatch).

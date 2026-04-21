@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { G, R, A, B, col, fmtDate, matchState, FONT_BODY, FONT_DATA, FONT_DISPLAY, BG, BG2, BG3, BORDER, BORDER2, WHITE, MUTED, DIM, GOLD } from '@/app/lib/helpers'
-import type { Match, Avgs } from '@/app/types'
+import type { Match, Avgs, Opponent } from '@/app/types'
 import { diagnoseMatch } from '@/app/lib/signals/diagnosis'
 import { pickKeyStats } from '@/app/lib/signals/keyStats'
 import { computeSignals } from '@/app/lib/signals/compute'
@@ -107,6 +107,7 @@ export default function MatchDetailScreen({ match: m, avgs, allMatches, onBack, 
   const [showStats, setShowStats] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [opponent, setOpponent] = useState<Opponent | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const isWin = m.score?.winner === 'JD'
@@ -118,6 +119,19 @@ export default function MatchDetailScreen({ match: m, avgs, allMatches, onBack, 
   const opp = m.opp_shots as any
   const j = m.journal
   const record = h2h(allMatches, m.opponent?.name || '')
+
+  // Fetch opponent scouting profile (style/weapon/weakness/notes). Source of
+  // truth after journal v2 — formerly lived on match.journal.opp_*.
+  useEffect(() => {
+    const name = m.opponent?.name?.trim()
+    if (!name) return
+    let cancelled = false
+    fetch(`/api/opponents?name=${encodeURIComponent(name)}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setOpponent(d?.opponent ?? null) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [m.opponent?.name])
 
   const diagnosis = useMemo(() => diagnoseMatch(m, allMatches), [m, allMatches])
   const signals = useMemo(() => computeSignals(allMatches), [allMatches])
@@ -269,19 +283,20 @@ export default function MatchDetailScreen({ match: m, avgs, allMatches, onBack, 
             </div>
           )}
 
-          {/* ── 6. Opponent ───────────────────────────────────────────── */}
-          {(j?.opp_style || opp) && (
+          {/* ── 6. Opponent profile (from opponents table) ────────────── */}
+          {(opponent?.style || opponent?.weapon || opponent?.weakness || opponent?.notes || opp) && (
             <div style={{ marginBottom: 24 }}>
               <SH>Opponent</SH>
-              {j?.opp_style && (
-                <div style={{ fontSize: 12, fontFamily: FD, color: '#888', marginBottom: 8 }}>
-                  {j.opp_style}{j.opp_lefty ? ' · Lefty' : ' · Right'}{j.mental_game ? ` · ${j.mental_game}` : ''}
-                </div>
+              {opponent?.style && (
+                <div style={{ fontSize: 12, fontFamily: FD, color: '#888', marginBottom: 8 }}>{opponent.style}</div>
               )}
-              <div style={{ display: 'flex', gap: 24 }}>
-                {j?.opp_weapon && <div><span style={{ fontSize: 10, color: MUTED }}>Weapon </span><span style={{ fontSize: 12, color: A }}>{j.opp_weapon}</span></div>}
-                {j?.opp_weakness && <div><span style={{ fontSize: 10, color: MUTED }}>Weakness </span><span style={{ fontSize: 12, color: G }}>{j.opp_weakness}</span></div>}
+              <div style={{ display: 'flex', gap: 24, marginBottom: opponent?.notes ? 8 : 0 }}>
+                {opponent?.weapon && <div><span style={{ fontSize: 10, color: MUTED }}>Weapon </span><span style={{ fontSize: 12, color: A }}>{opponent.weapon}</span></div>}
+                {opponent?.weakness && <div><span style={{ fontSize: 10, color: MUTED }}>Weakness </span><span style={{ fontSize: 12, color: G }}>{opponent.weakness}</span></div>}
               </div>
+              {opponent?.notes && (
+                <div style={{ fontSize: 12, color: '#aaa', fontFamily: FB, lineHeight: 1.5, fontStyle: 'italic' as const }}>"{opponent.notes}"</div>
+              )}
             </div>
           )}
 

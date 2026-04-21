@@ -55,6 +55,20 @@ function toSetsArr(v: any): [number, number][] | null {
   })
 }
 
+// Journal v2 migration: "Luck" values in decided_by arrays are rewritten to
+// "Close margin" on read. Safe because old taxonomy → new taxonomy is 1:1.
+function migrateJournal(j: any): any {
+  if (!j) return j
+  if (Array.isArray(j.decided_by)) {
+    j = { ...j, decided_by: j.decided_by.map((v: string) => v === 'Luck' ? 'Close margin' : v) }
+  } else if (j.decided_by && typeof j.decided_by === 'object') {
+    // Supabase JSONB array-as-object quirk
+    const arr = Object.values(j.decided_by).filter((x): x is string => typeof x === 'string')
+    j = { ...j, decided_by: arr.map(v => v === 'Luck' ? 'Close margin' : v) }
+  }
+  return j
+}
+
 function dbToMatch(row: any) {
   return {
     id: row.id,
@@ -71,7 +85,7 @@ function dbToMatch(row: any) {
     what_worked: toArr(row.what_worked),
     what_didnt: toArr(row.what_didnt),
     key_number: row.key_number,
-    journal: row.journal ?? null,
+    journal: migrateJournal(row.journal ?? null),
     has_shot_data: row.has_shot_data ?? false,
   }
 }

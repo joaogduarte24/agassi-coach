@@ -2,7 +2,7 @@
 
 Tracks every data point that exists in the database but is **not yet shown, analyzed, or used** in any UI component or signal computation. This is the backlog for Cluster B (Visualisation) and future intelligence work.
 
-**Last updated:** 2026-04-07 (My Game v1.2 helpers built — see below)
+**Last updated:** 2026-04-16 (Journal v2 — new fields stored, most not yet surfaced)
 
 ---
 
@@ -28,8 +28,34 @@ Six pure-function helpers were built offline for the v1.2 redesign and are wired
 
 **Still gated / future:**
 - `match_shots` raw rows in production — patterns helper exists but no UI fetches the rows yet (deferred to shot-pattern UI in §5).
-- `journal.whoop_strain`, `journal.net_game`, `journal.mental_game` — still untouched.
+- `journal.whoop_strain` — still untouched.
 - Opponent style matchup aggregation — planned for §8 tomorrow.
+
+---
+
+## 2026-04-16 update — Journal v2 fields stored, not surfaced
+
+Journal v2 added ~15 new fields that the new form captures but which no UI or signal other than raw correlation output uses yet:
+
+| Field | Stored in | Surfaced? |
+|---|---|---|
+| `journal.days_since_last_play` | matches.journal | Correlation only |
+| `journal.match_vibe` | matches.journal | Correlation only |
+| `journal.conditions[]` | matches.journal | Correlation ignored (multi not supported yet) |
+| `journal.pre_confidence` | matches.journal | Correlation only |
+| `journal.expectation` | matches.journal | Correlation only |
+| `journal.game_plan_text` | matches.journal | Not surfaced |
+| `journal.match_arc_start / match_arc_finish` | matches.journal | Start correlation only |
+| `journal.momentum` | matches.journal | Not surfaced |
+| `journal.body_state` | matches.journal | Correlation only |
+| `journal.worst_moment` | matches.journal | Not surfaced |
+| `journal.reflection_text` | matches.journal | Not surfaced |
+| `journal.racket` | matches.journal | Correlation only |
+| `journal.tension_kg` | matches.journal | Correlation only |
+| `opponents.notes` | opponents table | Not surfaced (needs Next Match brief integration) |
+| `opponents.style/weapon/weakness` | opponents table | Surfaced on MatchDetail only |
+
+**Fields removed from journal (moved to opponents table):** opp_style, opp_lefty, net_game, mental_game, opp_weapon, opp_weakness.
 
 ---
 
@@ -79,6 +105,8 @@ These are 800+ rows per match in `match_shots`. Richest untapped data source.
 
 **Opponent distribution fields** (all 6 stored, none shown):
 - `first_serve_pct`, `second_serve_pct`, `volley_pct`, `flat_pct`, `topspin_pct`, `slice_pct`
+
+**2026-04-16 update:** JD's `flat_pct / topspin_pct / slice_pct / volley_pct` now shown in the new **Shot Mix** card on My Game (career weighted by `total_shots`). Per-match Topspin % / Slice % also visible in MatchDetailScreen Distribution card. Opp distribution + opp_shots.stats still stored-not-shown except in MatchDetail's 3-way comparison bars.
 
 **What this unlocks:** Full opponent scouting panels, opponent weakness identification from data (not just journal), cross-match opponent trend analysis.
 

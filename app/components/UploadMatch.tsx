@@ -106,68 +106,169 @@ const SH = ({ children }: { children: React.ReactNode }) => (
 )
 
 // ─── JOURNAL FIELDS HOOK ──────────────────────────────────────────────────────
+// Journal v2: 6-field Quick core + Deep layer (Before + After) + separate Opponent
+// profile that saves to the `opponents` table instead of the journal JSONB.
 function useJournalFields() {
+  // ── Quick core ────────────────────────────────────────────────────────────
   const [recoveryPct, setRecoveryPct] = useState('')
+  const [daysSinceLastPlay, setDaysSinceLastPlay] = useState('')
+  const [oppDifficulty, setOppDifficulty] = useState('')
+  const [matchVibe, setMatchVibe] = useState('')
+  const [decidedBy, setDecidedBy] = useState<string[]>([])
+
+  // ── Deep · Before ─────────────────────────────────────────────────────────
   const [matchType, setMatchType] = useState('')
   const [warmup, setWarmup] = useState('')
-  const [oppDifficulty, setOppDifficulty] = useState('')
-  const [planExecuted, setPlanExecuted] = useState('')
+  const [racket, setRacket] = useState('')
+  const [tensionKg, setTensionKg] = useState('')
+  const [conditions, setConditions] = useState<string[]>([])
+  const [preConfidence, setPreConfidence] = useState(0)
+  const [expectation, setExpectation] = useState('')
+  const [gamePlanText, setGamePlanText] = useState('')
+
+  // ── Deep · After ──────────────────────────────────────────────────────────
+  const [whoopStrain, setWhoopStrain] = useState('')
   const [focus, setFocus] = useState(0)
   const [composure, setComposure] = useState(0)
-  const [whoopStrain, setWhoopStrain] = useState('')
-  const [decidedBy, setDecidedBy] = useState<string[]>([])
+  const [planExecuted, setPlanExecuted] = useState('')
+  const [matchArcStart, setMatchArcStart] = useState('')
+  const [matchArcFinish, setMatchArcFinish] = useState('')
+  const [momentum, setMomentum] = useState('')
+  const [bodyState, setBodyState] = useState('')
+  const [worstMoment, setWorstMoment] = useState('')
   const [priorityNext, setPriorityNext] = useState('')
+  const [reflectionText, setReflectionText] = useState('')
+
+  // ── Opponent profile (saves to opponents table) ───────────────────────────
   const [oppStyle, setOppStyle] = useState('')
-  const [oppLefty, setOppLefty] = useState('')
-  const [netGame, setNetGame] = useState('')
-  const [mentalGame, setMentalGame] = useState('')
   const [oppWeapon, setOppWeapon] = useState('')
   const [oppWeakness, setOppWeakness] = useState('')
+  const [oppNotes, setOppNotes] = useState('')
 
   const reset = () => {
-    setRecoveryPct(''); setMatchType(''); setWarmup('')
-    setOppDifficulty(''); setPlanExecuted(''); setFocus(0); setComposure(0); setWhoopStrain('')
-    setDecidedBy([]); setPriorityNext('')
-    setOppStyle(''); setOppLefty(''); setNetGame(''); setMentalGame(''); setOppWeapon(''); setOppWeakness('')
+    setRecoveryPct(''); setDaysSinceLastPlay(''); setOppDifficulty(''); setMatchVibe(''); setDecidedBy([])
+    setMatchType(''); setWarmup(''); setRacket(''); setTensionKg(''); setConditions([])
+    setPreConfidence(0); setExpectation(''); setGamePlanText('')
+    setWhoopStrain(''); setFocus(0); setComposure(0); setPlanExecuted('')
+    setMatchArcStart(''); setMatchArcFinish(''); setMomentum(''); setBodyState('')
+    setWorstMoment(''); setPriorityNext(''); setReflectionText('')
+    setOppStyle(''); setOppWeapon(''); setOppWeakness(''); setOppNotes('')
   }
 
   const toData = () => ({
+    // quick core
     recovery: recoveryPct !== '' ? Number(recoveryPct) : null,
+    days_since_last_play: daysSinceLastPlay !== '' ? Number(daysSinceLastPlay) : null,
+    opp_difficulty: oppDifficulty || null,
+    match_vibe: matchVibe || null,
+    decided_by: decidedBy.length ? decidedBy : null,
+    // deep before
     match_type: matchType || null,
     warmup: warmup || null,
-    opp_difficulty: oppDifficulty || null,
-    plan_executed: planExecuted || null,
+    racket: racket || null,
+    tension_kg: tensionKg !== '' ? Number(tensionKg) : null,
+    conditions: conditions.length ? conditions : null,
+    pre_confidence: preConfidence || null,
+    expectation: expectation || null,
+    game_plan_text: gamePlanText.trim() || null,
+    // deep after
+    whoop_strain: whoopStrain !== '' ? Number(whoopStrain) : null,
     focus: focus || null,
     composure: composure || null,
-    whoop_strain: whoopStrain !== '' ? Number(whoopStrain) : null,
-    decided_by: decidedBy.length ? decidedBy : null,
+    plan_executed: planExecuted || null,
+    match_arc_start: matchArcStart || null,
+    match_arc_finish: matchArcFinish || null,
+    momentum: momentum || null,
+    body_state: bodyState || null,
+    worst_moment: worstMoment || null,
     priority_next: priorityNext || null,
-    opp_style: oppStyle || null,
-    opp_lefty: oppLefty === 'yes' ? true : oppLefty === 'no' ? false : null,
-    net_game: netGame || null,
-    mental_game: mentalGame || null,
-    opp_weapon: oppWeapon || null,
-    opp_weakness: oppWeakness || null,
+    reflection_text: reflectionText.trim() || null,
   })
 
-  const beforeAnswered = [recoveryPct, matchType, warmup].filter(Boolean).length
-  const afterAnswered = [oppDifficulty, planExecuted, focus, composure, whoopStrain, decidedBy.length > 0 ? 1 : 0, priorityNext].filter(Boolean).length
-  const oppAnswered = [oppStyle, oppLefty, netGame, mentalGame, oppWeapon, oppWeakness].filter(Boolean).length
+  const toOppData = () => ({
+    style: oppStyle || null,
+    weapon: oppWeapon || null,
+    weakness: oppWeakness || null,
+    notes: oppNotes.trim() || null,
+  })
+
+  const quickAnswered = [recoveryPct, daysSinceLastPlay, oppDifficulty, matchVibe, decidedBy.length > 0 ? 1 : 0].filter(Boolean).length
+  const deepAnswered = [
+    matchType, warmup, racket, tensionKg, conditions.length > 0 ? 1 : 0, preConfidence, expectation, gamePlanText.trim(),
+    whoopStrain, focus, composure, planExecuted, matchArcStart, matchArcFinish, momentum, bodyState, worstMoment, priorityNext, reflectionText.trim(),
+  ].filter(Boolean).length
+  const oppAnswered = [oppStyle, oppWeapon, oppWeakness, oppNotes.trim()].filter(Boolean).length
 
   return {
-    fields: { recoveryPct, matchType, warmup, oppDifficulty, planExecuted, focus, composure, whoopStrain, decidedBy, priorityNext, oppStyle, oppLefty, netGame, mentalGame, oppWeapon, oppWeakness },
-    setters: { setRecoveryPct, setMatchType, setWarmup, setOppDifficulty, setPlanExecuted, setFocus, setComposure, setWhoopStrain, setDecidedBy, setPriorityNext, setOppStyle, setOppLefty, setNetGame, setMentalGame, setOppWeapon, setOppWeakness },
-    beforeAnswered, afterAnswered, oppAnswered,
-    reset, toData
+    fields: {
+      recoveryPct, daysSinceLastPlay, oppDifficulty, matchVibe, decidedBy,
+      matchType, warmup, racket, tensionKg, conditions, preConfidence, expectation, gamePlanText,
+      whoopStrain, focus, composure, planExecuted, matchArcStart, matchArcFinish, momentum, bodyState, worstMoment, priorityNext, reflectionText,
+      oppStyle, oppWeapon, oppWeakness, oppNotes,
+    },
+    setters: {
+      setRecoveryPct, setDaysSinceLastPlay, setOppDifficulty, setMatchVibe, setDecidedBy,
+      setMatchType, setWarmup, setRacket, setTensionKg, setConditions, setPreConfidence, setExpectation, setGamePlanText,
+      setWhoopStrain, setFocus, setComposure, setPlanExecuted, setMatchArcStart, setMatchArcFinish, setMomentum, setBodyState, setWorstMoment, setPriorityNext, setReflectionText,
+      setOppStyle, setOppWeapon, setOppWeakness, setOppNotes,
+    },
+    quickAnswered, deepAnswered, oppAnswered,
+    reset, toData, toOppData,
   }
 }
 
+// ─── RACKET CHIP WITH ADD-NEW ────────────────────────────────────────────────
+function RacketField({ value, onChange, known }: { value: string; onChange: (v: string) => void; known: string[] }) {
+  const [addingNew, setAddingNew] = useState(false)
+  const [draft, setDraft] = useState('')
+  if (addingNew) {
+    return (
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input value={draft} onChange={e => setDraft(e.target.value)} placeholder="e.g. Babolat Pure Aero 98"
+          style={{ ...inp(), flex: 1, fontSize: 13 }} autoFocus />
+        <button onClick={() => { if (draft.trim()) { onChange(draft.trim()); setAddingNew(false); setDraft('') } }}
+          style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${GOLD_DIM}`, background: `${GOLD}1a`, color: GOLD, fontSize: 12, cursor: 'pointer', fontFamily: FONT_BODY }}>Save</button>
+        <button onClick={() => { setAddingNew(false); setDraft('') }}
+          style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${BORDER2}`, background: BG2, color: MUTED, fontSize: 12, cursor: 'pointer', fontFamily: FONT_BODY }}>Cancel</button>
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 8, alignItems: 'center' }}>
+      {known.map(r => {
+        const active = value === r
+        return (
+          <button key={r} onClick={() => onChange(value === r ? '' : r)} style={{
+            padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+            border: `1px solid ${active ? GOLD : BORDER2}`,
+            background: active ? `${GOLD}1a` : BG2,
+            color: active ? GOLD : MUTED, cursor: 'pointer', fontFamily: FONT_BODY,
+          }}>{r}</button>
+        )
+      })}
+      <button onClick={() => setAddingNew(true)} style={{
+        padding: '8px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+        border: `1px dashed ${BORDER2}`, background: 'transparent', color: DIM, cursor: 'pointer', fontFamily: FONT_BODY,
+      }}>+ add new</button>
+    </div>
+  )
+}
+
 // ─── JOURNAL FORM ─────────────────────────────────────────────────────────────
-function JournalForm({ j, showResult, result, setResult, scoreStr, setScoreStr }: any) {
-  const { fields, setters, beforeAnswered, afterAnswered, oppAnswered } = j
-  const [beforeOpen, setBeforeOpen] = useState(false)
-  const [afterOpen, setAfterOpen] = useState(true)
+function JournalForm({ j, showResult, result, setResult, scoreStr, setScoreStr, knownRackets }: any) {
+  const { fields, setters, quickAnswered, deepAnswered, oppAnswered } = j
+  const [deepOpen, setDeepOpen] = useState(false)
   const [oppOpen, setOppOpen] = useState(false)
+  const planFilled = !!fields.gamePlanText?.trim()
+
+  const vibeColor = (v: string) => {
+    if (v === 'In flow' || v === 'Confident') return G
+    if (v === 'Grinding') return A
+    return R
+  }
+  const diffColor = fields.oppDifficulty === 'Much tougher' ? '#c084fc'
+    : fields.oppDifficulty === 'Tougher than me' ? '#60a5fa'
+    : fields.oppDifficulty === 'Even' ? GOLD : G
 
   return (
     <div style={{ background: '#111', borderRadius: 14, padding: '4px 16px 8px', border: `1px solid ${BORDER}` }}>
@@ -187,8 +288,12 @@ function JournalForm({ j, showResult, result, setResult, scoreStr, setScoreStr }
         </div>
       )}
 
-      {/* BEFORE */}
-      <JSection title="Before the Match" open={beforeOpen} onToggle={() => setBeforeOpen(v => !v)} answered={beforeAnswered}>
+      {/* ── QUICK CORE (always visible, no toggle) ─────────────────────────── */}
+      <div style={{ padding: '16px 0 4px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <span style={{ fontSize: 10, fontFamily: FONT_BODY, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' as const, color: WHITE }}>Quick Core</span>
+          {quickAnswered > 0 && <span style={{ fontSize: 10, color: G, fontFamily: FONT_DATA, background: 'rgba(74,222,128,0.08)', padding: '2px 7px', borderRadius: 10 }}>{quickAnswered} answered</span>}
+        </div>
         <Q label="Whoop recovery" note="0 – 100%">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="number" min={0} max={100} placeholder="e.g. 74" value={fields.recoveryPct} onChange={e => setters.setRecoveryPct(e.target.value)}
@@ -198,22 +303,59 @@ function JournalForm({ j, showResult, result, setResult, scoreStr, setScoreStr }
             )}
           </div>
         </Q>
+        <Q label="Days since last play" note="0 = played yesterday · 7+ = long break">
+          <input type="number" min={0} max={30} placeholder="e.g. 2" value={fields.daysSinceLastPlay} onChange={e => setters.setDaysSinceLastPlay(e.target.value)}
+            style={{ width: 90, background: BG2, border: `1px solid ${BORDER2}`, borderRadius: 8, padding: '9px 12px', color: WHITE, fontSize: 15, outline: 'none', fontFamily: FONT_BODY }} />
+        </Q>
+        <Q label="How tough was this opponent?">
+          <Chips options={['Easier than me', 'Even', 'Tougher than me', 'Much tougher']} value={fields.oppDifficulty} onChange={setters.setOppDifficulty} color={diffColor} />
+        </Q>
+        <Q label="How I felt during the match" note="pick one">
+          <Chips options={['In flow', 'Confident', 'Grinding', 'Frustrated', 'Flat', 'Anxious']} value={fields.matchVibe} onChange={setters.setMatchVibe} color={vibeColor(fields.matchVibe)} />
+        </Q>
+        <Q label="What decided the match?" note="pick any">
+          <Chips options={['My serve', 'My return', 'My errors', 'Their level', 'Pressure moments', 'Fitness', 'Close margin', 'Their moment']} value={fields.decidedBy} onChange={setters.setDecidedBy} multi />
+        </Q>
+      </div>
+
+      <div style={{ height: 1, background: BORDER }} />
+
+      {/* ── DEEP LAYER (collapsible) ───────────────────────────────────────── */}
+      <JSection title="Deep — optional" open={deepOpen} onToggle={() => setDeepOpen(v => !v)} answered={deepAnswered}>
+        {/* Before */}
+        <div style={{ marginBottom: 18 }}>
+          <SH>Before</SH>
+        </div>
         <Q label="Match type"><Chips options={['Practice', 'League', 'Tournament', 'Friendly']} value={fields.matchType} onChange={setters.setMatchType} /></Q>
         <Q label="Warmup"><Chips options={['Full', 'Light', 'None']} value={fields.warmup} onChange={setters.setWarmup} /></Q>
-      </JSection>
+        <Q label="Racket" note="pre-fills from last match">
+          <RacketField value={fields.racket} onChange={setters.setRacket} known={knownRackets} />
+        </Q>
+        <Q label="String tension" note="kg">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input type="number" min={15} max={35} step={0.5} placeholder="e.g. 23" value={fields.tensionKg} onChange={e => setters.setTensionKg(e.target.value)}
+              style={{ width: 90, background: BG2, border: `1px solid ${BORDER2}`, borderRadius: 8, padding: '9px 12px', color: WHITE, fontSize: 15, outline: 'none', fontFamily: FONT_BODY }} />
+            {fields.tensionKg !== '' && <span style={{ fontSize: 22, fontFamily: FONT_DISPLAY, color: GOLD, letterSpacing: 1 }}>{fields.tensionKg} kg</span>}
+          </div>
+        </Q>
+        <Q label="Conditions" note="pick any">
+          <Chips options={['Indoor', 'Outdoor', 'Windy', 'Hot', 'Cold', 'Fast court', 'Slow court']} value={fields.conditions} onChange={setters.setConditions} multi />
+        </Q>
+        <Q label="Pre-match confidence" note="1 = low · 5 = unshakeable"><Dots value={fields.preConfidence} onChange={setters.setPreConfidence} /></Q>
+        <Q label="Expectation going in">
+          <Chips options={['Expected win', 'Toss-up', 'Expected loss']} value={fields.expectation} onChange={setters.setExpectation}
+            color={fields.expectation === 'Expected win' ? G : fields.expectation === 'Expected loss' ? R : A} />
+        </Q>
+        <Q label="Game plan" note="one line, what you wanted to do">
+          <input value={fields.gamePlanText} onChange={e => setters.setGamePlanText(e.target.value)} maxLength={100}
+            placeholder="e.g. attack BH cross-court, serve wide on ad"
+            style={{ ...inp(), fontSize: 13 }} />
+        </Q>
 
-      {/* AFTER */}
-      <JSection title="After the Match" open={afterOpen} onToggle={() => setAfterOpen(v => !v)} answered={afterAnswered}>
-        <Q label="How tough was this opponent?">
-          <Chips options={['Easier than me', 'Even', 'Tougher than me', 'Much tougher']} value={fields.oppDifficulty} onChange={setters.setOppDifficulty}
-            color={fields.oppDifficulty === 'Much tougher' ? '#c084fc' : fields.oppDifficulty === 'Tougher than me' ? '#60a5fa' : fields.oppDifficulty === 'Even' ? GOLD : G} />
-        </Q>
-        <Q label="Did you execute your game plan?">
-          <Chips options={['Yes', 'Mostly', 'No']} value={fields.planExecuted} onChange={setters.setPlanExecuted}
-            color={fields.planExecuted === 'Yes' ? G : fields.planExecuted === 'No' ? R : A} />
-        </Q>
-        <Q label="Focus during the match" note="1 = scattered · 5 = locked in"><Dots value={fields.focus} onChange={setters.setFocus} /></Q>
-        <Q label="Composure on big points" note="1 = shaky · 5 = ice"><Dots value={fields.composure} onChange={setters.setComposure} /></Q>
+        {/* After */}
+        <div style={{ margin: '24px 0 18px' }}>
+          <SH>After</SH>
+        </div>
         <Q label="Whoop match strain" note="0 – 21">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="number" min={0} max={21} step={0.1} placeholder="e.g. 14.2" value={fields.whoopStrain} onChange={e => setters.setWhoopStrain(e.target.value)}
@@ -223,25 +365,43 @@ function JournalForm({ j, showResult, result, setResult, scoreStr, setScoreStr }
             )}
           </div>
         </Q>
-        <Q label="What decided the match?" note="pick any">
-          <Chips options={['My serve', 'My return', 'My errors', 'Their level', 'Pressure moments', 'Fitness', 'Luck']} value={fields.decidedBy} onChange={setters.setDecidedBy} multi />
-        </Q>
-        <Q label="Top priority for next match with this opponent">
+        <Q label="Focus during the match" note="1 = scattered · 5 = locked in"><Dots value={fields.focus} onChange={setters.setFocus} /></Q>
+        <Q label="Composure on big points" note="1 = shaky · 5 = ice"><Dots value={fields.composure} onChange={setters.setComposure} /></Q>
+        {planFilled && (
+          <Q label="Did you stick to the plan?">
+            <Chips options={['Yes', 'Mostly', 'No']} value={fields.planExecuted} onChange={setters.setPlanExecuted}
+              color={fields.planExecuted === 'Yes' ? G : fields.planExecuted === 'No' ? R : A} />
+          </Q>
+        )}
+        <Q label="How you started"><Chips options={['Strong start', 'Slow start', 'Even start']} value={fields.matchArcStart} onChange={setters.setMatchArcStart} color='#60a5fa' /></Q>
+        <Q label="How you finished"><Chips options={['Strong finish', 'Faded', 'Even finish']} value={fields.matchArcFinish} onChange={setters.setMatchArcFinish} color='#60a5fa' /></Q>
+        <Q label="Momentum"><Chips options={['Came from behind', 'Let lead slip', 'Neither']} value={fields.momentum} onChange={setters.setMomentum} /></Q>
+        <Q label="Body state"><Chips options={['Fresh', 'Tired', 'Sore', 'Cramped', 'Injured']} value={fields.bodyState} onChange={setters.setBodyState}
+          color={fields.bodyState === 'Fresh' ? G : fields.bodyState === 'Injured' ? R : A} /></Q>
+        <Q label="Worst emotional moment"><Chips options={['Frustration', 'Fear', 'Complacency', 'Rage', 'None']} value={fields.worstMoment} onChange={setters.setWorstMoment} color='#c084fc' /></Q>
+        <Q label="Top priority for next match">
           <Chips options={['Serve %', 'Reduce UE', 'Return depth', 'BP conversion', 'Footwork', 'Composure', 'Aggression']} value={fields.priorityNext} onChange={setters.setPriorityNext} color='#60a5fa' />
+        </Q>
+        <Q label="One-line reflection" note="what you'll remember">
+          <input value={fields.reflectionText} onChange={e => setters.setReflectionText(e.target.value)} maxLength={120}
+            placeholder="e.g. dug in after set 1, served out the tight games"
+            style={{ ...inp(), fontSize: 13 }} />
         </Q>
       </JSection>
 
-      {/* OPPONENT */}
-      <JSection title="Opponent" open={oppOpen} onToggle={() => setOppOpen(v => !v)} answered={oppAnswered}>
-        <Q label="Playing style"><Chips options={['Baseliner', 'Serve & Volleyer', 'All-Court', 'Pusher', 'Big Server', 'Moonballer']} value={fields.oppStyle} onChange={setters.setOppStyle} color='#c084fc' /></Q>
-        <Q label="Handedness">
-          <Chips options={['Right-handed', 'Lefty']} value={fields.oppLefty === 'yes' ? 'Lefty' : fields.oppLefty === 'no' ? 'Right-handed' : ''}
-            onChange={v => setters.setOppLefty(v === 'Lefty' ? 'yes' : v === 'Right-handed' ? 'no' : '')} color='#c084fc' />
+      {/* ── OPPONENT PROFILE (saved to opponents table) ────────────────────── */}
+      <JSection title="Opponent profile" open={oppOpen} onToggle={() => setOppOpen(v => !v)} answered={oppAnswered}>
+        <div style={{ fontSize: 11, color: DIM, fontFamily: FONT_BODY, marginBottom: 14, lineHeight: 1.5 }}>
+          Saved against this opponent — pre-fills next time you play them, used in pre-match brief.
+        </div>
+        <Q label="Playing style"><Chips options={['Baseliner-grinder', 'Baseliner-aggressive', 'Serve-volleyer', 'All-court', 'Pusher', 'Big server', 'Moonballer']} value={fields.oppStyle} onChange={setters.setOppStyle} color='#c084fc' /></Q>
+        <Q label="Their weapon"><Chips options={['Serve', 'Forehand', 'Backhand', 'Volley', 'Movement', 'Return']} value={fields.oppWeapon} onChange={setters.setOppWeapon} color='#c084fc' /></Q>
+        <Q label="Their weakness"><Chips options={['Serve', 'Backhand', 'Movement', 'Second ball', 'Mental']} value={fields.oppWeakness} onChange={setters.setOppWeakness} color='#c084fc' /></Q>
+        <Q label="Notes" note="one-line reminder surfaced in pre-match brief">
+          <input value={fields.oppNotes} onChange={e => setters.setOppNotes(e.target.value)} maxLength={160}
+            placeholder="e.g. slices every BH under pressure, hates being rushed"
+            style={{ ...inp(), fontSize: 13 }} />
         </Q>
-        <Q label="Net game"><Chips options={['Stays back', 'Comes to net', 'Chip & charge']} value={fields.netGame} onChange={setters.setNetGame} color='#c084fc' /></Q>
-        <Q label="Mental game"><Chips options={['Crumbles under pressure', 'Steady', 'Ice cold']} value={fields.mentalGame} onChange={setters.setMentalGame} color='#c084fc' /></Q>
-        <Q label="Their weapon"><Chips options={['Serve', 'Forehand', 'Backhand', 'Volley', 'Movement']} value={fields.oppWeapon} onChange={setters.setOppWeapon} color='#c084fc' /></Q>
-        <Q label="Their weakness"><Chips options={['Serve', 'Backhand', 'Movement', 'Second ball']} value={fields.oppWeakness} onChange={setters.setOppWeakness} color='#c084fc' /></Q>
       </JSection>
     </div>
   )
@@ -283,39 +443,78 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     if (step !== 'journal' || !existingMatch?.journal) return
     const jj = existingMatch.journal
     const s = j.setters
-    if (jj.recovery     != null) s.setRecoveryPct(String(jj.recovery))
-    if (jj.match_type)           s.setMatchType(jj.match_type)
-    if (jj.warmup)               s.setWarmup(jj.warmup)
-    if (jj.opp_difficulty)       s.setOppDifficulty(jj.opp_difficulty)
-    if (jj.plan_executed)        s.setPlanExecuted(jj.plan_executed)
-    if (jj.focus)                s.setFocus(jj.focus)
-    if (jj.composure)            s.setComposure(jj.composure)
-    if (jj.whoop_strain != null) s.setWhoopStrain(String(jj.whoop_strain))
-    if (jj.decided_by?.length)   s.setDecidedBy(jj.decided_by)
-    if (jj.priority_next)        s.setPriorityNext(jj.priority_next)
-    if (jj.opp_style)            s.setOppStyle(jj.opp_style)
-    if (jj.opp_lefty   != null)  s.setOppLefty(jj.opp_lefty ? 'yes' : 'no')
-    if (jj.net_game)             s.setNetGame(jj.net_game)
-    if (jj.mental_game)          s.setMentalGame(jj.mental_game)
-    if (jj.opp_weapon)           s.setOppWeapon(jj.opp_weapon)
-    if (jj.opp_weakness)         s.setOppWeakness(jj.opp_weakness)
+    // quick core
+    if (jj.recovery != null)             s.setRecoveryPct(String(jj.recovery))
+    if (jj.days_since_last_play != null) s.setDaysSinceLastPlay(String(jj.days_since_last_play))
+    if (jj.opp_difficulty)               s.setOppDifficulty(jj.opp_difficulty)
+    if (jj.match_vibe)                   s.setMatchVibe(jj.match_vibe)
+    if (jj.decided_by?.length)           s.setDecidedBy(jj.decided_by)
+    // deep before
+    if (jj.match_type)                   s.setMatchType(jj.match_type)
+    if (jj.warmup)                       s.setWarmup(jj.warmup)
+    if (jj.racket)                       s.setRacket(jj.racket)
+    if (jj.tension_kg != null)           s.setTensionKg(String(jj.tension_kg))
+    if (jj.conditions?.length)           s.setConditions(jj.conditions)
+    if (jj.pre_confidence)               s.setPreConfidence(jj.pre_confidence)
+    if (jj.expectation)                  s.setExpectation(jj.expectation)
+    if (jj.game_plan_text)               s.setGamePlanText(jj.game_plan_text)
+    // deep after
+    if (jj.whoop_strain != null)         s.setWhoopStrain(String(jj.whoop_strain))
+    if (jj.focus)                        s.setFocus(jj.focus)
+    if (jj.composure)                    s.setComposure(jj.composure)
+    if (jj.plan_executed)                s.setPlanExecuted(jj.plan_executed)
+    if (jj.match_arc_start)              s.setMatchArcStart(jj.match_arc_start)
+    if (jj.match_arc_finish)             s.setMatchArcFinish(jj.match_arc_finish)
+    if (jj.momentum)                     s.setMomentum(jj.momentum)
+    if (jj.body_state)                   s.setBodyState(jj.body_state)
+    if (jj.worst_moment)                 s.setWorstMoment(jj.worst_moment)
+    if (jj.priority_next)                s.setPriorityNext(jj.priority_next)
+    if (jj.reflection_text)              s.setReflectionText(jj.reflection_text)
   }, [step])
 
-  // Pre-fill opponent context from previous matches
+  // Pre-fill racket + tension from most recent journaled match (when creating a
+  // new journal entry, not editing). Opponent profile comes from the opponents
+  // table via the fetch effect below.
   useEffect(() => {
-    if (!oppName) return
-    const prev = [...matches].filter(m => m.opponent?.name === oppName && m.journal?.opp_style).sort((a, b) => b.date.localeCompare(a.date))[0]
-    if (prev) {
-      const jj = prev.journal
-      const s = j.setters
-      if (!j.fields.oppStyle && jj.opp_style) s.setOppStyle(jj.opp_style)
-      if (!j.fields.oppLefty && jj.opp_lefty != null) s.setOppLefty(jj.opp_lefty ? 'yes' : 'no')
-      if (!j.fields.netGame && jj.net_game) s.setNetGame(jj.net_game)
-      if (!j.fields.mentalGame && jj.mental_game) s.setMentalGame(jj.mental_game)
-      if (!j.fields.oppWeapon && jj.opp_weapon) s.setOppWeapon(jj.opp_weapon)
-      if (!j.fields.oppWeakness && jj.opp_weakness) s.setOppWeakness(jj.opp_weakness)
-    }
+    if (step !== 'journal' || existingMatch) return
+    const prev = [...matches].filter(m => m.journal?.racket || m.journal?.tension_kg != null).sort((a, b) => b.date.localeCompare(a.date))[0]
+    if (!prev) return
+    const s = j.setters
+    if (!j.fields.racket && prev.journal.racket) s.setRacket(prev.journal.racket)
+    if (j.fields.tensionKg === '' && prev.journal.tension_kg != null) s.setTensionKg(String(prev.journal.tension_kg))
+  }, [step, existingMatch])
+
+  // Fetch opponent profile from /api/opponents when an opponent is selected,
+  // pre-fill style/weapon/weakness/notes.
+  useEffect(() => {
+    if (!oppName.trim()) return
+    let cancelled = false
+    fetch(`/api/opponents?name=${encodeURIComponent(oppName.trim())}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled || !data?.opponent) return
+        const o = data.opponent
+        const s = j.setters
+        if (!j.fields.oppStyle && o.style)       s.setOppStyle(o.style)
+        if (!j.fields.oppWeapon && o.weapon)     s.setOppWeapon(o.weapon)
+        if (!j.fields.oppWeakness && o.weakness) s.setOppWeakness(o.weakness)
+        if (!j.fields.oppNotes && o.notes)       s.setOppNotes(o.notes)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
   }, [oppName])
+
+  // Known rackets from match history (for the chip list). Always seed with the
+  // default JD racket so v1 users see at least one chip.
+  const knownRackets = (() => {
+    const set = new Set<string>()
+    for (const m of matches) {
+      const r = m.journal?.racket
+      if (typeof r === 'string' && r.trim()) set.add(r.trim())
+    }
+    set.add('Wilson Ultra V5 100')
+    return Array.from(set).sort()
+  })()
 
   const knownOpponents = (() => {
     const map = new Map<string, { name: string; utr: number | null }>()
@@ -360,6 +559,22 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
     const res = await fetch('/api/matches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match: cleanMatch }) })
     const data = await res.json()
     if (!res.ok || data.error) throw new Error(data.error || 'Save failed')
+
+    // Persist opponent profile to the opponents table (fire-and-forget — not
+    // blocking the match save). Only upserts when at least one opp field set.
+    const oppData = j.toOppData()
+    const hasOppData = Object.values(oppData).some(v => v != null)
+    if (hasOppData) {
+      const name = (match.opponent?.name || oppName).trim()
+      if (name) {
+        fetch('/api/opponents', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, ...oppData }),
+        }).catch(() => {})
+      }
+    }
+
     onMatchAdded(cleanMatch)
     setStatus('Saved!')
     setTimeout(resetAll, 1500)
@@ -610,7 +825,7 @@ export default function UploadMatch({ onMatchAdded, matches = [] }: UploadMatchP
       <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, letterSpacing: '2px', color: WHITE, marginBottom: 4 }}>Journal</div>
       <div style={{ fontSize: 12, color: MUTED, fontFamily: FONT_DATA, marginBottom: 24 }}>{oppName} · {new Date(matchDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · all optional</div>
 
-      <JournalForm j={j} showResult={!existingMatch?.score?.winner} result={result} setResult={setResult} scoreStr={scoreStr} setScoreStr={setScoreStr} />
+      <JournalForm j={j} showResult={!existingMatch?.score?.winner} result={result} setResult={setResult} scoreStr={scoreStr} setScoreStr={setScoreStr} knownRackets={knownRackets} />
 
       {status && <div style={{ margin: '12px 0', padding: '10px 14px', borderRadius: 8, background: '#111', border: `1px solid ${BORDER}`, fontSize: 13, color: '#aaa', textAlign: 'center' as const, fontFamily: FONT_DATA }}>{status}</div>}
 

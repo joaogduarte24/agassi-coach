@@ -65,6 +65,19 @@ export const IMPORTANT_FIELDS: { path: string[]; label: string; section: string 
 export function getMissingFields(match: any) {
   return IMPORTANT_FIELDS.filter(f => getStatVal(match, f.path) == null)
 }
+
+// ─── TIEBREAK RECORD ─────────────────────────────────────────────────────────
+// Derived from score.sets_arr (JD score first, opponent second). Any set ending
+// 7-6 is a tiebreak JD won; 6-7 is one JD lost. Removes need for a journal field.
+export function getTiebreakRecord(sets_arr: [number, number][] | null): { won: number; lost: number } {
+  if (!sets_arr) return { won: 0, lost: 0 }
+  let won = 0, lost = 0
+  for (const [a, b] of sets_arr) {
+    if (a === 7 && b === 6) won++
+    else if (a === 6 && b === 7) lost++
+  }
+  return { won, lost }
+}
 export function deepMerge(existing: any, incoming: any): any {
   // Never recurse into arrays — they hold ordered data (sets, bullet points) and
   // spreading them into objects destroys structure and causes "not iterable" crashes.
