@@ -1,5 +1,26 @@
 import type { Match } from '@/app/types'
 
+// ─── COACHABILITY ────────────────────────────────────────────────────────────
+// Tags every Signal with whether it's worth surfacing in a coaching context
+// (Next Match brief, Match Detail top-of-screen). Computed in-memory at signal
+// creation time — NOT persisted. Design: see ~/.gstack/projects/joaogduarte24-
+// agassi-coach/joaoduarte-main-design-20260424-221115.md
+//
+// Three dimensions:
+//   - is_tautological: downstream-of-winning stats (total_pts_won, etc).
+//     Always excluded from coaching surfaces.
+//   - actionability: can JD act on this during the next match, or only in
+//     training? Pre-match surface filters to 'in-match' only.
+//   - specificity_score: 0..1, higher = more tailored to a specific
+//     opponent/situation. Pre-match surface requires ≥0.5.
+export type Actionability = 'in-match' | 'training' | 'neither'
+
+export type Coachability = {
+  is_tautological: boolean
+  actionability: Actionability
+  specificity_score: number            // 0..1
+}
+
 // ─── CORE SIGNAL ─────────────────────────────────────────────────────────────
 export type Signal = {
   key: string                          // e.g. "ue_win_driver"
@@ -15,6 +36,9 @@ export type Signal = {
   winRateAbove?: number                // win % when above threshold
   winRateBelow?: number                // win % when below threshold
   matchesUsed: number
+  // Optional for now (populated progressively by Commits B+C of the coaching
+  // layer Phase 1). Will become required after all signal producers populate it.
+  coachability?: Coachability
 }
 
 // ─── STROKE INTELLIGENCE ─────────────────────────────────────────────────────
