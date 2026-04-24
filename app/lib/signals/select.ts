@@ -11,7 +11,16 @@ import type { Signal } from './types'
 // tendencies (lift is 0 on tendencies but specificity can be high) above
 // generic high-lift correlations — which is the right posture for pre-match
 // ("what to do against THIS guy" > "what tends to work for me").
-const PRE_MATCH_SPECIFICITY_MIN = 0.4  // tuning knob — lower to be more permissive
+// Tuning knob. Post eyeball-check on JD's data:
+//   - 0.4 passed "Keeping break points saved %" (situation hook + numbers = 0.5),
+//     which is a real coaching signal but still uses the mechanical
+//     "boosts your win chance by X%" template that JD flagged as captain-obvious.
+//   - 0.6 requires either TWO hooks (opp + situation) OR one hook + strong
+//     confidence + numeric framing. On current data this will usually render
+//     the Pre Match card empty — which is the right posture: show nothing
+//     rather than mechanical output until Phase 2's AI synthesizer can
+//     produce genuinely specific coach-voice bullets.
+const PRE_MATCH_SPECIFICITY_MIN = 0.6
 const PRE_MATCH_CAP = 3
 
 export function selectForPreMatch(signals: Signal[]): Signal[] {
@@ -82,7 +91,7 @@ export function _selfCheck(): { passed: number; failed: string[] } {
     coachability: {
       is_tautological: false,
       actionability: 'in-match',
-      specificity_score: 0.5,
+      specificity_score: 0.7,  // default above PRE_MATCH_SPECIFICITY_MIN so default-mk signals pass
     },
     ...overrides,
   })
@@ -115,13 +124,15 @@ export function _selfCheck(): { passed: number; failed: string[] } {
   selectForPreMatch(many).length === 3 ? passed++ : failed.push('pre-match should cap at 3')
 
   // Pre-match: sorts by specificity first, then lift
+  // Both scores must clear PRE_MATCH_SPECIFICITY_MIN (0.6) for the rank test
+  // to be meaningful — we're testing ordering, not filtering.
   const highLiftLowSpec = mk({
     key: 'highLiftLowSpec', lift: 100,
-    coachability: { is_tautological: false, actionability: 'in-match', specificity_score: 0.4 },
+    coachability: { is_tautological: false, actionability: 'in-match', specificity_score: 0.6 },
   })
   const lowLiftHighSpec = mk({
     key: 'lowLiftHighSpec', lift: 10,
-    coachability: { is_tautological: false, actionability: 'in-match', specificity_score: 0.8 },
+    coachability: { is_tautological: false, actionability: 'in-match', specificity_score: 0.9 },
   })
   const ordered = selectForPreMatch([highLiftLowSpec, lowLiftHighSpec])
   ordered[0]?.key === 'lowLiftHighSpec' ? passed++ : failed.push('pre-match should rank specificity above lift')
