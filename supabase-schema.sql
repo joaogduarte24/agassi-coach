@@ -140,6 +140,26 @@ create table if not exists opponents (
 alter table opponents enable row level security;
 create policy "Allow all" on opponents for all using (true) with check (true);
 
+-- ─── coach_cache ──────────────────────────────────────────────────────────────
+-- Cache for AI-generated coaching output (Phase 2 coaching layer). Keyed by a
+-- sha256 hash of the canonicalized input payload so identical inputs hit the
+-- same row. Invalidated on match write (match_id), journal edit (match_id),
+-- and opponent scouting update (opponent_id).
+create table if not exists coach_cache (
+  cache_key    text primary key,
+  surface      text not null,              -- 'pre-match' | 'debrief'
+  payload      jsonb not null,
+  match_id     text references matches(id) on delete cascade,
+  opponent_id  text,                        -- opponent name (matches opponents.name)
+  created_at   timestamptz default now()
+);
+
+create index if not exists coach_cache_match_idx on coach_cache(match_id);
+create index if not exists coach_cache_opponent_idx on coach_cache(opponent_id);
+
+alter table coach_cache enable row level security;
+create policy "Allow all" on coach_cache for all using (true) with check (true);
+
 -- ─── Migrations (run if upgrading from an earlier schema) ─────────────────────
 alter table matches add column if not exists opp_shots jsonb;
 alter table matches add column if not exists journal jsonb;
