@@ -5,6 +5,7 @@ import type { Match, Avgs, Opponent } from '@/app/types'
 import { diagnoseMatch } from '@/app/lib/signals/diagnosis'
 import { pickKeyStats } from '@/app/lib/signals/keyStats'
 import { computeSignals } from '@/app/lib/signals/compute'
+import { selectForDebrief } from '@/app/lib/signals/select'
 import StatBar from './StatBar'
 
 const FB = FONT_BODY, FD = FONT_DATA, FX = FONT_DISPLAY
@@ -267,21 +268,29 @@ export default function MatchDetailScreen({ match: m, avgs, allMatches, onBack, 
           )}
 
           {/* ── 5. Patterns ───────────────────────────────────────────── */}
-          {hasStats && signals.correlations.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <SH>Patterns</SH>
-              {signals.correlations.slice(0, 3).map((sig, i) => {
-                const isOnWinningSide = sig.winRateAbove != null && sig.winRateBelow != null && sig.winRateAbove > sig.winRateBelow
-                const dotColor = isOnWinningSide ? G : R
-                return (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 6 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0, marginTop: 5 }} />
-                    <span style={{ fontSize: 12, color: '#bbb', lineHeight: 1.4 }}>{sig.insight}</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {/* Coachability filter applied: drops tautological (total_pts_won),
+              opaque composites (net_aggression), keeps training-actionable
+              signals like cross-court % because post-match "work on this"
+              content is legitimate debrief. */}
+          {hasStats && (() => {
+            const patternSignals = selectForDebrief(signals.correlations)
+            if (patternSignals.length === 0) return null
+            return (
+              <div style={{ marginBottom: 24 }}>
+                <SH>Patterns</SH>
+                {patternSignals.map((sig, i) => {
+                  const isOnWinningSide = sig.winRateAbove != null && sig.winRateBelow != null && sig.winRateAbove > sig.winRateBelow
+                  const dotColor = isOnWinningSide ? G : R
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 6 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0, marginTop: 5 }} />
+                      <span style={{ fontSize: 12, color: '#bbb', lineHeight: 1.4 }}>{sig.insight}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
 
           {/* ── 6. Opponent profile (from opponents table) ────────────── */}
           {(opponent?.style || opponent?.weapon || opponent?.weakness || opponent?.notes || opp) && (
