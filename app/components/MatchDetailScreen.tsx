@@ -6,6 +6,7 @@ import { diagnoseMatch } from '@/app/lib/signals/diagnosis'
 import { pickKeyStats } from '@/app/lib/signals/keyStats'
 import { computeSignals } from '@/app/lib/signals/compute'
 import { selectForDebrief } from '@/app/lib/signals/select'
+import CoachesRead from './CoachesRead'
 import StatBar from './StatBar'
 
 const FB = FONT_BODY, FD = FONT_DATA, FX = FONT_DISPLAY
@@ -196,6 +197,12 @@ export default function MatchDetailScreen({ match: m, avgs, allMatches, onBack, 
               {m.surface}{j?.match_type ? ` · ${j.match_type}` : ''} · {fmtDate(m.date)}
             </div>
           </div>
+
+          {/* ── 1.5 Coach's read (AI) ─────────────────────────────────── */}
+          {/* Renders only for matches with stats. The component itself
+              handles loading (subtle placeholder), error/empty (hidden),
+              and success (1-2 in-match adjustments). */}
+          {hasStats && <CoachesRead match={m} allMatches={allMatches} />}
 
           {/* ── 2. Diagnosis ──────────────────────────────────────────── */}
           {diagnosis && hasStats && (
