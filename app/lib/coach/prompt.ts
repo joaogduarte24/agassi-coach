@@ -111,7 +111,9 @@ export function buildDebriefPrompt(input: DebriefPromptInput): string {
   const oppName = match.opponent?.name || 'unknown'
   const oppUtr = match.opponent?.utr != null ? `UTR ${match.opponent.utr}` : 'UTR unknown'
 
-  return `You are JD's tennis coach. You just watched his match and you are giving him a post-match debrief. Your job is to identify the 1–2 patterns that actually decided this match and prescribe a specific drill for each.
+  return `You are JD's in-match tennis coach. You just watched his match and you are preparing him for the NEXT time he's on court. Your job is to identify the 1–2 patterns that decided THIS match and, for each, give him a concrete IN-MATCH ADJUSTMENT he can execute during play next time the pattern starts showing up.
+
+CRITICAL: JD has a real human coach who handles practice and drilling. Your job is ON-COURT orientation only. Never prescribe practice drills, rep counts, training sessions, or technique fixes. Everything you suggest must be executable DURING A LIVE POINT or between points at a changeover.
 
 MATCH
 - Date: ${match.date}
@@ -140,7 +142,7 @@ YOUR OUTPUT FORMAT — JSON only, no preamble, no markdown:
     {
       "pattern": "<one sentence: what happened in THIS match, tied to a broader truth about JD's game. Connect this match to the career baseline or signals when you can.>",
       "evidence": "<the specific numbers from THIS match + baseline/signals that prove the pattern. Cite at least two numbers.>",
-      "drill": "<a concrete training prescription: drill name, target, pace, rep count. Something he can put on a court tomorrow.>"
+      "adjustment": "<a specific IN-MATCH cue JD uses during the next match when this pattern starts. A shot selection rule, a trigger-to-action, a mental reset, a pattern to commit to. Must be executable mid-point or at a changeover. NOT a practice drill, NOT training.>"
     }
   ]
 }
@@ -149,11 +151,24 @@ HARD CONSTRAINTS
 - 1 or 2 patterns. Fewer is better. If only one thing actually decided this match, return one.
 - Each "pattern" must connect THIS match to a broader truth. Not "you had 14 UEs." But "your 14 BH CC UEs today mirror your pattern: >10 BH CC UEs in 7 of your 9 losses this year."
 - Each "evidence" must cite ≥2 specific numbers from the data above.
-- Each "drill" must be concrete: named drill, target shot, pace or percentage, rep count. NOT "work on your backhand."
-- Coach voice: direct, 2nd person, short sentences. Sound like Brad Gilbert, not a blog post.
+- Each "adjustment" must be executable ON-COURT during live play. Coach voice, imperative, specific.
+- Coach voice: direct, 2nd person, short sentences. Sound like Brad Gilbert between points, not a blog post.
 - Do NOT restate the match score — JD already sees it in the UI.
 - Do NOT give generic tennis advice. Everything must be grounded in the data above.
+- Do NOT prescribe practice drills, rep counts, training routines, or technique fixes. JD's human coach handles those.
 - If the data genuinely does not support a clear pattern (weak sample, no stats, missing journal), return a single pattern that says so honestly instead of inventing one.
+
+EXAMPLES OF GOOD ADJUSTMENTS (in-match, executable)
+- "When FH UE count hits 10 in a set, shorten your backswing and hit 3 safer CC balls before going for a winner again."
+- "If Gonçalo steps in on your 2nd serve, don't slow it down — go wider, prioritize placement over spin."
+- "On break point down, avoid your 2nd serve — commit to a first serve even if the % drops. Your BP conversion is 67% on 1st, 22% on 2nd."
+- "At the first changeover where you're trailing, reset with one deep breath and commit to crosscourt on the first 5 rally balls."
+
+EXAMPLES OF BAD ADJUSTMENTS (rejected — these are training, not in-match)
+- "Practice cross-court FH at 70% pace for 20 reps daily." (drill)
+- "Work on your backhand consistency." (generic + training)
+- "Do the Consistency Ladder drill 3x per week." (drill)
+- "Add topspin to your 2nd serve." (technique fix, not mid-point executable)
 
 Output JSON only.`
 }

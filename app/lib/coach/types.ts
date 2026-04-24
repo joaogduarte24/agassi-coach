@@ -6,8 +6,15 @@ export type DebriefBullet = {
   pattern: string
   /** Specific numbers from this match + career context, proving the pattern. */
   evidence: string
-  /** Concrete training prescription: name, pace, reps, target. Not generic advice. */
-  drill: string
+  /**
+   * In-match adjustment. What JD should DO DIFFERENTLY during the next match
+   * when this pattern starts showing up. A tactical cue, shot selection rule,
+   * mental reset, or pattern commitment — something executable mid-point.
+   *
+   * EXPLICITLY NOT a training drill. JD has a real coach for practice. This
+   * field is for on-court orientation only.
+   */
+  adjustment: string
 }
 
 export type DebriefResponse = {
@@ -30,8 +37,8 @@ export function validateDebriefBullet(raw: unknown): DebriefBullet | null {
   const r = raw as Record<string, unknown>
   if (!isNonEmptyString(r.pattern)) return null
   if (!isNonEmptyString(r.evidence)) return null
-  if (!isNonEmptyString(r.drill)) return null
-  return { pattern: r.pattern, evidence: r.evidence, drill: r.drill }
+  if (!isNonEmptyString(r.adjustment)) return null
+  return { pattern: r.pattern, evidence: r.evidence, adjustment: r.adjustment }
 }
 
 /**
@@ -60,7 +67,7 @@ export function _selfCheck(): { passed: number; failed: string[] } {
   const failed: string[] = []
   let passed = 0
 
-  const good = { pattern: 'p', evidence: 'e', drill: 'd' }
+  const good = { pattern: 'p', evidence: 'e', adjustment: 'a' }
   const ok = validateDebriefResponse({ patterns: [good] })
   ok?.patterns.length === 1 ? passed++ : failed.push('valid single pattern should validate')
 
