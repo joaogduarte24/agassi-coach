@@ -5,6 +5,7 @@ import { computeCorrelations } from './correlations'
 import { computeStrokes, computeShotMixCorrelations } from './strokes'
 import { computeJournalCorrelations } from './journal'
 import { computeJDProfile, computeOpponentProfiles } from './profile'
+import { withCoachability, tagCoachability } from './coachability'
 
 /**
  * Compute all intelligence signals from match data.
@@ -42,11 +43,21 @@ export function computeSignals(matches: Match[]): SignalSet {
   const jdProfile = computeJDProfile(matches, strokes, correlations)
   const opponentProfiles = computeOpponentProfiles(matches)
 
+  // Phase 6: Coachability tagging — attach coachability to every Signal
+  // before returning. Non-mutating. Profiles + StrokeSignal don't get tagged
+  // directly (strokes carry their own `tag` field); stroke.winCorrelation
+  // IS a Signal though, so tag those too when present.
+  const taggedStrokes = strokes.map(s =>
+    s.winCorrelation
+      ? { ...s, winCorrelation: { ...s.winCorrelation, coachability: tagCoachability(s.winCorrelation) } }
+      : s
+  )
+
   return {
-    correlations,
-    tendencies,
-    strokes,
-    journal,
+    correlations: withCoachability(correlations),
+    tendencies: withCoachability(tendencies),
+    strokes: taggedStrokes,
+    journal: withCoachability(journal),
     jdProfile,
     opponentProfiles,
   }
