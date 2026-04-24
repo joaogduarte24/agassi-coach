@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { SEED_MATCHES } from '@/lib/seed'
+import { invalidateForMatch, invalidateForOpponent } from '@/app/lib/coach/cache'
 
 const DEV_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL
 
@@ -116,7 +117,7 @@ export async function GET() {
   }
 }
 
-// POST — save a new match
+// POST — save a new match (also used for updates / journal edits via upsert)
 export async function POST(req: NextRequest) {
   if (DEV_MODE) return NextResponse.json({ ok: true, dev: true })
   try {
@@ -124,6 +125,12 @@ export async function POST(req: NextRequest) {
     const { match } = await req.json()
     const { error } = await supabase.from('matches').upsert(matchToDb(match))
     if (error) throw error
+    // Invalidate coach_cache entries tied to this match + opponent. Any
+    // cached pre-match brief vs this opponent is now stale (new data to
+    // consume), and any debrief for this match must be regenerated.
+    // Fire-and-forget — don't block the response on cache cleanup.
+    if (match?.id) invalidateForMatch(match.id).catch(() => {})
+    if (match?.opponent?.name) invalidateForOpponent(match.opponent.name).catch(() => {})
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -136,8 +143,13 @@ export async function DELETE(req: NextRequest) {
   try {
     const supabase = getSupabase()
     const { id } = await req.json()
+    // Fetch opponent before deletion so we know what to invalidate.
+    // (ON DELETE CASCADE on coach_cache.match_id takes care of match-scoped
+    // rows automatically, but opponent-scoped rows need an explicit pass.)
+    const { data: existing } = await supabase.from('matches').select('opponent_name').eq('id', id).maybeSingle()
     const { error } = await supabase.from('matches').delete().eq('id', id)
     if (error) throw error
+    if (existing?.opponent_name) invalidateForOpponent(existing.opponent_name).catch(() => {})
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { invalidateForOpponent } from '@/app/lib/coach/cache'
 
 const DEV_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL
 
@@ -57,6 +58,9 @@ export async function PUT(req: NextRequest) {
 
     const { error } = await supabase.from('opponents').upsert(row, { onConflict: 'name' })
     if (error) throw error
+    // Invalidate coach_cache entries tied to this opponent — scouting notes
+    // feed the pre-match brief prompt, so edits must regenerate.
+    invalidateForOpponent(name).catch(() => {})
     return NextResponse.json({ ok: true, opponent: row })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

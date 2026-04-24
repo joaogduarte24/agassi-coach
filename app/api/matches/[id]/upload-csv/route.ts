@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { parseSwingVisionXlsx } from '@/app/lib/parseSwingVision'
 import { computeShotPatterns, type ShotRow } from '@/app/lib/signals/patterns'
+import { invalidateForMatch, invalidateForOpponent } from '@/app/lib/coach/cache'
 
 function getSupabase() {
   return createClient(
@@ -170,6 +171,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .select('*')
       .eq('id', matchId)
       .single()
+
+    // xlsx upload adds new shot-level data and can backfill shot_stats fields,
+    // so the coaching prompt input changes. Invalidate any cached debrief for
+    // this match + any cached pre-match brief against this opponent.
+    invalidateForMatch(matchId).catch(() => {})
+    if (updatedMatch?.opponent_name) invalidateForOpponent(updatedMatch.opponent_name).catch(() => {})
 
     return NextResponse.json({
       ok: true,
