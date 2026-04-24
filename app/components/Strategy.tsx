@@ -4,6 +4,7 @@ import { G, A, R, B, AD, avg, fmtDate } from '@/app/lib/helpers'
 import { computeSignals } from '@/app/lib/signals/compute'
 import { selectForPreMatch } from '@/app/lib/signals/select'
 import type { SignalSet, Signal, StrokeSignal, OpponentProfile } from '@/app/lib/signals/types'
+import CoachesRead from './CoachesRead'
 
 interface NextMatchStrategyProps {
   matches: any[]
@@ -530,6 +531,24 @@ export default function NextMatchStrategy({ matches }: NextMatchStrategyProps) {
               </div>
             )}
           </div>
+
+          {/* Coach — AI pre-match game plan. Renders only when the user has
+              committed to an opponent (name + UTR or a known opponent). The
+              component handles loading / error / empty silently; on success
+              shows 1-3 on-court directives at the top of the strategy view. */}
+          {(oppName || utrValid) && (
+            <CoachesRead
+              mode="pre-match"
+              opponent={{
+                name: oppName || 'Unknown',
+                utr: utrValid ? utr : null,
+                style: oppStyle || null,
+                lefty: isLefty === 'yes',
+              }}
+              allMatches={matches}
+              surface={surface || null}
+            />
+          )}
 
           {/* Known opponent stats breakdown */}
           {isKnown && (

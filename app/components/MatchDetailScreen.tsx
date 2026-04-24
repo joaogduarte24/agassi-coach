@@ -202,7 +202,7 @@ export default function MatchDetailScreen({ match: m, avgs, allMatches, onBack, 
           {/* Renders only for matches with stats. The component itself
               handles loading (subtle placeholder), error/empty (hidden),
               and success (1-2 in-match adjustments). */}
-          {hasStats && <CoachesRead match={m} allMatches={allMatches} />}
+          {hasStats && <CoachesRead mode="debrief" match={m} allMatches={allMatches} />}
 
           {/* ── 2. Diagnosis ──────────────────────────────────────────── */}
           {diagnosis && hasStats && (

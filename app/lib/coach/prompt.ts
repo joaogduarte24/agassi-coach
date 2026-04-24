@@ -11,6 +11,28 @@ export type DebriefPromptInput = {
   filteredSignals: Signal[]
 }
 
+// ─── INPUT SHAPE FOR THE PRE-MATCH PROMPT ────────────────────────────────────
+export type PreMatchPromptInput = {
+  /** Upcoming opponent. Any scouting data available. */
+  opponent: {
+    name: string
+    utr: number | null
+    style?: string | null
+    weapon?: string | null
+    weakness?: string | null
+    notes?: string | null
+    lefty?: boolean
+  }
+  /** JD's recent matches (recency-weighted — last 10 or so). */
+  jdRecentMatches: Match[]
+  /** Prior matches against this specific opponent (empty if first meeting). */
+  opponentMatches: Match[]
+  /** Coachability-filtered career signals from selectForPreMatch(). */
+  filteredSignals: Signal[]
+  /** Selected surface for the upcoming match, if known. */
+  surface?: string | null
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function fmt(v: number | null | undefined, suffix = ''): string {
   if (v == null || (typeof v === 'number' && !Number.isFinite(v))) return '—'
@@ -194,3 +216,120 @@ EXAMPLES OF BAD ADJUSTMENTS (rejected)
 
 Output JSON only.`
 }
+
+// ─── PRE-MATCH PROMPT BUILDER ────────────────────────────────────────────────
+// Player is about to walk on court. Different posture from debrief:
+//   - No "this match" data — it hasn't happened yet
+//   - Focus: what to expect + what to DO against this specific opponent
+//   - Tighter output: 1–3 bullets, heavy on directives, light on backstory
+//   - Same output shape (pattern/evidence/adjustment) so the UI reuses
+//     CoachesRead component unchanged.
+
+function opponentContext(opp: PreMatchPromptInput['opponent']): string {
+  const lines: string[] = []
+  lines.push(`- Name: ${opp.name}`)
+  lines.push(`- UTR: ${opp.utr ?? 'unknown'}`)
+  if (opp.style) lines.push(`- Style: ${opp.style}`)
+  if (opp.weapon) lines.push(`- Weapon: ${opp.weapon}`)
+  if (opp.weakness) lines.push(`- Weakness: ${opp.weakness}`)
+  if (opp.notes) lines.push(`- Scouting notes: "${opp.notes}"`)
+  if (opp.lefty) lines.push(`- Left-handed`)
+  return lines.join('\n')
+}
+
+function h2hSummary(oppMatches: Match[], oppName: string): string {
+  if (oppMatches.length === 0) return '(no prior matches vs this opponent — first meeting)'
+  const wins = oppMatches.filter(m => m.score?.winner === 'JD').length
+  const losses = oppMatches.length - wins
+  const lines: string[] = [`Prior meetings vs ${oppName}: ${wins}W ${losses}L in ${oppMatches.length} matches.`]
+
+  // Recent matches with brief stat summary
+  const recent = [...oppMatches].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5)
+  for (const m of recent) {
+    const s = (m.shot_stats ?? {}) as any
+    const outcome = m.score?.winner === 'JD' ? 'W' : 'L'
+    const ueBit = s.ue != null ? ` · ${s.ue} UE` : ''
+    const bpBit = s.bp_saved_pct != null ? ` · ${s.bp_saved_pct}% BPs` : ''
+    lines.push(`- ${m.date} ${m.surface || ''} ${m.score?.sets || ''} ${outcome}${ueBit}${bpBit}`)
+  }
+
+  // Most recent opponent shot tendencies (opp_shots) — what they did to JD
+  const withOpp = oppMatches.filter(m => (m as any).opp_shots?.stats || (m as any).opp_shots?.forehand)
+  if (withOpp.length) {
+    const latest = withOpp[withOpp.length - 1]
+    const opp = (latest as any).opp_shots
+    const bits: string[] = []
+    if (opp?.stats?.ue != null) bits.push(`UE ${opp.stats.ue}`)
+    if (opp?.stats?.winners != null) bits.push(`winners ${opp.stats.winners}`)
+    if (opp?.stats?.s1_pts_won_pct != null) bits.push(`${opp.stats.s1_pts_won_pct}% 1st serve pts won`)
+    if (opp?.forehand?.cc_in != null) bits.push(`FH CC in ${opp.forehand.cc_in}%`)
+    if (opp?.backhand?.cc_in != null) bits.push(`BH CC in ${opp.backhand.cc_in}%`)
+    if (bits.length) lines.push(`Opponent tendencies (most recent meeting): ${bits.join(', ')}`)
+  }
+  return lines.join('\n')
+}
+
+export function buildPreMatchPrompt(input: PreMatchPromptInput): string {
+  const { opponent, jdRecentMatches, opponentMatches, filteredSignals, surface } = input
+
+  return `You are JD's pre-match tennis coach. He's about to walk on court against ${opponent.name}. Your job: give him 1–3 IN-MATCH directives he carries onto the court — things to do and things to avoid — grounded in what the data actually says about him and this opponent.
+
+CRITICAL: JD has a real human coach who handles practice and drilling. Your job is ON-COURT orientation only. Never prescribe drills, rep counts, training, or technique fixes. Everything executable DURING live play or at a changeover.
+
+SURFACE
+${surface || 'unknown — assume generic court conditions'}
+
+OPPONENT
+${opponentContext(opponent)}
+
+HEAD-TO-HEAD
+${h2hSummary(opponentMatches, opponent.name)}
+
+JD'S RECENT FORM (last ${jdRecentMatches.length} matches, newest first)
+${baselineSummary([...jdRecentMatches].sort((a, b) => b.date.localeCompare(a.date)))}
+
+JD'S CAREER COACHING SIGNALS (already filtered for coachability)
+${signalsSummary(filteredSignals)}
+
+YOUR OUTPUT FORMAT — JSON only, no preamble, no markdown:
+{
+  "patterns": [
+    {
+      "pattern": "<one sentence: what JD is walking into. If there's H2H data, name the specific threat or opening against THIS opponent. If no H2H, reference JD's own recent form pattern that matters here.>",
+      "evidence": "<specific numbers that back the pattern. Cite ≥2 numbers drawn from H2H, opponent tendencies, JD's recent form, or career signals.>",
+      "adjustment": "<the on-court directive. Standing commitment, score-state trigger, or opponent-behavior trigger. What to DO in the next hour.>"
+    }
+  ]
+}
+
+HARD CONSTRAINTS
+- 1 to 3 patterns. Fewer and sharper beats more and diluted. If the data only supports 1 clear directive, return 1.
+- Each "pattern" must reference either THIS opponent (when H2H data exists) or JD's recent form (when it doesn't). Never generic.
+- Each "evidence" must cite ≥2 specific numbers.
+- Each "adjustment" must be executable ON-COURT. Coach voice, imperative, specific.
+- Never include the match score guess, the outcome prediction, or generic mental hype.
+- Never use numeric triggers that require counting ("when FH UEs hit X", "if serve % drops below Y"). Use score-state, opponent-behavior, or standing commitments.
+- Never prescribe drills, rep counts, or training routines.
+
+TRIGGER SHAPES (same rules as debrief)
+  1. STANDING COMMITMENT: "Standing plan all match: <X>."
+  2. SCORE-STATE: "On break point down, <X>." / "After losing your serve, <X>." / "In deciding sets, <X>."
+  3. OPPONENT-BEHAVIOR: "When ${opponent.name} <does Y>, <you do X>."
+  4. TEMPO / MENTAL: "At the first changeover, <reset>."
+
+GOOD PRE-MATCH EXAMPLES (reference only — your output must be grounded in the actual data above)
+- "Standing plan: serve wide on ad side all match. Your data shows his BH CC collapses under pressure."
+- "On any break point, avoid the 2nd serve — you've saved 67% of BPs on 1st serves against him, 22% on 2nd."
+- "When he steps in on your 2nd serve, go wider, not slower. Placement over spin."
+- "If rallies extend past 6 shots, chip-and-change to his backhand. He loses depth after 6."
+
+BAD EXAMPLES (rejected)
+- "You should believe in yourself today." (generic mental, no data)
+- "Just play your game." (meaningless)
+- "When your UE count hits 10, slow down." (counting required)
+- "Practice serving wide tomorrow." (training, not in-match)
+- "Predict you'll win 6-4 6-3." (outcome prediction)
+
+Output JSON only.`
+}
+
