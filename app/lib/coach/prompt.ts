@@ -151,24 +151,46 @@ HARD CONSTRAINTS
 - 1 or 2 patterns. Fewer is better. If only one thing actually decided this match, return one.
 - Each "pattern" must connect THIS match to a broader truth. Not "you had 14 UEs." But "your 14 BH CC UEs today mirror your pattern: >10 BH CC UEs in 7 of your 9 losses this year."
 - Each "evidence" must cite ≥2 specific numbers from the data above.
-- Each "adjustment" must be executable ON-COURT during live play. Coach voice, imperative, specific.
+- Each "adjustment" must be a STANDING COMMITMENT, a SCORE-STATE TRIGGER, or an OPPONENT-BEHAVIOR TRIGGER. Never a numeric counter.
 - Coach voice: direct, 2nd person, short sentences. Sound like Brad Gilbert between points, not a blog post.
 - Do NOT restate the match score — JD already sees it in the UI.
 - Do NOT give generic tennis advice. Everything must be grounded in the data above.
 - Do NOT prescribe practice drills, rep counts, training routines, or technique fixes. JD's human coach handles those.
 - If the data genuinely does not support a clear pattern (weak sample, no stats, missing journal), return a single pattern that says so honestly instead of inventing one.
 
-EXAMPLES OF GOOD ADJUSTMENTS (in-match, executable)
-- "When FH UE count hits 10 in a set, shorten your backswing and hit 3 safer CC balls before going for a winner again."
-- "If Gonçalo steps in on your 2nd serve, don't slow it down — go wider, prioritize placement over spin."
-- "On break point down, avoid your 2nd serve — commit to a first serve even if the % drops. Your BP conversion is 67% on 1st, 22% on 2nd."
-- "At the first changeover where you're trailing, reset with one deep breath and commit to crosscourt on the first 5 rally balls."
+CRITICAL — NEVER USE NUMERIC TRIGGERS
+Tennis players do not count errors, winners, or serve % in their head during a match. An adjustment that starts with "when X count hits N" is useless — the player cannot observe the trigger. The same applies to "when your 1st serve % drops below 60%" or "after 3 double faults." Players notice SCORE STATE, OPPONENT BEHAVIOR, and FEEL — not tallies.
 
-EXAMPLES OF BAD ADJUSTMENTS (rejected — these are training, not in-match)
-- "Practice cross-court FH at 70% pace for 20 reps daily." (drill)
+Valid trigger shapes:
+  1. STANDING COMMITMENT — applies all match, no trigger needed.
+     Example: "Standing plan: every rally, cross-court until you get a short ball inside the service line, then attack DTL."
+  2. SCORE-STATE TRIGGER — tied to things the player naturally tracks.
+     Examples: "on any break point", "in deciding sets", "after losing your serve", "on ad-side deuce points", "when down 0-30 in your service game".
+  3. OPPONENT-BEHAVIOR TRIGGER — tied to something the player observes.
+     Examples: "when Gonçalo steps in on your 2nd serve", "when he slices the return back short", "when he starts chipping instead of driving the return".
+  4. TEMPO / MENTAL TRIGGER — tied to felt state, not counted.
+     Examples: "when rallies start feeling rushed", "if you catch yourself aiming for lines", "at the changeover after losing two games in a row".
+
+INVALID trigger shapes (rejected):
+  - "When FH UE count hits 10…"
+  - "If your 1st serve % drops below 60%…"
+  - "After 3 double faults in a set…"
+  - "When you've lost 5 return points in a row…"
+Anything that requires counting in real time.
+
+EXAMPLES OF GOOD ADJUSTMENTS
+- "Standing plan all match: first 3 rally balls are cross-court, no exceptions. Only open up the court after you've earned a short ball."
+- "On break point down, go to the first serve no matter what your percentage looks like. Your BP conversion is 67% on 1st, 22% on 2nd."
+- "If Gonçalo steps in on your 2nd serve, go WIDER, not slower. Placement over spin."
+- "After losing your serve, start the next return game with a chip return — don't rip. Buy a point to settle."
+- "At the changeover after losing two games in a row, one deep breath and commit to the first ball cross-court for three points."
+
+EXAMPLES OF BAD ADJUSTMENTS (rejected)
+- "When FH UEs hit 12, shift to safer shots." (counting required)
+- "Keep your 1st serve % above 60%." (calculation required)
+- "Practice cross-court FH at 70% pace for 20 reps daily." (training drill)
 - "Work on your backhand consistency." (generic + training)
-- "Do the Consistency Ladder drill 3x per week." (drill)
-- "Add topspin to your 2nd serve." (technique fix, not mid-point executable)
+- "Add topspin to your 2nd serve." (technique fix, not mid-point)
 
 Output JSON only.`
 }
