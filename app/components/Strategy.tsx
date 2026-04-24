@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { G, A, R, B, AD, avg, fmtDate } from '@/app/lib/helpers'
 import { computeSignals } from '@/app/lib/signals/compute'
+import { selectForPreMatch } from '@/app/lib/signals/select'
 import type { SignalSet, Signal, StrokeSignal, OpponentProfile } from '@/app/lib/signals/types'
 
 interface NextMatchStrategyProps {
@@ -74,7 +75,12 @@ export default function NextMatchStrategy({ matches }: NextMatchStrategyProps) {
 
   // Signals computation (memoized — recomputes only when matches change)
   const signals: SignalSet = useMemo(() => computeSignals(matches), [matches])
-  const topDriver = signals.correlations[0] ?? null
+  // Coachability filter: drop tautological, training-only, and low-specificity
+  // correlations before picking the top "Your #1 Edge." Prevents captain-obvious
+  // output like "Keeping total points won % above 50 boosts win chance by X%."
+  // Returns null when no coachable in-match correlation is available (better to
+  // show nothing than to show a dumb card).
+  const topDriver = useMemo(() => selectForPreMatch(signals.correlations)[0] ?? null, [signals.correlations])
   const oppProfile: OpponentProfile | null = oppName ? signals.opponentProfiles[oppName] ?? null : null
 
   // Stats in wins vs losses vs known opponent
