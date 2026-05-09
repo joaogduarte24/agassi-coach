@@ -4,6 +4,107 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Next Match Strategy — full redesign, brief is the screen
+**Shipped:** 2026-05-09 (same day as Pre-Match Brief v1)
+**Files:**
+- `app/components/Strategy.tsx` — slimmed from 821 lines to ~75. Now a sticky-input shell that mounts `<PreMatchBrief>`. **Deleted:** matchup banner, CoachesRead component invocation, Stats vs Opponent, Wins-vs-Losses breakdown, Match history pills, Opponent Tendencies, Field Notes, Journal Priority History, Intelligence #1 Edge, Your Tendencies, Stroke Intel, Opponent Profile, 5 Focus Cards, Match Plan Table — 12 sections gone.
+- `app/components/PreMatchBrief.tsx` — full rewrite to the approved mockup. Hero + 3 hero cards (EXPECT / DO / SERVE-RETURN STRATEGY) + WARM-UP DRILLS + MENTAL READ + EVIDENCE collapsible.
+- `app/lib/briefs/types.ts` — Brief reshaped: dropped `keyNumbers`, `dont`, `returnPosition`. Added `intent`, `inMatchRule`, `serveReturn` (4-card structure with returning + serving × deuce + ad), `warmupDrills` (each with stat anchor), `mentalRead` (headline + text + derivation), `evidence` (claim → data → matchIds).
+- `app/lib/briefs/generate.ts` — new computers: `computeServeReturn`, `computeWarmupDrills` (each drill anchored to its specific stat), `computeMentalRead` (archetype-driven cue with data derivation), `computeEvidence` (claims → data path).
+- `DESIGN.md` — new "Screen-level patterns" section codifying: one screen one job; sticky-compact inputs not gating; hero + supporting visual hierarchy; stat anchors on every claim; targets on every instruction; cards uniform inside a section; confidence/score hidden at action moments; negation banned in primary instructions.
+
+**Why it was redesigned**
+The first Pre-Match Brief shipped at the top of the existing 14-section Strategy screen. JD's feedback: "too much, too noisy, impossible to digest." Most sections duplicated what the brief delivered or were data theatre at the moment of action.
+
+**Process — three-lens parallel review (codified as a memory)**
+Three independent agents stress-tested before any iteration: Product & Design Lead (IA, hierarchy, mobile-fit), Tennis Coach (does it serve the user's actual job), Sports Psychologist (what mental state does it leave the user in). Convergence: cut 12 sections, hide the confidence badge, move the loss score behind a tap, replace negation ("DON'T") with approach goals.
+
+**Design moves embedded into the redesign**
+1. **Brief IS the screen** — no surrounding chrome, no matchup banner, no separate stats grid. Brief replaces all of it.
+2. **Sticky inputs, no UTR gate** — opponent select + Context chevron only. Brief auto-loads on opponent select.
+3. **Hero hierarchy** — three numbered hero cards (1 EXPECT, 2 DO, 3 SERVE-RETURN STRATEGY) carry the visual weight. Supporting cards (WARM-UP, MENTAL READ) lighter.
+4. **Stat anchors per claim** — every instruction in a hero card carries `↳ {stat}` in gold mono so the data path is visible.
+5. **Uniform card structure inside a section** — all 4 SERVE-RETURN cards use the same 3-element shape: instruction / stat / target. Original mixed treatment was visual noise.
+6. **Negation reframed** — "DON'T get baited" → "When he hits an unreal shot: smile, reset, next point starts now." Psych: negation primes the very state.
+7. **Confidence badge hidden** — generated internally, never surfaced. Psych: meta-cognition right before action plants doubt.
+8. **Loss score behind Evidence chevron** — score never appears on hero. Psych: scores in red 30 min before a rematch are weaponising.
+9. **Mental Read = data-derived archetype cue** — different opponents get different headlines: "VARIANCE, NOT LEVEL" for high-variance shotmakers, "ACES HAPPEN" for big servers, "PATIENCE BREAKS PUSHERS" for grinders, "RIDE OUT THE STORM" for aggressive baseliners. Each carries a derivation note showing the stat path.
+10. **In-match rule** — the trigger/action pair (formerly "KEY NUMBERS") moved into a green caps footer inside DO. The old KEY NUMBERS section was killed entirely; each line was redistributed to its natural home.
+11. **Intent banner** — "1+ first-strike attempt every return game" lives as a gold-tinted strip at the top of DO. Was originally "1+ first-strike attempt per return game · mark on grip" but the grip-tally idea didn't land for JD; simplified.
+12. **Warm-up drills with stat anchors** — each drill ties to a specific stat ("his deuce 1st-in was 61% — you will see plenty of 2nd serves to attack"). The connection between drill and game plan is visible, not implied.
+
+**What was cut from v1**
+- TODAY dial (arousal up/down cue) — JD: didn't land
+- BREATH anchor — JD: not useful at his level
+- IF/THEN behavioural triggers — JD: must be data-backed; dropped pending more matches
+- Confidence badge surface — psych call
+- Loss score in hero — psych call
+- All 12 legacy sections from old Strategy.tsx
+
+**Memories codified during this session** (so future redesigns benefit)
+- `feedback_screen_reviews_as_mockups.md` — every screen review delivered as a mockup, never text-only
+- `feedback_screen_redesign_three_lens_review.md` — three-lens parallel review (Product+Design / Domain Expert / User-State) before any screen redesign
+- `design_taste_negation_primes.md` — replace DON'T with DO at action moments
+- `design_taste_hide_meta_state.md` — confidence/sample-size/scores hidden at action moments
+
+**Verified**
+Build clean (bundle dropped 67.4 kB → 60 kB after the slim-down). Production verified — Costa selected from the Next Match dropdown, brief renders the locked content. No console errors.
+
+---
+
+## Pre-Match Brief — auto-generated scouting card on Next Match tab
+**Shipped:** 2026-05-09
+**Files:**
+- `app/lib/briefs/types.ts` — NEW: `Brief`, `BriefBullet`, `BriefKeyNumbers`, `BriefConfidence` types
+- `app/lib/briefs/generate.ts` — NEW: `generateBrief()` — pure function turning match history into a Brief object. Computes archetype/style tag, headline trait, EXPECT bullets, PLAN bullets, RETURN POSITION, DON'T trap, KEY NUMBERS (5-line block). Three coverage modes: `strong` (≥3 H2H), `single_match`, `limited` (no shot data), `blank` (no priors).
+- `app/components/PreMatchBrief.tsx` — NEW: renderer with confidence badge, tap-to-reveal caveats per bullet, mobile-first card layout
+- `app/components/Strategy.tsx` — wires `<PreMatchBrief>` to render as soon as opponent is named
+- `app/types.ts` — Journal gains `manual_scout_done` (boolean) + `key_numbers_used` (object: binary, count, action, guardrail) for future feedback-loop tracking
+- `supabase-schema.sql` — comment block documenting the new journal JSONB fields (no DDL change)
+
+**Why it was built**
+JD currently watches each match recording and writes scouting notes by hand. The exercise that produced this feature: ran his Manuel Costa handwritten notes against the stored stats and asked which observations could be derived from data alone. ~6 of 11 hand-written notes were cleanly derivable; 2 partial; 3 not at all. The brief is the artifact that delivers what stats can produce on a phone bench in under 30 seconds, replacing the re-watch step.
+
+**Design — what the brief contains**
+1. **Header** — opponent name, headline trait (Lefty · Slow serve · etc.), archetype, surface, last result, confidence badge.
+2. **EXPECT** (3 bullets) — stat-derived observations from the most recent H2H match: handedness + serve speed read, slice/BH usage, W/UE ratio archetype tag, return-speed read, rally tempo.
+3. **PLAN** (3 bullets) — each executable in next 60 seconds of warm-up: which serve side to attack, when S&V works, rally-length strategy.
+4. **RETURN POSITION** — explicit cue per court side (lefty wide-slider tag for ad on lefties).
+5. **DON'T** (1 bullet) — the trap pattern (variance shotmaker, tempo trap, big server).
+6. **KEY NUMBERS** (5 lines) — Binary intent (1+ first-strike per return game, mark grip), opponent-specific count target, conditional trigger ("first changeover after losing serve"), prescribed action (specific shot to specific zone), guardrail (1st-serve-in% under 50% → drop pace).
+
+**Why this shape**
+Stress-tested with two specialised reviews:
+- **Data Analyst** killed season-median formulas (need N≥12 matches; JD has fewer), killed pressure/clutch claims at N=1, mandated count targets and within-match ratios over rate comparisons. Caveat tooltip on every claim is a quality gate, not optional.
+- **Tennis Coach** killed counts of outcomes (mid-rally counting pulls eyes off ball), mandated counts of choices (intent), conditional triggers tied to scoreboard reality, prescribed shot sequences (specific shot to specific zone). Identified that for a slicer like Costa, the right return target is BH **high** (above service line), not BH **deep** — slicers eat low balls.
+
+Two sequencing gates landed on **brief-first** (not foundation-first) — ship the artifact, learn what's missing in real use, add primitives reactively. Tabs killed in favour of single-scroll. Self-scout deferred to a section inside Postmortem (not yet built).
+
+**What was cut from v1**
+- **First 3 Games** slot — coach's highest-leverage addition, but no clean stats source today; would need JD self-scout signal on opening-game patterns
+- **If-down-a-break reset cue** — needs Sports Psychologist round to write generic and opponent-specific reset cues
+- **Lefty auto-detect** — wasted engineering per data analyst (warm-up reveals it in 30 seconds; journal `opp_lefty` is sufficient)
+- **Drop-shot tag** — needs trajectory apex data SwingVision doesn't expose
+- **Multi-match Beta-Binomial shrinkage** — only matters when JD has ≥3 matches vs same opponent; deferred until that's a real case
+- **Pressure / BP-footprint signals** — garbage at N<4 matches per analyst
+- **Per-stroke spin breakdown** — would let "29% BH slice" land as the 2nd EXPECT bullet for Costa; currently uses overall slice% which is null on most matches. Documented in DATA-GAPS.
+
+**Voice rules embedded in the generator**
+- "Last match he…" framing, never "He tends to…" until N≥3 H2H meetings
+- No two-decimal precision under N=3
+- Every claim ships with a caveat tooltip showing source date + raw number + sample-size note. Non-optional — coach approved clean voice on the surface, analyst-approved honesty one tap away.
+
+**Coverage modes (cold start)**
+- `blank` — no H2H, no profile: brief still renders with 3 generic plan bullets ("open patient, observe first 3 games"), default count target ("4 returns deep to BH side"), explicit "Scouting blank" badge
+- `limited` — H2H exists but no shot data: falls back to journal `opp_style/opp_weapon/opp_weakness` if migration ran, "Limited data — directional only" badge
+- `single_match` — exactly 1 H2H meeting with shot data: full brief, "Single match · directional" badge in amber
+- `strong` — 3+ H2H meetings with shot data: green badge, future home for cross-match aggregation
+
+**Verified**
+Generator unit-tested against production Costa data. Build passes. Preview screenshot taken on mobile viewport. Tap-to-reveal caveat verified showing actual source ("From 2026-03-29. Combined 1st + 2nd serve speed avg 87 km/h. 1st-serve only: 90 km/h.").
+
+---
+
 ## Journal v2 — Quick Core + Deep + Opponent profile
 **Shipped:** 2026-04-16
 **Files:**

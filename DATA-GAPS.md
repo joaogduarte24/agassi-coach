@@ -2,7 +2,34 @@
 
 Tracks every data point that exists in the database but is **not yet shown, analyzed, or used** in any UI component or signal computation. This is the backlog for Cluster B (Visualisation) and future intelligence work.
 
-**Last updated:** 2026-04-16 (Journal v2 — new fields stored, most not yet surfaced)
+**Last updated:** 2026-05-09 (Pre-match brief shipped — surfaces archetype/serve-by-court/return-speed; new gaps documented below)
+
+---
+
+## 2026-05-09 update — Pre-match brief surfaced fields
+
+The brief generator (`app/lib/briefs/generate.ts`) reads from existing `Match` JSONB and surfaces previously-unused signals into the Next Match tab:
+- `opp_shots.serve.first/second.spd_ad/spd_deuce` — combined into a "slow serve" / "big serve" headline trait
+- `opp_shots.return.first.spd_ad/spd_deuce` — drives the S&V plan bullet + return position cue
+- `opp_shots.stats.rally_mean` — drives the rally-length tactic bullet
+- `opp_shots.stats.winners + ue` ratio — drives "high-variance shotmaker" archetype tag and the DON'T trap
+- `journal.opp_lefty` — drives lefty headline trait + ad-side return position cue
+- `journal.opp_style/opp_weapon/opp_weakness` — fallback in `limited` coverage mode
+- `score.winner + score.sets` — last-result chip in the brief header
+
+### Still unsurfaced (after pre-match brief v1)
+
+Fields the brief WANTS but cannot derive from current schema:
+- **Per-stroke spin breakdown** (e.g. "29% of his backhands are slice"). `opp_shots.distribution.slice_pct` is overall slice%, not per-stroke. `match_shots` has full per-shot spin but is not aggregated into a brief-friendly field. Without this, the brief falls back to overall slice% (often null) and misses the headline observation for slicers like Costa.
+- **Per-court serve direction split** (e.g. "ad → wide 70%, deuce → T 60%"). `match_shots` carries direction and can be split by point parity, but no precomputed field on `Match`. Brief currently uses aggregate `s1_t_pct/s1_wide_pct` which doesn't expose the lefty wide-slider pattern by court.
+- **Drop-shot detection.** Needs trajectory apex, which SwingVision doesn't provide. Documented as permanently out-of-scope.
+- **JD's first-strike attempt count history.** The KEY NUMBERS guardrail uses a static 50% threshold instead of JD's season median because per-match per-player aggregation isn't pre-computed. Once a `jd_first_strike_count` field is added per match, the guardrail can adapt.
+- **Pressure / BP-footprint signals** for opponent. Suppressed at N<4 H2H meetings per data analyst review — schema can already store but generator deliberately doesn't read.
+
+### New fields stored, not yet surfaced
+
+- `journal.manual_scout_done` (boolean) — added so JD can flag matches where he did manual video review; future use is to weight/prioritise those matches in cross-match scouting and to compare manual vs auto-derived observations
+- `journal.key_numbers_used` (object: binary, count, action, guardrail) — placeholder for post-match feedback capture so future iterations can learn which key-number shapes actually drove behavior change
 
 ---
 

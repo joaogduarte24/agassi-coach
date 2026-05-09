@@ -51,6 +51,10 @@ export interface Journal {
   worst_moment: string|null       // Frustration|Fear|Complacency|Rage|None
   priority_next: string|null      // Serve %|Reduce UE|Return depth|BP conversion|Footwork|Composure|Aggression
   reflection_text: string|null    // one-line post-match reflection
+
+  // ── Pre-match brief feedback ────────────────────────────────────────────────
+  manual_scout_done: boolean|null // did JD do a manual video review on this match (cross-check signal)
+  key_numbers_used: { binary: boolean; count: boolean; action: boolean; guardrail: boolean }|null
 }
 
 // Opponent profile — stored at opponent level (new `opponents` table), pre-fills

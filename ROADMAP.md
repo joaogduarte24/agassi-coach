@@ -2,7 +2,7 @@
 
 This is the single source of truth for what's being built, what's next, and what's not happening. Updated after every shipped feature or priority change.
 
-**Last updated:** 2026-04-16
+**Last updated:** 2026-05-09
 
 ---
 
@@ -34,6 +34,32 @@ This is the single source of truth for what's being built, what's next, and what
 ---
 
 ## SHIPPED
+
+### Next Match Strategy redesign — brief is the screen ✓
+**Shipped:** 2026-05-09
+- [x] Strategy.tsx slimmed from 821 lines to ~75 — sticky inputs + PreMatchBrief mount only
+- [x] 12 legacy sections deleted (matchup banner, stats vs opp, wins/losses, history pills, opp tendencies, field notes, priority history, #1 edge, your tendencies, stroke intel, opp profile, focus cards, match plan table)
+- [x] PreMatchBrief rebuilt to approved mockup: Hero + EXPECT + DO + SERVE-RETURN STRATEGY + WARM-UP DRILLS + MENTAL READ + EVIDENCE
+- [x] 3-lens stress test (Product+Design / Coach / Psych) drove the cuts
+- [x] Confidence badge + loss score hidden at action moments
+- [x] DON'T reframed to DO; "MENTAL READ" replaces it as data-derived archetype cue
+- [x] DESIGN.md "Screen-level patterns" section
+- [x] 4 memories codified (mockup review, 3-lens review, negation primes, hide meta-state)
+
+### Pre-Match Brief v1 — auto-generated scouting card on Next Match ✓
+**Shipped:** 2026-05-09
+- [x] `app/lib/briefs/` module with pure-function generator (Brief JSON returned from match history)
+- [x] 6 sections: header + EXPECT (3) + PLAN (3) + RETURN POSITION + DON'T + KEY NUMBERS (5-line block)
+- [x] Tap-to-reveal caveat tooltips on every claim (sample size, raw stat, source date)
+- [x] Confidence badges: strong (≥3 H2H) / single_match / limited (no shot data) / blank (cold start)
+- [x] All 4 coverage modes handled: blank/limited/single_match/strong
+- [x] Journal schema gains `manual_scout_done` + `key_numbers_used` for future feedback loop
+- [x] Verified against production Costa data; build clean; preview screenshot taken
+- [ ] Follow-up: per-stroke spin breakdown (would unlock the "29% BH slice" headline observation)
+- [ ] Follow-up: First 3 Games slot (needs JD self-scout signal)
+- [ ] Follow-up: If-down-a-break reset cue (needs psych lens)
+- [ ] Follow-up: multi-match Beta-Binomial shrinkage when ≥3 H2H exists
+- [ ] Follow-up: post-match feedback capture for `key_numbers_used` to learn which numbers worked
 
 ### Journal v2 — Quick Core + Deep layer + Opponent profile table ✓
 **Shipped:** 2026-04-16

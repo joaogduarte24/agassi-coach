@@ -148,3 +148,7 @@ alter table matches add column if not exists has_shot_data boolean default false
 -- Journal v2 (2026-04-16): opp_* keys moved out of matches.journal into opponents
 -- table. Migration is one-off via POST /api/opponents/migrate. "Luck" values in
 -- decided_by arrays auto-rewritten to "Close margin" on read (see dbToMatch).
+
+-- Pre-match brief feedback (2026-05-09): journal JSONB gains optional fields
+-- `manual_scout_done` (boolean) and `key_numbers_used` (object: { binary, count,
+-- action, guardrail }). No DDL change — stored inside existing journal jsonb.

@@ -191,3 +191,28 @@ Transitions: `all 0.15s` on color/border changes only. No layout animation in v1
 | Journal chips: no clear selected style | Gold border + gold text when selected |
 | `#444` for inactive nav | `#333` (--dim) |
 | Pure white `#fff` text | Warm white `#f0ece4` |
+
+---
+
+## Screen-level patterns
+
+**One screen, one job.** Each screen has a primary artefact (the Brief, the Match, the Identity, the Journal). Everything else is either input to it, evidence for it, or cut. Adopted 2026-05-09 during the Next Match Strategy redesign.
+
+Concrete rules:
+- **Inputs:** sticky-compact at top. Primary control surfaces; secondary controls collapse behind a "Context ▾" chevron. Never gate the primary artefact behind input completion (e.g. UTR is no longer required to render the brief).
+- **Hero:** the artefact gets a hero treatment — Bebas display 52px, gold border-left 2px, descriptor in DM Mono. No stats, no badges, no scores in the hero surface itself. Score and W/L history live behind the Evidence chevron, never in the hero. Reason: scores in red 30 minutes before a rematch are weaponising; psych guidance.
+- **Hero cards (numbered 1, 2, 3):** the few sections that ARE the artefact get heroic visual weight — Bebas number + accented label + bordered card. Use sparingly: 3 hero cards max per screen.
+- **Supporting cards:** lighter visual weight (smaller mono labels, neutral border, no number) for everything that frames or modifies the heroes.
+- **Stat anchors:** every claim/instruction in a hero card carries a stat anchor in `GOLD_DIM` mono ("↳ his deuce 1st-in was 61% — you will see plenty of 2nd serves to attack"). Reason: the user trusts the brief because the data path is visible, not assumed.
+- **Targets:** every heroic instruction carries a `↳ target` line in green italic — what success looks like. Reason: instructions without targets are abstract.
+- **Evidence collapsible:** every claim on the screen has a tap-to-reveal data path. Includes raw stat + linked match. Score, history pills, raw stat tables live ONLY here, never on the surface.
+- **Confidence badges:** generated but never surfaced to the user during action moments. Used internally to gate plan generation. Reason: meta-cognition right before action plants doubt.
+- **Cut hard:** if a section duplicates content from a hero card or doesn't help complete the screen's one job, delete it — don't fold it behind a chevron.
+
+### Naming voice
+- Section labels: imperative caps mono ("EXPECT", "DO", "WHEN YOU ARE RETURNING").
+- Mantras and intents: short, second-person, present tense.
+- Negation banned in primary instructions ("Don't get baited" → "When he hits unreal shots: smile, reset, next point starts now"). Reason: psych — negation primes the very state you're trying to avoid.
+
+### Card structures must be uniform
+Inside a section, every card uses the same shape (label / instruction / stat / target). Mixing layouts per card inside the same group is visual noise — observed and fixed during the SERVE · RETURN STRATEGY iteration.

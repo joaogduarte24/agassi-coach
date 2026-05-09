@@ -100,6 +100,10 @@ A match can exist in three states. The UI must handle all three:
   - `strokes.ts` — Per-stroke effectiveness tagging (hidden_weapon/overused/reliable/liability)
   - `journal.ts` — Journal field correlations with win/loss
   - `profile.ts` — Auto-derived player profiles (JD + opponents): style, weapon, weakness, clutch, aggression
+- `app/lib/briefs/` — Pre-match brief generator. Pure function: `generateBrief({opponentName, allMatches}) → Brief | null`.
+  - `types.ts` — Brief, BriefBullet, BriefKeyNumbers, BriefConfidence types
+  - `generate.ts` — Header (style tag + headline trait + last result), EXPECT (3 stat-derived bullets), PLAN (3 executable bullets), RETURN POSITION, DON'T, KEY NUMBERS (5-line block: binary intent / count target / trigger / action / guardrail). Four coverage modes: `blank` / `limited` / `single_match` / `strong`.
+- `app/components/PreMatchBrief.tsx` — Renderer for the brief. Mobile card with confidence badge + tap-to-reveal caveats per bullet. Mounts in `Strategy.tsx` as soon as opponent is named.
 
 ## Data Shape (Match)
 ```json
@@ -143,7 +147,10 @@ A match can exist in three states. The UI must handle all three:
     "body_state": "Fresh|Tired|Sore|Cramped|Injured|null",
     "worst_moment": "Frustration|Fear|Complacency|Rage|None|null",
     "priority_next": "Serve %|Reduce UE|Return depth|BP conversion|Footwork|Composure|Aggression|null",
-    "reflection_text": "string|null"
+    "reflection_text": "string|null",
+    // Pre-match brief feedback (2026-05-09)
+    "manual_scout_done": "boolean|null",
+    "key_numbers_used": "{ binary, count, action, guardrail: boolean }|null"
   }
 }
 ```
