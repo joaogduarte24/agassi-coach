@@ -4,6 +4,36 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Design system — Phase 2: extracted UI components
+**Shipped:** 2026-05-12
+**Files:**
+- `app/components/ui/Card.tsx` — `default` (BG2/BORDER/RAD.lg/S.lg) and `inset` (BG3/no-border/RAD.md/S.md-2) variants. Optional `title` prop renders mono uppercase NULL_STATE label. Optional `hover` and `onClick` props with mouse-event border transitions.
+- `app/components/ui/Chip.tsx` — selected toggles gold border + gold-tinted bg + gold text per DESIGN.md spec.
+- `app/components/ui/Pill.tsx` — 5 variants: `green`, `amber`, `red`, `blue`, `dim`. Inline-block DM Mono 10/500.
+- `app/components/ui/Button.tsx` — `primary` (full-width bordered, hover → gold) and `destructive` (text-only, hover → red). Disabled state included.
+- `app/components/ui/SectionHeader.tsx` — Inter 10/700 +2px tracking MUTED divider between cards.
+- `app/preview/components/page.tsx` — preview route showing every variant + state alongside the equivalent inline versions, plus a composed example (Card + SectionHeader + Bebas headline + Pills + inset Card + Button).
+- `app/components/MatchDetail.tsx` — first consumer refactor. Local `Card` helper deleted; 6 stat-section cards (1st/2nd Serve, 1st/2nd Return, Forehand, Backhand) now use `<Card variant="inset" title="…">`. Background drift from `#1e1e1e` to BG3 `#1c1c1c` per the design decision in this session.
+- `.token-baseline` — 299 → 297.
+
+**Why now**
+Phase 1 named the tokens. Phase 2 turns them into components that consumers actually use. Without component extraction, the inline-style pattern in each consumer continues re-implementing Card/Chip/Pill/Button from scratch — that's exactly how the original drift accumulated.
+
+**Decision made during the work**
+Card `inset` variant — the inline pattern in MatchDetail used `#1e1e1e`; new `<Card variant="inset">` uses BG3 `#1c1c1c`. JD picked the BG3 alignment (option A) over adding a new `BG_RAISED` token. The system gains one fewer near-duplicate colour; the visible diff is 2 brightness points and almost certainly imperceptible.
+
+**Verified**
+- `npm run build` clean.
+- `npm run lint:tokens` reports 297 (down 2 from 299; baseline updated).
+- Preview route inspected via `preview_inspect`: Card `inset` computed style is `background: rgb(28, 28, 28); border: 0px none; border-radius: 12px; padding: 14px` — matches spec exactly.
+
+**What was deliberately left out**
+- **FixMatchModal refactor** — modal-specific containers don't map cleanly to the extracted Card variants. Deferred to incremental cleanup as those files are edited for other reasons.
+- **HeroCard** (numbered, gold-accented brief cards), **MatchHeader** (Bebas score + WIN/LOSS badge), **StatTile** (4-column Bebas grids in MatchDetail) — all candidates for Phase 3 once the first 5 components have settled in real usage.
+- **Bulk replacement** of inline hex literals across the rest of the codebase — the lint baseline ratchets down as files get touched for other work.
+
+---
+
 ## Design system — Phase 1: token alignment
 **Shipped:** 2026-05-12
 **Files:**

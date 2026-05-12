@@ -2,6 +2,7 @@
 import { G, A, R, GD, RD, col, fmtDate, FONT_DATA } from '@/app/lib/helpers'
 import { Match, Avgs } from '@/app/types'
 import StatBar from './StatBar'
+import Card from './ui/Card'
 
 interface MatchDetailProps {
   m: Match
@@ -13,12 +14,6 @@ export default function MatchDetail({ m, avgs }: MatchDetailProps) {
   const s = m.shot_stats || {} as any
   const utrStr = m.opponent?.utr ? ` · UTR ${m.opponent.utr}` : ''
 
-  const Card = ({ title, children }: any) => (
-    <div style={{background:'#1e1e1e',borderRadius:10,padding:14,marginBottom:12}}>
-      <div style={{fontSize:10,letterSpacing:2,color:'#555',textTransform:'uppercase',fontFamily: FONT_DATA,marginBottom:12}}>{title}</div>
-      {children}
-    </div>
-  )
   const DepthRow = ({ cc, dtl }: any) => (
     <div style={{display:'flex',gap:12,fontSize:10,color:'#666',marginTop:6}}>
       <span style={{color:cc==null?'#444':cc>=55?G:cc>=45?A:R}}>● Deep CC: {cc??'—'}%</span>
@@ -93,40 +88,40 @@ export default function MatchDetail({ m, avgs }: MatchDetailProps) {
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
-        <Card title="1st Serve">
+        <Card variant="inset" title="1st Serve">
           <StatBar label="Ad %" val={m.serve?.first?.pct_ad??null} avgVal={avgs.s1_ad} gThresh={75} aThresh={60} />
           <StatBar label="Ad Speed" val={m.serve?.first?.spd_ad??null} avgVal={avgs.spd_s1_ad} gThresh={88} aThresh={78} suffix="km/h" />
           <StatBar label="Deuce %" val={m.serve?.first?.pct_deuce??null} avgVal={avgs.s1_deuce} gThresh={75} aThresh={60} />
           <StatBar label="Deuce Speed" val={m.serve?.first?.spd_deuce??null} avgVal={avgs.spd_s1_deuce} gThresh={88} aThresh={78} suffix="km/h" />
         </Card>
-        <Card title="2nd Serve">
+        <Card variant="inset" title="2nd Serve">
           <StatBar label="Ad %" val={m.serve?.second?.pct_ad??null} avgVal={avgs.s2_ad} gThresh={80} aThresh={65} />
           <StatBar label="Ad Speed" val={m.serve?.second?.spd_ad??null} avgVal={avgs.spd_s2_ad} gThresh={75} aThresh={65} suffix="km/h" />
           <StatBar label="Deuce %" val={m.serve?.second?.pct_deuce??null} avgVal={avgs.s2_deuce} gThresh={80} aThresh={65} />
           <StatBar label="Deuce Speed" val={m.serve?.second?.spd_deuce??null} avgVal={avgs.spd_s2_deuce} gThresh={75} aThresh={65} suffix="km/h" />
         </Card>
-        <Card title="1st Return">
+        <Card variant="inset" title="1st Return">
           <StatBar label="Ad %" val={m.return?.first?.pct_ad??null} avgVal={avgs.ret1_ad} gThresh={80} aThresh={65} />
           <StatBar label="Ad Speed" val={(m.return?.first?.spd_ad??null)} avgVal={avgs.spd_ret1} gThresh={72} aThresh={62} suffix="km/h" />
           <StatBar label="Deuce %" val={m.return?.first?.pct_deuce??null} avgVal={avgs.ret1_deuce} gThresh={80} aThresh={65} />
           <StatBar label="Deuce Speed" val={m.return?.first?.spd_deuce??null} avgVal={avgs.spd_ret1} gThresh={72} aThresh={62} suffix="km/h" />
           <DepthRow cc={m.return?.first?.deep_ad} dtl={m.return?.first?.deep_deuce} />
         </Card>
-        <Card title="2nd Return">
+        <Card variant="inset" title="2nd Return">
           <StatBar label="Ad %" val={m.return?.second?.pct_ad??null} avgVal={avgs.ret2_ad} gThresh={80} aThresh={65} />
           <StatBar label="Ad Speed" val={(m.return?.second?.spd_ad??null)} avgVal={avgs.spd_ret2} gThresh={72} aThresh={62} suffix="km/h" />
           <StatBar label="Deuce %" val={m.return?.second?.pct_deuce??null} avgVal={avgs.ret2_deuce} gThresh={80} aThresh={65} />
           <StatBar label="Deuce Speed" val={m.return?.second?.spd_deuce??null} avgVal={avgs.spd_ret2} gThresh={72} aThresh={62} suffix="km/h" />
           <DepthRow cc={m.return?.second?.deep_ad} dtl={m.return?.second?.deep_deuce} />
         </Card>
-        <Card title="Forehand">
+        <Card variant="inset" title="Forehand">
           <StatBar label="CC In %" val={m.forehand?.cc_in??null} avgVal={avgs.fh_cc} gThresh={80} aThresh={65} />
           <StatBar label="CC Speed" val={m.forehand?.spd_cc??null} avgVal={avgs.spd_fh_cc} gThresh={74} aThresh={65} suffix="km/h" />
           <StatBar label="DTL In %" val={m.forehand?.dtl_in??null} avgVal={avgs.fh_dtl} gThresh={80} aThresh={65} />
           <StatBar label="DTL Speed" val={m.forehand?.spd_dtl??null} avgVal={avgs.spd_fh_dtl} gThresh={74} aThresh={65} suffix="km/h" />
           <DepthRow cc={m.forehand?.depth_cc} dtl={m.forehand?.depth_dtl} />
         </Card>
-        <Card title="Backhand">
+        <Card variant="inset" title="Backhand">
           <StatBar label="CC In %" val={m.backhand?.cc_in??null} avgVal={avgs.bh_cc} gThresh={80} aThresh={65} />
           <StatBar label="CC Speed" val={m.backhand?.spd_cc??null} avgVal={avgs.spd_bh_cc} gThresh={68} aThresh={60} suffix="km/h" />
           <StatBar label="DTL In %" val={m.backhand?.dtl_in??null} avgVal={avgs.bh_dtl} gThresh={80} aThresh={65} />

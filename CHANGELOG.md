@@ -8,6 +8,16 @@ Updated on every ship per CLAUDE.md gate 06. For full rationale and deferred ite
 
 ## [Unreleased]
 
+## [2026-05-12] Design system Phase 2: extract Card, Chip, Pill, Button, SectionHeader
+
+### Added
+- Five reusable UI components under `app/components/ui/`: `Card`, `Chip`, `Pill`, `Button`, `SectionHeader`. Each follows DESIGN.md spec exactly and imports all values from token helpers.
+- `/preview/components` route — every variant + state shown side-by-side with the previous inline versions, plus a composed example to prove they nest correctly.
+
+### Changed
+- `app/components/MatchDetail.tsx` — local `Card` helper removed, 6 stat cards (1st/2nd Serve, 1st/2nd Return, Forehand, Backhand) now use `<Card variant="inset" title="…">`. Backgrounds shift from `#1e1e1e` to BG3 `#1c1c1c` — a 2-brightness-point alignment to the documented system.
+- `.token-baseline` ratcheted 299 → 297.
+
 ## [2026-05-12] Design system Phase 1: token alignment + lint ratchet
 
 ### Fixed
