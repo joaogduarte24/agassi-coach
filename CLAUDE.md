@@ -22,6 +22,7 @@ All docs live in `~/projects/agassi/`. Always read the relevant file before maki
 | `ROADMAP.md` | Committed upcoming features, prioritised with ICE scores. |
 | `BACKLOG.md` | Raw ideas not yet committed. Add new ideas here first. |
 | `FEATURES.md` | Log of everything shipped — what was built, why, what was left out. |
+| `CHANGELOG.md` | User-visible changelog. Dated entries, Added/Changed/Fixed/Removed. Updated on every ship. |
 | `DATA-GAPS.md` | **Every data point stored but not yet surfaced in the UI. Update on every ship.** |
 | `CROWDSOURCE.md` | **Crowdsource benchmark vision — current (N=1) + future (multi-user). The benchmark IS the product. Read before any work touching opponents, `opp_shots`, `benchmarks.ts`, or the contribution pipeline.** |
 | `DESIGN.md` | Visual design system, component patterns, colour usage. |
@@ -315,6 +316,7 @@ FEATURES.md entry minimum:
 - Date shipped
 
 **Also update on every ship:**
+- `CHANGELOG.md` — **mandatory**. Add a dated entry under `## [Unreleased]` (or promote `[Unreleased]` to today's date) grouped by `### Added / Changed / Fixed / Removed`. User-visible language only — no implementation jargon. FEATURES.md holds the rationale; CHANGELOG.md holds the "what changed for me."
 - `ROADMAP.md` — move NOW item to SHIPPED with bullet summary; update "Last updated" date
 - `supabase-schema.sql` — if any schema column or table changed
 - `CLAUDE.md` Known Issues — remove fixed bugs; add new confirmed bugs
