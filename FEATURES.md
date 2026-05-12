@@ -4,6 +4,63 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Design system — Phase 2: extracted UI components
+**Shipped:** 2026-05-12
+**Files:**
+- `app/components/ui/Card.tsx` — `default` (BG2/BORDER/RAD.lg/S.lg) and `inset` (BG3/no-border/RAD.md/S.md-2) variants. Optional `title` prop renders mono uppercase NULL_STATE label. Optional `hover` and `onClick` props with mouse-event border transitions.
+- `app/components/ui/Chip.tsx` — selected toggles gold border + gold-tinted bg + gold text per DESIGN.md spec.
+- `app/components/ui/Pill.tsx` — 5 variants: `green`, `amber`, `red`, `blue`, `dim`. Inline-block DM Mono 10/500.
+- `app/components/ui/Button.tsx` — `primary` (full-width bordered, hover → gold) and `destructive` (text-only, hover → red). Disabled state included.
+- `app/components/ui/SectionHeader.tsx` — Inter 10/700 +2px tracking MUTED divider between cards.
+- `app/preview/components/page.tsx` — preview route showing every variant + state alongside the equivalent inline versions, plus a composed example (Card + SectionHeader + Bebas headline + Pills + inset Card + Button).
+- `app/components/MatchDetail.tsx` — first consumer refactor. Local `Card` helper deleted; 6 stat-section cards (1st/2nd Serve, 1st/2nd Return, Forehand, Backhand) now use `<Card variant="inset" title="…">`. Background drift from `#1e1e1e` to BG3 `#1c1c1c` per the design decision in this session.
+- `.token-baseline` — 299 → 297.
+
+**Why now**
+Phase 1 named the tokens. Phase 2 turns them into components that consumers actually use. Without component extraction, the inline-style pattern in each consumer continues re-implementing Card/Chip/Pill/Button from scratch — that's exactly how the original drift accumulated.
+
+**Decision made during the work**
+Card `inset` variant — the inline pattern in MatchDetail used `#1e1e1e`; new `<Card variant="inset">` uses BG3 `#1c1c1c`. JD picked the BG3 alignment (option A) over adding a new `BG_RAISED` token. The system gains one fewer near-duplicate colour; the visible diff is 2 brightness points and almost certainly imperceptible.
+
+**Verified**
+- `npm run build` clean.
+- `npm run lint:tokens` reports 297 (down 2 from 299; baseline updated).
+- Preview route inspected via `preview_inspect`: Card `inset` computed style is `background: rgb(28, 28, 28); border: 0px none; border-radius: 12px; padding: 14px` — matches spec exactly.
+
+**What was deliberately left out**
+- **FixMatchModal refactor** — modal-specific containers don't map cleanly to the extracted Card variants. Deferred to incremental cleanup as those files are edited for other reasons.
+- **HeroCard** (numbered, gold-accented brief cards), **MatchHeader** (Bebas score + WIN/LOSS badge), **StatTile** (4-column Bebas grids in MatchDetail) — all candidates for Phase 3 once the first 5 components have settled in real usage.
+- **Bulk replacement** of inline hex literals across the rest of the codebase — the lint baseline ratchets down as files get touched for other work.
+
+---
+
+## Design system — Phase 1: token alignment
+**Shipped:** 2026-05-12
+**Files:**
+- `app/globals.css` — fixed three bugs: body bg `#0a0a0a` → `#0d0d0d`, text `#f0ede8` → `#f0ece4`, font `'DM Sans'` → `'Inter'`. DM Sans was never loaded (only Bebas Neue, Inter, DM Mono are in layout.tsx). Aligns to documented DESIGN.md spec.
+- `app/lib/helpers.tsx` — added new tokens: `BG1` (#1a1a1a), `TRACK` (#252525), `MUTED_HI` (#888), `NULL_STATE` (#555) — these were already used 30+ times each across components but unnamed. Added `S` spacing scale and `RAD` radius scale.
+- `app/components/MatchDetail.tsx`, `JDStats.tsx`, `FixMatchModal.tsx` — replaced 95 instances of `fontFamily: 'monospace'` with `FONT_DATA` (`'DM Mono', monospace`). Previously these fell back to system monospace because the alias didn't reference the loaded DM Mono.
+- `app/components/StatBar.tsx` — refactored as canonical token-using example. Local `B`, `FD` constants removed; now imports `B`, `FONT_DATA`, `MUTED`, `MUTED_HI`, `TRACK`, `G`, `A`, `R` from helpers.
+- `scripts/lint-tokens.sh` + `.token-baseline` (299) — `npm run lint:tokens` reports hex literal count in components, fails if it goes up. Ratchet-only: pure awareness, no build coupling.
+- `DESIGN.md` — token implementation section added (TS-exports, not CSS vars); colour system extended with new tokens; spacing/radius scales documented with usage mapping.
+- `package.json` — added `lint:tokens` script.
+
+**Why now**
+A design-system audit (via the design:design-system skill) found three classes of drift: (a) DESIGN.md and globals.css disagreed on base tokens, (b) ~300 hex literals existed in components while named tokens went underused, (c) 95 `fontFamily: 'monospace'` instances were rendering as system monospace instead of DM Mono — a silent visual bug. Phase 1 fixes the bugs and adds the tokens that earned their place by repeated use.
+
+**Verified**
+- `npm run build` clean.
+- Preview: body computed `background-color: rgb(13, 13, 13)`, `color: rgb(240, 236, 228)`, `font-family: Inter`.
+- Match detail screen: data values now render in `"DM Mono", monospace` (verified via `preview_inspect`).
+- `npm run lint:tokens` reports 299 baseline.
+
+**What was deliberately left out**
+- **Bulk replacement of inline hex with new tokens** across all components — that's drift maintenance work and risks subtle breakage. The lint script ratchets the count down over time as components are edited for other reasons.
+- **CSS custom properties** (`--bg`, etc.). The codebase is inline-styles + TS constants; CSS vars would add a parallel system. Skip until there's a real need.
+- **Extracting Card / Chip / Pill / Button as components** (Action 3 of the audit). Higher-leverage but structural — deferred to Phase 2 with its own preview review.
+
+---
+
 ## Next Match Strategy — full redesign, brief is the screen
 **Shipped:** 2026-05-09 (same day as Pre-Match Brief v1)
 **Files:**

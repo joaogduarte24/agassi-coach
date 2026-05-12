@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { G, A, R, avg, col, computeAvgs } from '@/app/lib/helpers'
+import { G, A, R, avg, col, computeAvgs, FONT_DATA } from '@/app/lib/helpers'
 import { Avgs } from '@/app/types'
 import { ATP_PLAYERS, ATPPlayer } from '@/lib/atp-players'
 import RadarChart from './RadarChart'
@@ -51,7 +51,7 @@ function CompareBar({ label, jd, atp, gThresh, aThresh, suffix = '%', maxVal, sp
         <div style={{ height: '100%', width: `${jdPct}%`, background: color, borderRadius: 4, transition: 'width 0.3s' }} />
         {atpPct != null && (
           <div style={{ position: 'absolute', top: -5, left: `${atpPct}%`, width: 2, height: 17, background: '#fff', borderRadius: 1, zIndex: 2, transform: 'translateX(-50%)' }}>
-            <span style={{ position: 'absolute', top: 19, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#888', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+            <span style={{ position: 'absolute', top: 19, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#888', whiteSpace: 'nowrap', fontFamily: FONT_DATA }}>
               {atp}{suffix}
             </span>
           </div>
@@ -64,7 +64,7 @@ function CompareBar({ label, jd, atp, gThresh, aThresh, suffix = '%', maxVal, sp
 // ─── SEGMENTED BAR ───────────────────────────────────────────────────────────
 function SegBar({ segments }: { segments: { label: string; val: number | null; color: string }[] }) {
   const filtered = segments.filter(s => (s.val ?? 0) > 0)
-  if (!filtered.length) return <div style={{ fontSize: 11, color: '#333', fontFamily: 'monospace' }}>No data yet</div>
+  if (!filtered.length) return <div style={{ fontSize: 11, color: '#333', fontFamily: FONT_DATA }}>No data yet</div>
   const total = filtered.reduce((s, sg) => s + sg.val!, 0)
   return (
     <div>
@@ -75,7 +75,7 @@ function SegBar({ segments }: { segments: { label: string; val: number | null; c
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '4px 14px' }}>
         {filtered.map((s, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#666', fontFamily: 'monospace' }}>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#666', fontFamily: FONT_DATA }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
             {s.label} {Math.round((s.val! / total) * 100)}%
           </div>
@@ -162,12 +162,12 @@ export default function JDStats({ matches }: JDStatsProps) {
   const hasShotSplit = fhWinners != null || bhWinners != null || fhUE != null || bhUE != null
 
   const SectionTitle = ({ title }: { title: string }) => (
-    <div style={{ fontSize: 10, letterSpacing: 2, color: '#555', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14, marginTop: 24, borderBottom: '1px solid #1a1a1a', paddingBottom: 8 }}>{title}</div>
+    <div style={{ fontSize: 10, letterSpacing: 2, color: '#555', textTransform: 'uppercase', fontFamily: FONT_DATA, marginBottom: 14, marginTop: 24, borderBottom: '1px solid #1a1a1a', paddingBottom: 8 }}>{title}</div>
   )
 
   const Card = ({ title, children }: any) => (
     <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-      <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>{title}</div>
+      <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: FONT_DATA, marginBottom: 14 }}>{title}</div>
       {children}
     </div>
   )
@@ -182,7 +182,7 @@ export default function JDStats({ matches }: JDStatsProps) {
       <button
         onClick={() => setFilter(value)}
         style={{
-          padding: '5px 11px', borderRadius: 6, fontSize: 10, fontFamily: 'monospace', letterSpacing: 0.5,
+          padding: '5px 11px', borderRadius: 6, fontSize: 10, fontFamily: FONT_DATA, letterSpacing: 0.5,
           cursor: 'pointer', border: `1px solid ${active ? color : '#252525'}`,
           background: active ? `${color}18` : '#161616', color: active ? color : '#444',
         }}
@@ -193,7 +193,7 @@ export default function JDStats({ matches }: JDStatsProps) {
   }
 
   if (matches.length === 0) {
-    return <div style={{ color: '#333', fontFamily: 'monospace', textAlign: 'center', padding: 60 }}>No matches yet. Upload your first match →</div>
+    return <div style={{ color: '#333', fontFamily: FONT_DATA, textAlign: 'center', padding: 60 }}>No matches yet. Upload your first match →</div>
   }
 
   const noData = filteredMatches.length === 0
@@ -204,7 +204,7 @@ export default function JDStats({ matches }: JDStatsProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' as const, gap: 12 }}>
         <div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, letterSpacing: 2, color: '#e8d5b0' }}>JD Stats</div>
-          <div style={{ fontSize: 11, color: '#444', fontFamily: 'monospace', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: '#444', fontFamily: FONT_DATA, marginTop: 2 }}>
             {filteredMatches.length} of {matches.length} matches
             {filter !== 'all' && <span style={{ color: filter === 'wins' ? G : R }}> ({filter})</span>}
           </div>
@@ -218,7 +218,7 @@ export default function JDStats({ matches }: JDStatsProps) {
           </div>
           {/* ATP compare */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>COMPARE VS</div>
+            <div style={{ fontSize: 9, color: '#444', fontFamily: FONT_DATA, letterSpacing: 1 }}>COMPARE VS</div>
             <select
               value={selectedPlayer?.name || ''}
               onChange={e => setSelectedPlayer(ATP_PLAYERS.find(p => p.name === e.target.value) || null)}
@@ -234,7 +234,7 @@ export default function JDStats({ matches }: JDStatsProps) {
       </div>
 
       {noData ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#333', fontFamily: 'monospace', fontSize: 12 }}>
+        <div style={{ textAlign: 'center', padding: 40, color: '#333', fontFamily: FONT_DATA, fontSize: 12 }}>
           No {filter} on record yet.
         </div>
       ) : (
@@ -242,7 +242,7 @@ export default function JDStats({ matches }: JDStatsProps) {
           {/* RADAR + SUMMARY ROW */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8, alignItems: 'start' }}>
             <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 20 }}>
-              <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>Player Profile</div>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: FONT_DATA, marginBottom: 14 }}>Player Profile</div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <RadarChart
                   jdValues={radarAxes.map(a => a.jd)}
@@ -251,12 +251,12 @@ export default function JDStats({ matches }: JDStatsProps) {
                 />
               </div>
               <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#555', fontFamily: 'monospace' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#555', fontFamily: FONT_DATA }}>
                   <div style={{ width: 18, height: 2, background: '#4ade80', borderRadius: 1 }} />
                   <span>JD</span>
                 </div>
                 {atp && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#555', fontFamily: 'monospace' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#555', fontFamily: FONT_DATA }}>
                     <div style={{ width: 18, height: 2, background: '#fbbf24', borderRadius: 1, borderTop: '2px dashed #fbbf24' }} />
                     <span>{atp.name.split(' ')[1]}</span>
                   </div>
@@ -265,27 +265,27 @@ export default function JDStats({ matches }: JDStatsProps) {
             </div>
 
             <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 12, padding: 20 }}>
-              <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 14 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: '#444', textTransform: 'uppercase', fontFamily: FONT_DATA, marginBottom: 14 }}>
                 {atp ? `JD vs ${atp.name}` : 'Player Summary'}
               </div>
 
               {!atp ? (
                 <div>
-                  <div style={{ fontSize: 10, letterSpacing: 1.5, color: G, textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 8 }}>Strengths</div>
+                  <div style={{ fontSize: 10, letterSpacing: 1.5, color: G, textTransform: 'uppercase', fontFamily: FONT_DATA, marginBottom: 8 }}>Strengths</div>
                   {compRows.filter(r => r.jd != null && col(r.jd, r.gT, r.aT) === G).slice(0, 4).map((r, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
                       <span style={{ fontSize: 12, color: '#777' }}>{r.label}</span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: G }}>{r.jd}{r.unit}</span>
+                      <span style={{ fontFamily: FONT_DATA, fontSize: 12, color: G }}>{r.jd}{r.unit}</span>
                     </div>
                   ))}
-                  <div style={{ fontSize: 10, letterSpacing: 1.5, color: R, textTransform: 'uppercase', fontFamily: 'monospace', marginTop: 16, marginBottom: 8 }}>Areas to Improve</div>
+                  <div style={{ fontSize: 10, letterSpacing: 1.5, color: R, textTransform: 'uppercase', fontFamily: FONT_DATA, marginTop: 16, marginBottom: 8 }}>Areas to Improve</div>
                   {compRows.filter(r => r.jd != null && col(r.jd, r.gT, r.aT) === R).slice(0, 4).map((r, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
                       <span style={{ fontSize: 12, color: '#777' }}>{r.label}</span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: R }}>{r.jd}{r.unit}</span>
+                      <span style={{ fontFamily: FONT_DATA, fontSize: 12, color: R }}>{r.jd}{r.unit}</span>
                     </div>
                   ))}
-                  <div style={{ marginTop: 16, padding: '10px 12px', background: '#0e0e0e', borderRadius: 8, fontSize: 11, color: '#555', fontFamily: 'monospace', lineHeight: 1.6 }}>
+                  <div style={{ marginTop: 16, padding: '10px 12px', background: '#0e0e0e', borderRadius: 8, fontSize: 11, color: '#555', fontFamily: FONT_DATA, lineHeight: 1.6 }}>
                     Select an ATP player above to compare directly.
                   </div>
                 </div>
@@ -294,11 +294,11 @@ export default function JDStats({ matches }: JDStatsProps) {
                   <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                     <div style={{ flex: 1, textAlign: 'center', background: 'rgba(74,222,128,0.08)', borderRadius: 8, padding: '8px 4px', border: '1px solid rgba(74,222,128,0.15)' }}>
                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: G }}>{ahead.length}</div>
-                      <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>JD AHEAD</div>
+                      <div style={{ fontSize: 9, color: '#444', fontFamily: FONT_DATA, letterSpacing: 1 }}>JD AHEAD</div>
                     </div>
                     <div style={{ flex: 1, textAlign: 'center', background: 'rgba(248,113,113,0.08)', borderRadius: 8, padding: '8px 4px', border: '1px solid rgba(248,113,113,0.15)' }}>
                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: R }}>{behind.length}</div>
-                      <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>NEED WORK</div>
+                      <div style={{ fontSize: 9, color: '#444', fontFamily: FONT_DATA, letterSpacing: 1 }}>NEED WORK</div>
                     </div>
                   </div>
 
@@ -311,28 +311,28 @@ export default function JDStats({ matches }: JDStatsProps) {
                     const top4neg = ranked.filter(r => r.delta < 0).slice(0, 4)
                     return (
                       <div>
-                        <div style={{ fontSize: 10, letterSpacing: 1.5, color: G, textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 6 }}>JD Edges</div>
-                        {top3pos.length === 0 && <div style={{ fontSize: 11, color: '#333', fontFamily: 'monospace', marginBottom: 10 }}>None yet</div>}
+                        <div style={{ fontSize: 10, letterSpacing: 1.5, color: G, textTransform: 'uppercase', fontFamily: FONT_DATA, marginBottom: 6 }}>JD Edges</div>
+                        {top3pos.length === 0 && <div style={{ fontSize: 11, color: '#333', fontFamily: FONT_DATA, marginBottom: 10 }}>None yet</div>}
                         {top3pos.map((r, i) => (
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #1a1a1a' }}>
                             <span style={{ fontSize: 11, color: '#888' }}>{r.label}</span>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <span style={{ fontFamily: 'monospace', fontSize: 11, color: G }}>{r.jd}{r.unit}</span>
-                              <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#333' }}>vs</span>
-                              <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#555' }}>{r.atp}{r.unit}</span>
-                              <span style={{ fontFamily: 'monospace', fontSize: 9, color: G, background: 'rgba(74,222,128,0.1)', padding: '1px 5px', borderRadius: 4 }}>+{Math.abs(r.delta).toFixed(0)}</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 11, color: G }}>{r.jd}{r.unit}</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 9, color: '#333' }}>vs</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 11, color: '#555' }}>{r.atp}{r.unit}</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 9, color: G, background: 'rgba(74,222,128,0.1)', padding: '1px 5px', borderRadius: 4 }}>+{Math.abs(r.delta).toFixed(0)}</span>
                             </div>
                           </div>
                         ))}
-                        <div style={{ fontSize: 10, letterSpacing: 1.5, color: R, textTransform: 'uppercase', fontFamily: 'monospace', marginTop: 14, marginBottom: 6 }}>Biggest Gaps</div>
+                        <div style={{ fontSize: 10, letterSpacing: 1.5, color: R, textTransform: 'uppercase', fontFamily: FONT_DATA, marginTop: 14, marginBottom: 6 }}>Biggest Gaps</div>
                         {top4neg.map((r, i) => (
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: i < top4neg.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
                             <span style={{ fontSize: 11, color: '#888' }}>{r.label}</span>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <span style={{ fontFamily: 'monospace', fontSize: 11, color: R }}>{r.jd}{r.unit}</span>
-                              <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#333' }}>vs</span>
-                              <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#555' }}>{r.atp}{r.unit}</span>
-                              <span style={{ fontFamily: 'monospace', fontSize: 9, color: R, background: 'rgba(248,113,113,0.1)', padding: '1px 5px', borderRadius: 4 }}>{Math.abs(r.delta).toFixed(0)}</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 11, color: R }}>{r.jd}{r.unit}</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 9, color: '#333' }}>vs</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 11, color: '#555' }}>{r.atp}{r.unit}</span>
+                              <span style={{ fontFamily: FONT_DATA, fontSize: 9, color: R, background: 'rgba(248,113,113,0.1)', padding: '1px 5px', borderRadius: 4 }}>{Math.abs(r.delta).toFixed(0)}</span>
                             </div>
                           </div>
                         ))}
@@ -346,7 +346,7 @@ export default function JDStats({ matches }: JDStatsProps) {
 
           {/* Legend bar */}
           {atp && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 10, color: '#555', padding: '7px 12px', background: '#111', borderRadius: 6, marginBottom: 4, fontFamily: 'monospace' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 10, color: '#555', padding: '7px 12px', background: '#111', borderRadius: 6, marginBottom: 4, fontFamily: FONT_DATA }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 20, height: 6, borderRadius: 3, background: '#4ade80' }} />
                 <span>JD average</span>
@@ -375,22 +375,22 @@ export default function JDStats({ matches }: JDStatsProps) {
                   { label: 'Weakness', value: signals.jdProfile.weakness.label, sub: signals.jdProfile.weakness.evidence, conf: signals.jdProfile.weakness.confidence },
                 ].map(({ label, value, sub, conf }) => (
                   <div key={label} style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: 14, textAlign: 'center' }}>
-                    <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 9, color: '#444', fontFamily: FONT_DATA, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
                     <div style={{ fontSize: 15, color: '#e8d5b0', fontWeight: 600, marginBottom: 4 }}>{value}</div>
-                    <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', lineHeight: 1.4 }}>{sub}</div>
-                    <div style={{ fontSize: 8, color: conf === 'strong' ? G : conf === 'moderate' ? A : '#333', fontFamily: 'monospace', marginTop: 4 }}>{conf}</div>
+                    <div style={{ fontSize: 9, color: '#444', fontFamily: FONT_DATA, lineHeight: 1.4 }}>{sub}</div>
+                    <div style={{ fontSize: 8, color: conf === 'strong' ? G : conf === 'moderate' ? A : '#333', fontFamily: FONT_DATA, marginTop: 4 }}>{conf}</div>
                   </div>
                 ))}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                 <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Clutch</div>
+                  <div style={{ fontSize: 9, color: '#444', fontFamily: FONT_DATA, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Clutch</div>
                   <div style={{ fontSize: 12, color: signals.jdProfile.clutch.delta >= 5 ? G : signals.jdProfile.clutch.delta <= -5 ? R : '#888', lineHeight: 1.5 }}>
                     {signals.jdProfile.clutch.insight}
                   </div>
                 </div>
                 <div style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Aggression</div>
+                  <div style={{ fontSize: 9, color: '#444', fontFamily: FONT_DATA, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Aggression</div>
                   <div style={{ fontSize: 12, color: signals.jdProfile.aggression.index >= 3 ? G : signals.jdProfile.aggression.index <= -3 ? R : '#888', lineHeight: 1.5 }}>
                     {signals.jdProfile.aggression.insight}
                   </div>
@@ -410,8 +410,8 @@ export default function JDStats({ matches }: JDStatsProps) {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, color: '#ccc', lineHeight: 1.5, marginBottom: 2 }}>{sig.insight}</div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as any }}>
-                        <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#555' }}>{sig.detail}</span>
-                        <span style={{ fontSize: 8, fontFamily: 'monospace', padding: '1px 6px', borderRadius: 4,
+                        <span style={{ fontSize: 10, fontFamily: FONT_DATA, color: '#555' }}>{sig.detail}</span>
+                        <span style={{ fontSize: 8, fontFamily: FONT_DATA, padding: '1px 6px', borderRadius: 4,
                           color: sig.confidence === 'strong' ? G : sig.confidence === 'moderate' ? A : '#444',
                           background: sig.confidence === 'strong' ? 'rgba(74,222,128,0.08)' : sig.confidence === 'moderate' ? 'rgba(251,191,36,0.08)' : '#1a1a1a',
                         }}>{sig.confidence} · {sig.matchesUsed}m</span>
@@ -435,7 +435,7 @@ export default function JDStats({ matches }: JDStatsProps) {
                   <div key={s.stroke} style={{ background: '#141414', border: '1px solid #1a1a1a', borderRadius: 10, padding: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                       <span style={{ fontSize: 12, color: '#ccc', fontWeight: 600 }}>{s.label}</span>
-                      <span style={{ fontSize: 8, fontFamily: 'monospace', padding: '2px 6px', borderRadius: 4,
+                      <span style={{ fontSize: 8, fontFamily: FONT_DATA, padding: '2px 6px', borderRadius: 4,
                         color: s.tag === 'hidden_weapon' ? G : s.tag === 'reliable' ? '#60a5fa' : s.tag === 'overused' ? A : R,
                         background: s.tag === 'hidden_weapon' ? 'rgba(74,222,128,0.08)' : s.tag === 'reliable' ? 'rgba(96,165,250,0.08)' : s.tag === 'overused' ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.08)',
                       }}>
@@ -444,16 +444,16 @@ export default function JDStats({ matches }: JDStatsProps) {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#e8d5b0' }}>{s.pctIn}%</div>
-                        <div style={{ fontSize: 8, color: '#333', fontFamily: 'monospace' }}>IN</div>
+                        <div style={{ fontFamily: FONT_DATA, fontSize: 14, color: '#e8d5b0' }}>{s.pctIn}%</div>
+                        <div style={{ fontSize: 8, color: '#333', fontFamily: FONT_DATA }}>IN</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#e8d5b0' }}>~{s.usage}%</div>
-                        <div style={{ fontSize: 8, color: '#333', fontFamily: 'monospace' }}>USAGE</div>
+                        <div style={{ fontFamily: FONT_DATA, fontSize: 14, color: '#e8d5b0' }}>~{s.usage}%</div>
+                        <div style={{ fontSize: 8, color: '#333', fontFamily: FONT_DATA }}>USAGE</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#e8d5b0' }}>{s.pace ?? '—'}</div>
-                        <div style={{ fontSize: 8, color: '#333', fontFamily: 'monospace' }}>KM/H</div>
+                        <div style={{ fontFamily: FONT_DATA, fontSize: 14, color: '#e8d5b0' }}>{s.pace ?? '—'}</div>
+                        <div style={{ fontSize: 8, color: '#333', fontFamily: FONT_DATA }}>KM/H</div>
                       </div>
                     </div>
                     <div style={{ fontSize: 10, color: '#666', lineHeight: 1.4 }}>{s.insight}</div>
@@ -471,7 +471,7 @@ export default function JDStats({ matches }: JDStatsProps) {
                 {signals.journal.slice(0, 5).map((sig, i) => (
                   <div key={sig.key} style={{ padding: '8px 0', borderBottom: i < Math.min(4, signals.journal.length - 1) ? '1px solid #1a1a1a' : 'none' }}>
                     <div style={{ fontSize: 12, color: '#999', lineHeight: 1.5, marginBottom: 2 }}>{sig.insight}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: '#444' }}>{sig.detail}</div>
+                    <div style={{ fontSize: 10, fontFamily: FONT_DATA, color: '#444' }}>{sig.detail}</div>
                   </div>
                 ))}
               </div>
@@ -521,8 +521,8 @@ export default function JDStats({ matches }: JDStatsProps) {
               ].map(({ label, val, atp: atpVal }, i) => (
                 <div key={i} style={{ background: '#1a1a1a', borderRadius: 8, padding: '10px 6px', textAlign: 'center' }}>
                   <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: val == null ? '#333' : '#e8d5b0' }}>{val ?? '—'}</div>
-                  {atpVal != null && <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#555', marginTop: 2 }}>ATP: {atpVal}</div>}
-                  <div style={{ fontSize: 9, color: '#333', textTransform: 'uppercase', letterSpacing: 1, marginTop: 3, fontFamily: 'monospace' }}>{label}</div>
+                  {atpVal != null && <div style={{ fontFamily: FONT_DATA, fontSize: 10, color: '#555', marginTop: 2 }}>ATP: {atpVal}</div>}
+                  <div style={{ fontSize: 9, color: '#333', textTransform: 'uppercase', letterSpacing: 1, marginTop: 3, fontFamily: FONT_DATA }}>{label}</div>
                 </div>
               ))}
             </div>
@@ -532,31 +532,31 @@ export default function JDStats({ matches }: JDStatsProps) {
             {/* Winner & Error attribution */}
             {hasShotSplit && (
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #1a1a1a' }}>
-                <div style={{ fontSize: 10, letterSpacing: 1.5, color: '#444', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 12 }}>Winner & Error Sources</div>
+                <div style={{ fontSize: 10, letterSpacing: 1.5, color: '#444', textTransform: 'uppercase', fontFamily: FONT_DATA, marginBottom: 12 }}>Winner & Error Sources</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   {(fhWinners != null || bhWinners != null) && (
                     <div>
-                      <div style={{ fontSize: 10, color: '#555', fontFamily: 'monospace', marginBottom: 8 }}>Winners avg / match</div>
+                      <div style={{ fontSize: 10, color: '#555', fontFamily: FONT_DATA, marginBottom: 8 }}>Winners avg / match</div>
                       <SegBar segments={[
                         { label: 'FH', val: fhWinners, color: G },
                         { label: 'BH', val: bhWinners, color: '#60a5fa' },
                       ]} />
                       <div style={{ display: 'flex', gap: 16, marginTop: 6 }}>
-                        {fhWinners != null && <span style={{ fontSize: 10, fontFamily: 'monospace', color: G }}>FH: {fhWinners}</span>}
-                        {bhWinners != null && <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#60a5fa' }}>BH: {bhWinners}</span>}
+                        {fhWinners != null && <span style={{ fontSize: 10, fontFamily: FONT_DATA, color: G }}>FH: {fhWinners}</span>}
+                        {bhWinners != null && <span style={{ fontSize: 10, fontFamily: FONT_DATA, color: '#60a5fa' }}>BH: {bhWinners}</span>}
                       </div>
                     </div>
                   )}
                   {(fhUE != null || bhUE != null) && (
                     <div>
-                      <div style={{ fontSize: 10, color: '#555', fontFamily: 'monospace', marginBottom: 8 }}>Unforced Errors avg / match</div>
+                      <div style={{ fontSize: 10, color: '#555', fontFamily: FONT_DATA, marginBottom: 8 }}>Unforced Errors avg / match</div>
                       <SegBar segments={[
                         { label: 'FH', val: fhUE, color: '#fbbf24' },
                         { label: 'BH', val: bhUE, color: R },
                       ]} />
                       <div style={{ display: 'flex', gap: 16, marginTop: 6 }}>
-                        {fhUE != null && <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#fbbf24' }}>FH: {fhUE}</span>}
-                        {bhUE != null && <span style={{ fontSize: 10, fontFamily: 'monospace', color: R }}>BH: {bhUE}</span>}
+                        {fhUE != null && <span style={{ fontSize: 10, fontFamily: FONT_DATA, color: '#fbbf24' }}>FH: {fhUE}</span>}
+                        {bhUE != null && <span style={{ fontSize: 10, fontFamily: FONT_DATA, color: R }}>BH: {bhUE}</span>}
                       </div>
                     </div>
                   )}
@@ -654,16 +654,16 @@ export default function JDStats({ matches }: JDStatsProps) {
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
                           <span style={{ fontSize: 12, color: '#666' }}>Yes / Mostly</span>
-                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: execYesMostly >= 60 ? G : execYesMostly >= 40 ? A : R }}>{execYesMostly}% win rate</span>
+                          <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: execYesMostly >= 60 ? G : execYesMostly >= 40 ? A : R }}>{execYesMostly}% win rate</span>
                         </div>
                         {execNo != null && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
                             <span style={{ fontSize: 12, color: '#666' }}>No</span>
-                            <span style={{ fontFamily: 'monospace', fontSize: 13, color: execNo >= 60 ? G : execNo >= 40 ? A : R }}>{execNo}% win rate</span>
+                            <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: execNo >= 60 ? G : execNo >= 40 ? A : R }}>{execNo}% win rate</span>
                           </div>
                         )}
                         {planMatches.length > 0 && (
-                          <div style={{ fontSize: 10, color: '#333', fontFamily: 'monospace', marginTop: 8 }}>from {planMatches.length} match{planMatches.length > 1 ? 'es' : ''} with journal</div>
+                          <div style={{ fontSize: 10, color: '#333', fontFamily: FONT_DATA, marginTop: 8 }}>from {planMatches.length} match{planMatches.length > 1 ? 'es' : ''} with journal</div>
                         )}
                       </div>
                     </Card>
@@ -673,25 +673,25 @@ export default function JDStats({ matches }: JDStatsProps) {
                       {recWins != null && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
                           <span style={{ fontSize: 12, color: '#666' }}>Recovery in wins</span>
-                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: recWins >= 67 ? G : recWins >= 34 ? A : R }}>{recWins}%</span>
+                          <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: recWins >= 67 ? G : recWins >= 34 ? A : R }}>{recWins}%</span>
                         </div>
                       )}
                       {recLosses != null && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
                           <span style={{ fontSize: 12, color: '#666' }}>Recovery in losses</span>
-                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: recLosses >= 67 ? G : recLosses >= 34 ? A : R }}>{recLosses}%</span>
+                          <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: recLosses >= 67 ? G : recLosses >= 34 ? A : R }}>{recLosses}%</span>
                         </div>
                       )}
                       {avgFocus != null && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1a1a1a' }}>
                           <span style={{ fontSize: 12, color: '#666' }}>Avg focus</span>
-                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: avgFocus >= 4 ? G : avgFocus >= 3 ? A : R }}>{avgFocus}/5</span>
+                          <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: avgFocus >= 4 ? G : avgFocus >= 3 ? A : R }}>{avgFocus}/5</span>
                         </div>
                       )}
                       {avgComposure != null && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
                           <span style={{ fontSize: 12, color: '#666' }}>Avg composure</span>
-                          <span style={{ fontFamily: 'monospace', fontSize: 13, color: avgComposure >= 4 ? G : avgComposure >= 3 ? A : R }}>{avgComposure}/5</span>
+                          <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: avgComposure >= 4 ? G : avgComposure >= 3 ? A : R }}>{avgComposure}/5</span>
                         </div>
                       )}
                     </Card>
@@ -702,7 +702,7 @@ export default function JDStats({ matches }: JDStatsProps) {
           })()}
 
           {/* Context note */}
-          <div style={{ marginTop: 16, padding: '12px 16px', background: '#111', border: '1px solid #1a1a1a', borderRadius: 8, fontSize: 10, color: '#333', fontFamily: 'monospace', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 16, padding: '12px 16px', background: '#111', border: '1px solid #1a1a1a', borderRadius: 8, fontSize: 10, color: '#333', fontFamily: FONT_DATA, lineHeight: 1.6 }}>
             ATP stats are 2024-25 season tour averages. Forehand/backhand direction splits are tour-average estimates. Serve speeds in km/h. Trend lines show last 8 matches in chronological order.
           </div>
         </>
