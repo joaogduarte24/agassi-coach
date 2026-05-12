@@ -4,6 +4,33 @@ Each entry documents what was built, why it was designed that way, what was left
 
 ---
 
+## Design system — Phase 1: token alignment
+**Shipped:** 2026-05-12
+**Files:**
+- `app/globals.css` — fixed three bugs: body bg `#0a0a0a` → `#0d0d0d`, text `#f0ede8` → `#f0ece4`, font `'DM Sans'` → `'Inter'`. DM Sans was never loaded (only Bebas Neue, Inter, DM Mono are in layout.tsx). Aligns to documented DESIGN.md spec.
+- `app/lib/helpers.tsx` — added new tokens: `BG1` (#1a1a1a), `TRACK` (#252525), `MUTED_HI` (#888), `NULL_STATE` (#555) — these were already used 30+ times each across components but unnamed. Added `S` spacing scale and `RAD` radius scale.
+- `app/components/MatchDetail.tsx`, `JDStats.tsx`, `FixMatchModal.tsx` — replaced 95 instances of `fontFamily: 'monospace'` with `FONT_DATA` (`'DM Mono', monospace`). Previously these fell back to system monospace because the alias didn't reference the loaded DM Mono.
+- `app/components/StatBar.tsx` — refactored as canonical token-using example. Local `B`, `FD` constants removed; now imports `B`, `FONT_DATA`, `MUTED`, `MUTED_HI`, `TRACK`, `G`, `A`, `R` from helpers.
+- `scripts/lint-tokens.sh` + `.token-baseline` (299) — `npm run lint:tokens` reports hex literal count in components, fails if it goes up. Ratchet-only: pure awareness, no build coupling.
+- `DESIGN.md` — token implementation section added (TS-exports, not CSS vars); colour system extended with new tokens; spacing/radius scales documented with usage mapping.
+- `package.json` — added `lint:tokens` script.
+
+**Why now**
+A design-system audit (via the design:design-system skill) found three classes of drift: (a) DESIGN.md and globals.css disagreed on base tokens, (b) ~300 hex literals existed in components while named tokens went underused, (c) 95 `fontFamily: 'monospace'` instances were rendering as system monospace instead of DM Mono — a silent visual bug. Phase 1 fixes the bugs and adds the tokens that earned their place by repeated use.
+
+**Verified**
+- `npm run build` clean.
+- Preview: body computed `background-color: rgb(13, 13, 13)`, `color: rgb(240, 236, 228)`, `font-family: Inter`.
+- Match detail screen: data values now render in `"DM Mono", monospace` (verified via `preview_inspect`).
+- `npm run lint:tokens` reports 299 baseline.
+
+**What was deliberately left out**
+- **Bulk replacement of inline hex with new tokens** across all components — that's drift maintenance work and risks subtle breakage. The lint script ratchets the count down over time as components are edited for other reasons.
+- **CSS custom properties** (`--bg`, etc.). The codebase is inline-styles + TS constants; CSS vars would add a parallel system. Skip until there's a real need.
+- **Extracting Card / Chip / Pill / Button as components** (Action 3 of the audit). Higher-leverage but structural — deferred to Phase 2 with its own preview review.
+
+---
+
 ## Next Match Strategy — full redesign, brief is the screen
 **Shipped:** 2026-05-09 (same day as Pre-Match Brief v1)
 **Files:**

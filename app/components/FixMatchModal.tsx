@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { G, A, R, deepMerge, overwriteMerge, getMissingFields, IMPORTANT_FIELDS, fmtDate } from '@/app/lib/helpers'
+import { G, A, R, deepMerge, overwriteMerge, getMissingFields, IMPORTANT_FIELDS, fmtDate, FONT_DATA } from '@/app/lib/helpers'
 
 interface FixMatchModalProps {
   match: any
@@ -74,7 +74,7 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
           <div>
             <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:'#e8d5b0'}}>Fix Match Data</div>
-            <div style={{fontSize:11,color:'#555',fontFamily:'monospace',marginTop:2}}>
+            <div style={{fontSize:11,color:'#555',fontFamily: FONT_DATA,marginTop:2}}>
               JD vs {match.opponent?.name} · {fmtDate(match.date)}
             </div>
           </div>
@@ -84,8 +84,8 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
         {/* Completeness bar */}
         <div style={{marginBottom:16}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
-            <span style={{fontSize:9,color:'#444',fontFamily:'monospace',letterSpacing:1.5,textTransform:'uppercase'}}>Data Completeness</span>
-            <span style={{fontSize:10,fontFamily:'monospace',color:compColor,fontWeight:600}}>{completeness}%</span>
+            <span style={{fontSize:9,color:'#444',fontFamily: FONT_DATA,letterSpacing:1.5,textTransform:'uppercase'}}>Data Completeness</span>
+            <span style={{fontSize:10,fontFamily: FONT_DATA,color:compColor,fontWeight:600}}>{completeness}%</span>
           </div>
           <div style={{height:5,background:'#252525',borderRadius:3}}>
             <div style={{height:'100%',width:`${completeness}%`,background:compColor,borderRadius:3,transition:'width 0.5s'}} />
@@ -99,7 +99,7 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
               style={{flex:1,padding:'8px 6px',borderRadius:6,border:'none',cursor:'pointer',transition:'all 0.15s',
                 background: mode===m ? (m==='overwrite'?'rgba(248,113,113,0.15)':'rgba(251,191,36,0.12)') : 'transparent',
                 color: mode===m ? (m==='overwrite'?R:A) : '#444'}}>
-              <div style={{fontSize:11,fontWeight:700,fontFamily:'monospace',letterSpacing:0.5}}>{label}</div>
+              <div style={{fontSize:11,fontWeight:700,fontFamily: FONT_DATA,letterSpacing:0.5}}>{label}</div>
               <div style={{fontSize:9,color:mode===m?(m==='overwrite'?'rgba(248,113,113,0.6)':'rgba(251,191,36,0.5)'):'#2a2a2a',marginTop:2,lineHeight:1.3}}>{desc}</div>
             </button>
           ))}
@@ -109,16 +109,16 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
         {mode === 'fill' ? (
           missing.length > 0 ? (
             <div style={{background:'rgba(0,0,0,0.4)',borderRadius:10,padding:12,marginBottom:16}}>
-              <div style={{fontSize:9,letterSpacing:1.5,color:A,fontFamily:'monospace',textTransform:'uppercase',marginBottom:10}}>Missing Fields</div>
+              <div style={{fontSize:9,letterSpacing:1.5,color:A,fontFamily: FONT_DATA,textTransform:'uppercase',marginBottom:10}}>Missing Fields</div>
               {(['Serve','Return','Groundstrokes','Shot Stats','Match Stats'] as const).map(section => {
                 const fields = missing.filter(f => f.section === section)
                 if (!fields.length) return null
                 return (
                   <div key={section} style={{marginBottom:8}}>
-                    <div style={{fontSize:9,color:'#333',fontFamily:'monospace',letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{section}</div>
+                    <div style={{fontSize:9,color:'#333',fontFamily: FONT_DATA,letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{section}</div>
                     <div style={{display:'flex',flexWrap:'wrap' as any,gap:4}}>
                       {fields.map(f => (
-                        <span key={f.label} style={{fontSize:10,color:A,fontFamily:'monospace',background:'rgba(251,191,36,0.06)',padding:'2px 7px',borderRadius:4,border:'1px solid rgba(251,191,36,0.15)'}}>
+                        <span key={f.label} style={{fontSize:10,color:A,fontFamily: FONT_DATA,background:'rgba(251,191,36,0.06)',padding:'2px 7px',borderRadius:4,border:'1px solid rgba(251,191,36,0.15)'}}>
                           {f.label}
                         </span>
                       ))}
@@ -126,19 +126,19 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
                   </div>
                 )
               })}
-              <div style={{marginTop:10,fontSize:10,color:'#444',fontFamily:'monospace',lineHeight:1.55,borderTop:'1px solid #1a1a1a',paddingTop:8}}>
+              <div style={{marginTop:10,fontSize:10,color:'#444',fontFamily: FONT_DATA,lineHeight:1.55,borderTop:'1px solid #1a1a1a',paddingTop:8}}>
                 Upload the relevant SwingVision screenshot — existing data is never overwritten in Fill mode.
               </div>
             </div>
           ) : (
-            <div style={{background:'rgba(74,222,128,0.06)',border:'1px solid rgba(74,222,128,0.15)',borderRadius:8,padding:12,marginBottom:16,fontSize:12,color:G,fontFamily:'monospace',textAlign:'center'}}>
+            <div style={{background:'rgba(74,222,128,0.06)',border:'1px solid rgba(74,222,128,0.15)',borderRadius:8,padding:12,marginBottom:16,fontSize:12,color:G,fontFamily: FONT_DATA,textAlign:'center'}}>
               All key stats present — switch to Correct Values if a number looks wrong
             </div>
           )
         ) : (
           <div style={{background:'rgba(248,113,113,0.06)',border:'1px solid rgba(248,113,113,0.15)',borderRadius:8,padding:12,marginBottom:16}}>
-            <div style={{fontSize:11,fontWeight:700,color:R,fontFamily:'monospace',marginBottom:6}}>OVERWRITE MODE</div>
-            <div style={{fontSize:11,color:'rgba(248,113,113,0.7)',fontFamily:'monospace',lineHeight:1.6}}>
+            <div style={{fontSize:11,fontWeight:700,color:R,fontFamily: FONT_DATA,marginBottom:6}}>OVERWRITE MODE</div>
+            <div style={{fontSize:11,color:'rgba(248,113,113,0.7)',fontFamily: FONT_DATA,lineHeight:1.6}}>
               Every field visible in your screenshots will be re-extracted and replace the stored value. Fields Claude can't see stay unchanged.<br/><br/>
               Use this when a value looks wrong (e.g. DTL speed shows 73 km/h in SwingVision but 81 km/h in the app).
             </div>
@@ -152,7 +152,7 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
           {images.length ? (
             <div>
               <div style={{color:G,fontSize:13,marginBottom:3}}>{images.length} screenshot{images.length>1?'s':''} selected</div>
-              <div style={{fontSize:10,color:'#444',fontFamily:'monospace'}}>{images.map(i=>i.name).join(', ')}</div>
+              <div style={{fontSize:10,color:'#444',fontFamily: FONT_DATA}}>{images.map(i=>i.name).join(', ')}</div>
               <button onClick={e=>{e.stopPropagation();setImages([]);if(fileRef.current)fileRef.current.value=''}}
                 style={{marginTop:6,background:'none',border:'none',color:'#555',fontSize:11,cursor:'pointer',textDecoration:'underline'}}>clear</button>
             </div>
@@ -178,7 +178,7 @@ export default function FixMatchModal({ match, onPatched, onClose }: FixMatchMod
         </button>
 
         {status && (
-          <div style={{marginTop:10,padding:'8px 12px',borderRadius:7,background:'#111',fontSize:12,color:'#aaa',textAlign:'center',fontFamily:'monospace'}}>
+          <div style={{marginTop:10,padding:'8px 12px',borderRadius:7,background:'#111',fontSize:12,color:'#aaa',textAlign:'center',fontFamily: FONT_DATA}}>
             {status}
           </div>
         )}

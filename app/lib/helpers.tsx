@@ -6,13 +6,28 @@ export const G = '#4ade80', A = '#fbbf24', R = '#f87171', B = '#60a5fa'
 export const GD = 'rgba(74,222,128,0.08)', AD = 'rgba(251,191,36,0.08)', RD = 'rgba(248,113,113,0.08)'
 
 // ─── DESIGN LANGUAGE TOKENS ──────────────────────────────────────────────────
+// Brand
 export const GOLD = '#c4a96a', GOLD_DIM = '#8a7348'
-export const BG = '#0d0d0d', BG2 = '#141414', BG3 = '#1c1c1c'
+
+// Background stack — page → card → nested → track
+export const BG = '#0d0d0d', BG1 = '#1a1a1a', BG2 = '#141414', BG3 = '#1c1c1c', TRACK = '#252525'
+
+// Borders
 export const BORDER = '#222', BORDER2 = '#2a2a2a'
-export const WHITE = '#f0ece4', MUTED = '#666', DIM = '#333'
+
+// Text — high-contrast → mid → muted → null-state → ghost
+export const WHITE = '#f0ece4', MUTED_HI = '#888', MUTED = '#666', NULL_STATE = '#555', DIM = '#333'
+
+// Type faces
 export const FONT_BODY = "'Inter',system-ui,sans-serif"
 export const FONT_DATA = "'DM Mono',monospace"
 export const FONT_DISPLAY = "'Bebas Neue',sans-serif"
+
+// Spacing scale — use these instead of arbitrary numbers in padding/margin/gap
+export const S = { xs: 8, sm: 12, md: 16, lg: 20, xl: 28, xxl: 40 } as const
+
+// Radius scale — sm pills, md inputs/buttons, lg cards
+export const RAD = { sm: 8, md: 12, lg: 16, pill: 999 } as const
 
 // ─── MATCH STATE ─────────────────────────────────────────────────────────────
 export function matchState(m: any): 'complete' | 'journal-only' | 'stats-only' | 'empty' {

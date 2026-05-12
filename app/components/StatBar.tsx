@@ -1,5 +1,5 @@
 'use client'
-import { col } from '@/app/lib/helpers'
+import { col, G, A, R, B, MUTED, MUTED_HI, TRACK, FONT_DATA } from '@/app/lib/helpers'
 
 interface StatBarProps {
   label: string
@@ -13,14 +13,11 @@ interface StatBarProps {
   lowerIsBetter?: boolean
 }
 
-const B = '#60a5fa'
-const FD = "'DM Mono',monospace"
-
 export default function StatBar({ label, val, avgVal, oppVal, gThresh, aThresh, suffix='%', maxVal, lowerIsBetter }: StatBarProps) {
   if (val == null) return null
   const scale = suffix === 'km/h' ? (maxVal || 130) : 100
   const color = lowerIsBetter
-    ? (val <= gThresh ? '#4ade80' : val <= aThresh ? '#fbbf24' : '#f87171')
+    ? (val <= gThresh ? G : val <= aThresh ? A : R)
     : col(val, gThresh, aThresh)
 
   const valPct = lowerIsBetter
@@ -36,14 +33,14 @@ export default function StatBar({ label, val, avgVal, oppVal, gThresh, aThresh, 
   return (
     <div style={{marginBottom:10}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:2}}>
-        <span style={{fontSize:11,color:'#888'}}>{label}</span>
-        <span style={{fontFamily:FD,fontSize:13,fontWeight:500,color}}>{val}{suffix}</span>
+        <span style={{fontSize:11,color:MUTED_HI}}>{label}</span>
+        <span style={{fontFamily:FONT_DATA,fontSize:13,fontWeight:500,color}}>{val}{suffix}</span>
       </div>
-      <div style={{display:'flex',alignItems:'baseline',marginBottom:5,fontSize:10,fontFamily:FD}}>
-        {avgVal != null && <span style={{color:'#666',flex:1}}>avg {avgVal}{suffix}</span>}
+      <div style={{display:'flex',alignItems:'baseline',marginBottom:5,fontSize:10,fontFamily:FONT_DATA}}>
+        {avgVal != null && <span style={{color:MUTED,flex:1}}>avg {avgVal}{suffix}</span>}
         {oppVal != null && <span style={{color:'rgba(96,165,250,0.6)'}}>opp {oppVal}{suffix}</span>}
       </div>
-      <div style={{height:5,background:'#252525',borderRadius:2.5,position:'relative',overflow:'visible'}}>
+      <div style={{height:5,background:TRACK,borderRadius:2.5,position:'relative',overflow:'visible'}}>
         <div style={{
           height:'100%',
           width:`${valPct}%`,

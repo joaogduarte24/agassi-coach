@@ -35,32 +35,46 @@ Three faces, each with a distinct role. Never mixed within the same role.
 
 ---
 
+## Token implementation
+
+Tokens are TypeScript constants exported from [app/lib/helpers.tsx](app/lib/helpers.tsx). Inline styles import them by name (no CSS variables, no Tailwind). The names below match the TS exports — use the import, not the hex.
+
+```ts
+import { BG, BG2, GOLD, WHITE, MUTED, FONT_BODY, FONT_DATA, S, RAD } from '@/app/lib/helpers'
+```
+
+To enforce: `npm run lint:tokens` counts raw hex literals in `app/components/`. Baseline ratchets down only.
+
 ## Colour System
 
-### Background stack
+### Background stack — page → mid → card → nested → track
 ```
---bg:    #0d0d0d   Page background
---bg2:   #141414   Cards, panels
---bg3:   #1c1c1c   Nested elements, hover states
+BG     #0d0d0d   Page background (also html/body in globals.css)
+BG1    #1a1a1a   Mid layer — section panels, raised tiles
+BG2    #141414   Cards, panels
+BG3    #1c1c1c   Nested elements, hover states
+TRACK  #252525   Bar tracks, progress backgrounds
 ```
 
 ### Borders
 ```
---border:  #222   Default card border
---border2: #2a2a2a  Hover, active, secondary borders
+BORDER   #222   Default card border
+BORDER2  #2a2a2a  Hover, active, secondary borders
 ```
 
 ### Brand
 ```
---gold:     #c4a96a   Active tab underline, add button, selected chip border
---gold-dim: #8a7348   Subtle gold — card hover borders, muted brand moments
+GOLD      #c4a96a   Active tab underline, add button, selected chip border
+GOLD_DIM  #8a7348   Subtle gold — card hover borders, muted brand moments, stat anchors
 ```
 
-### Text
+### Text — high-contrast → mid → muted → null → ghost
 ```
---white:  #f0ece4   Primary text (warm white, not pure)
---muted:  #666     Secondary labels, meta, section headers
---dim:    #333     Inactive nav, placeholder, ghost elements
+WHITE       #f0ece4   Primary text (warm white, not pure)
+MUTED_HI    #888     Label text variant — slightly brighter than MUTED
+MUTED       #666     Secondary labels, meta, section headers
+NULL_STATE  #555     "No data" fallback (from col() helper when val is null)
+DIM         #333     Inactive nav, placeholder, ghost elements
 ```
 
 ### Semantic (performance colours — unchanged from existing system)
@@ -80,15 +94,24 @@ Three faces, each with a distinct role. Never mixed within the same role.
 
 ## Spacing & Layout
 
+Use the `S` scale for padding/margin/gap and `RAD` for borderRadius. Avoid arbitrary numbers.
+
+```ts
+S = { xs: 8, sm: 12, md: 16, lg: 20, xl: 28, xxl: 40 }
+RAD = { sm: 8, md: 12, lg: 16, pill: 999 }
 ```
-Page padding:     20px horizontal
-Content max-width: 390px (mobile-first, centered on desktop)
-Card padding:     20px
-Card radius:      16px
-Section gap:      28px between major sections
-Card gap:         12px between cards
-Row padding:      14px vertical (stat rows, debrief bullets)
-```
+
+| Use | Token |
+|---|---|
+| Page horizontal padding | `S.lg` (20) |
+| Card padding | `S.lg` (20) |
+| Card radius | `RAD.lg` (16) |
+| Card-to-card gap | `S.sm` (12) |
+| Section gap (major) | `S.xl` (28) |
+| Row vertical padding (stat rows, bullets) | `S.md - 2` ≈ 14 |
+| Button radius | `RAD.md` (12) |
+| Chip / pill radius | `RAD.pill` |
+| Content max-width | 390px (mobile-first, centered on desktop) |
 
 ---
 
